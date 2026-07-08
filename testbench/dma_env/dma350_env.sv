@@ -22,8 +22,8 @@ class dma350_env extends uvm_env;
     boot_agent boot_agent_h;
     boot_agent_cfg boot_agent_cfg_h;
 
-    dma_irq_agent dma_irq_agent_h;
-    dma_irq_config dma_irq_config_h;
+    dma_irq_agent#() dma_irq_agent_h;
+    dma_irq_config#() dma_irq_config_h;
 
     crlp_agent crlp_agent_h;
     crlp_config crlp_config_h;
@@ -67,7 +67,7 @@ class dma350_env extends uvm_env;
             `uvm_fatal("FATAL_ENV_AGENT_CONFIG", $sformatf("Couldn't get the boot_agent_cfg from config_db"))
         end
 
-        if(!uvm_config_db #(dma_irq_config)::get(this,"","dma_irq_config",dma_irq_config_h)) begin
+        if(!uvm_config_db #(dma_irq_config#())::get(this,"","dma_irq_config",dma_irq_config_h)) begin
             `uvm_fatal("FATAL_ENV_AGENT_CONFIG", $sformatf("Couldn't get the dma_irq_config from config_db"))
         end
 
@@ -89,7 +89,7 @@ class dma350_env extends uvm_env;
         uvm_config_db#(axis_master_cfg)::set(this, "axis_agent_in_h",   "cfg", axis_master_cfg_in_h);
         uvm_config_db#(axis_slave_cfg )::set(this, "axis_agent_out_h",  "cfg", axis_slave_cfg_out_h);
         uvm_config_db#(boot_agent_cfg )::set(this, "boot_agent_h",      "cfg", boot_agent_cfg_h);
-        uvm_config_db#(dma_irq_config )::set(this, "dma_irq_agent_h",   "cfg", dma_irq_config_h);
+        uvm_config_db#(dma_irq_config#())::set(this, "dma_irq_agent_h",   "cfg", dma_irq_config_h);
         uvm_config_db#(crlp_config    )::set(this, "crlp_agent_h",      "cfg", crlp_config_h);
         uvm_config_db#(dma350_sc_cfg  )::set(this, "dma350_sc_agent_h", "cfg", dma350_sc_cfg_h);
 
@@ -103,7 +103,7 @@ class dma350_env extends uvm_env;
         axis_agent_in_h   = axis_master_agent::type_id::create("axis_agent_in_h",this);
         axis_agent_out_h  = axis_slave_agent::type_id::create("axis_agent_out_h",this);
         boot_agent_h      = boot_agent::type_id::create("boot_agent_h",this);
-        dma_irq_agent_h   = dma_irq_agent::type_id::create("dma_irq_agent_h",this);
+        dma_irq_agent_h   = dma_irq_agent#()::type_id::create("dma_irq_agent_h",this);
         crlp_agent_h      = crlp_agent::type_id::create("crlp_agent_h",this);
         dma350_sc_agent_h = dma350_sc_agent::type_id::create("dma350_sc_agent_h",this);
 

@@ -258,7 +258,6 @@ endclass
 //=============================================================================
 class dma350_scoreboard extends uvm_scoreboard;
     `uvm_component_utils(dma350_scoreboard)
-    import axi5_globals_pkg::*;
 
     //---- handle & analysis FIFO (giu nguyen khai bao ban dau) ----------------
     axi5_slave_tx axi5_slave0_tx_h1, axi5_slave0_tx_h2, axi5_slave0_tx_h3,

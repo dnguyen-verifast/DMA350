@@ -20,6 +20,17 @@
 `ifndef DMA350_ENV_PKG_SV
 `define DMA350_ENV_PKG_SV
 
+// Macro kich thuoc SC (mirror tu dma350_sc_if / dma350_sc_pkg). dma350_scoreboard
+// dung `DMA350_SC_MAX_GPO_WIDTH; mot so simulator (vd Questa mac dinh) KHONG cho
+// macro "leak" sang file/compilation-unit khac, nen dinh nghia lai o day truoc
+// khi include scoreboard. ifndef-guard => an toan neu da define noi khac (cung 8/32).
+`ifndef DMA350_SC_MAX_CHANNELS
+  `define DMA350_SC_MAX_CHANNELS 8
+`endif
+`ifndef DMA350_SC_MAX_GPO_WIDTH
+  `define DMA350_SC_MAX_GPO_WIDTH 32
+`endif
+
 package dma350_env_pkg;
 
   import uvm_pkg::*;

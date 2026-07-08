@@ -25,7 +25,7 @@ class dma350_base_test extends uvm_test;
   axis_master_cfg         axis_master_cfg_h;
   axis_slave_cfg          axis_slave_cfg_h;
   boot_agent_cfg          boot_cfg_h;
-  dma_irq_config          dma_irq_cfg_h;
+  dma_irq_config#()       dma_irq_cfg_h;
   crlp_config             crlp_cfg_h;
   dma350_sc_cfg           dma350_sc_cfg_h;
 
@@ -164,10 +164,10 @@ function void dma350_base_test::setup_dma_irq_agent_cfg();
   virtual dma_irq_if vif;
   if (!uvm_config_db#(virtual dma_irq_if)::get(this,"","irq_vif",vif))
     `uvm_fatal("NOVIF","irq_vif chua duoc set tu tb_top")
-  dma_irq_cfg_h = dma_irq_config::type_id::create("dma_irq_cfg_h");
+  dma_irq_cfg_h = dma_irq_config#()::type_id::create("dma_irq_cfg_h");
   dma_irq_cfg_h.vif       = vif;
   dma_irq_cfg_h.is_active = uvm_active_passive_enum'(UVM_PASSIVE);
-  uvm_config_db#(dma_irq_config)::set(this,"*","dma_irq_config", dma_irq_cfg_h);
+  uvm_config_db#(dma_irq_config#())::set(this,"*","dma_irq_config", dma_irq_cfg_h);
 endfunction : setup_dma_irq_agent_cfg
 
 //--------------------------------------------------------------------------------------------
