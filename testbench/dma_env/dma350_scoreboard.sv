@@ -1196,15 +1196,15 @@ class dma350_scoreboard extends uvm_scoreboard;
     function void report_phase(uvm_phase phase);
         super.report_phase(phase);
         `uvm_info("SB_REPORT", $sformatf(
-          "\n==================== DMA SCOREBOARD SUMMARY ====================\n"
-          "  commands observed      : %0d\n"
-          "  data bytes matched     : %0d\n"
-          "  data byte mismatches   : %0d\n"
-          "  AR/AW addr mismatches  : %0d\n"
-          "  status/counter mism.   : %0d\n"
-          "  trigger errors         : %0d\n"
-          "  LPI/power errors       : %0d\n"
-          "===============================================================",
+          "\n==================== DMA SCOREBOARD SUMMARY ====================\n
+            commands observed      : %0d\n
+            data bytes matched     : %0d\n
+            data byte mismatches   : %0d\n
+            AR/AW addr mismatches  : %0d\n
+            status/counter mism.   : %0d\n
+            trigger errors         : %0d\n
+            LPI/power errors       : %0d\n
+          ===============================================================",
           n_commands, refmem.match, refmem.mismatches,
           err_addr_mismatch, err_status_mismatch, err_trigger, err_lpi), UVM_LOW)
     endfunction
