@@ -55,7 +55,7 @@ class boot_seq_item extends uvm_sequence_item;
   constraint c_addr_width {
     addr_width inside {32, 64};
     if (addr_width < 64)
-      boot_addr[63:addr_width] == '0;
+      { boot_addr[63:addr_width] == '0};
   }
 
   // Shareability 2'b01 is reserved/illegal - never generate it by default.
