@@ -1,0 +1,63 @@
+        +incdir+../../src/globals/
+
+        +incdir+../../src/rtl/
+
+        +incdir+../../src/verif/vip/axi_master_vip/ 
+        +incdir+../../src/verif/vip/axi_slave_vip/ 
+        +incdir+../../src/verif/bfm/read_fifo/ 
+        +incdir+../../src/verif/bfm/write_fifo/ 
+        +incdir+../../src/verif/bfm/write_fifo/fifo_interface 
+        +incdir+../../src/verif/tb/env/ 
+        +incdir+../../src/verif/tb/test/
+        +incdir+../../src/verif/tb
+
+        +incdir+../../src/hdl_top/ 
+        +incdir+../../src/hdl_top/axi5_interface/ 
+        +incdir+../../src/hdl_top/master_agent_bfm/ 
+        +incdir+../../src/hdl_top/slave_agent_bfm/ 
+        +incdir+../../src/hvl_top/
+        +incdir+../../src/hvl_top/env/ 
+        +incdir+../../src/hvl_top/master/ 
+        +incdir+../../src/hvl_top/slave/ 
+        +incdir+../../src/hvl_top/test/ 
+        +incdir+../../src/hvl_top/testlists/ 
+        +incdir+../../src/hvl_top/env/virtual_sequencer/ 
+        +incdir+../../src/hvl_top/test/sequences/ 
+        +incdir+../../src/hvl_top/test/sequences/master_sequences/ 
+        +incdir+../../src/hvl_top/test/sequences/slave_sequences/ 
+        +incdir+../../src/hvl_top/test/virtual_sequences/ 
+        +incdir+../../src/hdl_top/axi5_interface/
+
+        ../../src/rtl/AXI_MASTER_WRITE_CONTROL.v
+        ../../src/rtl/AXI_MASTER_READ_CONTROL.v
+        ../../src/rtl/sync_fifo.v
+        ../../src/rtl/design_fifo.v
+        ../../src/rtl/decoder.v
+        ../../src/rtl/AXI_Master.v
+        ../../src/rtl/Top_Module_AXI5.v
+        ../../src/rtl/write_response_handler.v
+
+        ../../src/globals/axi5_globals_pkg.sv 
+        ../../src/hvl_top/master/axi5_master_pkg.sv 
+        ../../src/hvl_top/slave/axi5_slave_pkg.sv 
+        ../../src/hvl_top/env/axi5_env_pkg.sv
+        ../../src/hdl_top/slave_assertions.sv
+        ../../src/hdl_top/tb_slave_assertions.sv
+        ../../src/hdl_top/axi5_interface/axi5_if.sv 
+        ../../src/hdl_top/master_agent_bfm/axi5_master_driver_bfm.sv 
+        ../../src/hdl_top/master_agent_bfm/axi5_master_monitor_bfm.sv 
+        ../../src/hdl_top/master_agent_bfm/axi5_master_agent_bfm.sv 
+        ../../src/hdl_top/slave_agent_bfm/axi5_slave_driver_bfm.sv 
+        ../../src/hdl_top/slave_agent_bfm/axi5_slave_monitor_bfm.sv 
+        ../../src/hdl_top/slave_agent_bfm/axi5_slave_agent_bfm.sv
+        ../../src/hvl_top/test/sequences/master_sequences/axi5_master_seq_pkg.sv 
+        ../../src/hvl_top/test/sequences/slave_sequences/axi5_slave_seq_pkg.sv 
+        ../../src/hvl_top/test/virtual_sequences/axi5_virtual_seq_pkg.sv 
+        ../../src/hvl_top/test/axi5_test_pkg.sv
+
+        ../../src/verif/bfm/write_fifo/fifo_interface/fifo_intf.sv
+        ../../src/verif/bfm/write_fifo/write_fifo_pkg.sv
+        ../../src/verif/vip/axi_slave_vip/axi_slave_pkg.sv
+        ../../src/verif/tb/env/env_package.sv
+        ../../src/verif/tb/test/test_pkg.sv
+        ../../src/verif/tb/top.sv

@@ -1,0 +1,13 @@
+# dma350_regression.list - danh sach test regression DMA-350
+# Dong bat dau bang # se bi bo qua.
+# Chay: make regression testlist_name=dma350_regression.list
+dma350_reg_access_test
+dma350_single_copy_test
+dma350_fill_test
+dma350_2d_copy_test
+dma350_wrap_test
+dma350_multi_channel_test
+dma350_stop_pause_test
+dma350_allch_stop_pause_test
+dma350_lowpower_test
+dma350_gpo_test

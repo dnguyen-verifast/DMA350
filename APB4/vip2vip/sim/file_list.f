@@ -1,0 +1,14 @@
++incdir+../vip_master/tb/
++incdir+../vip_slave/tb/
++incdir+../test/master_sequences/
++incdir+../test/slave_sequences/
++incdir+../env/
++incdir+../test/testcase/
+../interface/apb_interface.sv
+../vip_master/tb/component_m_pkg.sv
+../vip_slave/tb/component_l_pkg.sv
+../test/slave_sequences/l_seq_package.sv
+../test/master_sequences/m_seq_package.sv
+../env/env_pkg.sv
+../test/testcase/apb_test_package.sv
+../top.sv
