@@ -52,10 +52,13 @@ class boot_seq_item extends uvm_sequence_item;
 
   // Address must fit the configured ADDR_WIDTH. boot_addr models bits [63:2];
   // bits at and above addr_width must be zero.
+  // NOTE: a part-select range [63:addr_width] is illegal because its bounds must
+  // be compile-time constants. addr_width is only 32 or 64, so special-case the
+  // 32-bit build with a constant range (bits [63:32] == 0).
   constraint c_addr_width {
     addr_width inside {32, 64};
-    if (addr_width < 64)
-      { boot_addr[63:addr_width] == '0};
+    if (addr_width == 32)
+      boot_addr[63:32] == '0;
   }
 
   // Shareability 2'b01 is reserved/illegal - never generate it by default.
