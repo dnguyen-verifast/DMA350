@@ -1,0 +1,15 @@
+# LPI regression testlist
+# One test name per line. Lines starting with '#' are ignored.
+
+# bring-up + random
+lpi_sanity_test
+lpi_smoke_test
+lpi_qchannel_test
+lpi_pchannel_test
+
+# directed scenarios (each = its own virtual sequence + child sequences)
+lpi_q_accept_test
+lpi_q_deny_test
+lpi_p_accept_test
+lpi_p_deny_test
+lpi_p_walk_test
