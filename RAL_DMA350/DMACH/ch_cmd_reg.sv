@@ -56,9 +56,9 @@ class ch_cmd_reg extends uvm_reg;
         this.PAUSECMD.configure(this,1,4,"W1S",0,1'h0,1,0,0);
         this.RESUMECMD.configure(this,1,5,"W1S",0,1'h0,1,0,0);
         this.SRCSWTRIGINREQ.configure(this,1,16,"W1S",0,1'h0,1,0,0);
-        this.SRCSWTRIGINTYPE.configure(this,2,17,"RW",0,1'h00,1,0,0);
+        this.SRCSWTRIGINTYPE.configure(this,2,17,"RW",0,1'h0,1,0,0);
         this.DESSWTRIGINREQ.configure(this,1,20,"W1S",0,1'h0,1,0,0);
-        this.DESSWTRIGINTYPE.configure(this,2,21,"RW",0,1'h00,1,0,0);
+        this.DESSWTRIGINTYPE.configure(this,2,21,"RW",0,1'h0,1,0,0);
         this.SWTRIGOUTACK.configure(this,1,24,"W1S",0,1'h0,1,0,0);
     endfunction
 endclass
