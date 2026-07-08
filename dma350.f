@@ -79,6 +79,7 @@ AMBA_AXI5/src/hvl_top/base_tx/axi5_base_tx_pkg.sv
 AMBA_AXI5/src/hvl_top/slave/axi5_slave_pkg.sv
 AMBA_AXI5/src/hvl_top/test/sequences/slave_sequences/axi5_slave_seq_pkg.sv
 APB4/vip2vip/apb_master/tb/component_m_pkg.sv
+AXIS/tb/common/axis_cfg_pkg.sv
 AXIS/tb/common/axis_common_pkg.sv
 AXIS/tb/agent_master/axis_master_pkg.sv
 AXIS/tb/agent_slave/axis_slave_pkg.sv
