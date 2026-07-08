@@ -17,7 +17,7 @@ class ch_cmd_reg extends uvm_reg;
     //    int has_coverage  
     // )
     function new(string name = "ch_cmd_reg");
-        super.new(name,32,build_coverage(UVM_NO_CONVERAGE)); 
+        super.new(name,32,build_coverage(UVM_NO_COVERAGE)); 
     endfunction
     virtual function void build();
         this.ENABLECMD = uvm_reg_field::type_id::create("ENABLECMD",, get_full_name());
