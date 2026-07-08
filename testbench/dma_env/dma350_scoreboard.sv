@@ -208,7 +208,7 @@ class dma_ref_memory extends uvm_object;
     bit [7:0] act   [longint];
     bit       act_v [longint];
     int       mismatches = 0;
-    int       matches    = 0;
+    int       match    = 0;
 
     `uvm_object_utils(dma_ref_memory)
     function new(string name="dma_ref_memory"); super.new(name); endfunction
@@ -228,7 +228,7 @@ class dma_ref_memory extends uvm_object;
     // so khop theo NOI DUNG tai dia chi (khong theo thu tu thoi gian)
     function void try_compare(longint a);
         if (exp_v[a] && act_v[a]) begin
-            if (exp[a] === act[a]) matches++;
+            if (exp[a] === act[a]) match++;
             else begin
                 mismatches++;
                 `uvm_error("SB_DATA",
@@ -1206,7 +1206,7 @@ class dma350_scoreboard extends uvm_scoreboard;
           "  trigger errors         : %0d\n"
           "  LPI/power errors       : %0d\n"
           "===============================================================",
-          n_commands, refmem.matches, refmem.mismatches,
+          n_commands, refmem.match, refmem.mismatches,
           err_addr_mismatch, err_status_mismatch, err_trigger, err_lpi), UVM_LOW)
     endfunction
 
