@@ -11,7 +11,7 @@ class dma350_vseq_single_copy extends dma350_vseq_base;
 
   virtual task body();
     super.body();
-    cfg_ch_1d(.ch(0), .src(32'h0000_1000), .des(32'h0000_2000), .xsize(16));
+    cfg_ch(.ch(0), .src(32'h0000_1000), .des(32'h0000_2000), .xsize(16));
     enable_ch(0);
     wait_ch_done(0);
     clear_ch_status(0);

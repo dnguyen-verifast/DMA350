@@ -119,7 +119,7 @@ class dma350_vseq_base extends uvm_sequence;
   //---------------------------------------------------------------------------
   // Cau hinh copy 1D: xsize element x (1<<transize) byte, dia chi tang dan
   //---------------------------------------------------------------------------
-  virtual task cfg_ch_1d(int ch, bit [31:0] src, bit [31:0] des,
+  virtual task cfg_ch(int ch, bit [31:0] src, bit [31:0] des,
                          int unsigned xsize, bit [2:0] transize = 3'd2);
     apb_write(ch_addr(ch,O_SRCADDR),  src);
     apb_write(ch_addr(ch,O_SRCADDRHI),32'h0);

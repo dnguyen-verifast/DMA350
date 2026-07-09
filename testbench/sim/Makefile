@@ -132,6 +132,11 @@ ifndef test_folder
 override test_folder = $(test)
 endif
 
+# Setting the default wave do file (dat canh Makefile trong sim/)
+ifndef wave_do
+override wave_do = dma350_waves.do
+endif
+
 simulate:
 	mkdir -p $(test_folder)
 
@@ -148,7 +153,7 @@ simulate:
 	-l $(test_folder)/$(test).log \
 	-sva \
 	-coverage \
-	-c -solvefaildebug -do "log -r /*; add wave -r /*; coverage save -onexit -assert -directive -cvg -codeAll $(test_folder)/$(test)_coverage.ucdb; run -all; exit" \
+	-c -solvefaildebug -do "log -r /*; coverage save -onexit -assert -directive -cvg -codeAll $(test_folder)/$(test)_coverage.ucdb; run -all; exit" \
 	-wlf $(test_folder)/waveform.wlf
 
 
@@ -170,6 +175,13 @@ simulate:
 	#
 	# To open the wavefrom with saved signals
 	# vsim -view $(test_folder)/waveform.wlf -do dma350_waves.do &
+
+# Mo waveform da log (.wlf) + ap layout/group tu file .do.
+# .wlf chi luu du lieu tin hieu; cau truc folder/group nam trong dma350_waves.do,
+# chi co y nghia khi VIEW (khong luu trong .wlf, nen batch KHONG can add wave).
+# Chay: make waves test=dma350_single_copy_test
+waves:
+	vsim -view $(test_folder)/waveform.wlf -do $(wave_do) &
 
 clean_simulate:
 	rm -rf *_test*
