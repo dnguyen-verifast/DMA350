@@ -18,7 +18,6 @@ class axi5_slave_monitor_proxy extends uvm_monitor;
   virtual axi5_slave_monitor_bfm axi5_slave_mon_bfm_h;
 
   axi5_slave_tx req_rd;
-  axi5_slave_tx req_wr;
 
   // Variable: axi5_slave_analysis_port
   // Declaring analysis port for the monitor port
@@ -128,6 +127,7 @@ task axi5_slave_monitor_proxy::axi5_slave_write_address();
     axi5_write_transfer_char_s struct_write_packet;
     axi5_transfer_cfg_s        struct_cfg;
     axi5_slave_tx              req_wr_clone_packet;
+    axi5_slave_tx req_wr;
     logic [31:0] end_wrap_addr;
     logic [31:0] min_addr;
 
@@ -203,11 +203,12 @@ task axi5_slave_monitor_proxy::axi5_slave_write_data();
     axi5_transfer_cfg_s        struct_cfg;
     axi5_slave_tx             req_wr_clone_packet;
     axi5_slave_tx             local_write_addr_packet;
+    axi5_slave_tx req_wr;
     int                       beat_count = 0;
     axi5_slave_cfg_converter::from_class(axi5_slave_agent_cfg_h, struct_cfg);
     axi5_slave_mon_bfm_h.axi5_slave_write_data_sampling(struct_write_packet,struct_cfg,beat_count);
-    `uvm_info(get_type_name(),$sformatf("DATA_Packet received bfm is \n %s",struct_write_packet.sprint()),UVM_LOW)
     axi5_slave_seq_item_converter::to_write_class(struct_write_packet,req_wr);
+    `uvm_info(get_type_name(),$sformatf("DATA_Packet received bfm is \n %s",req_wr.sprint()),UVM_LOW)
     
     //Getting the write address packet
     axi5_slave_write_address_fifo_h.get(local_write_addr_packet);
