@@ -252,6 +252,7 @@ task axi5_slave_monitor_proxy::axi5_slave_write_response();
   forever begin
     axi5_write_transfer_char_s struct_write_packet;
     axi5_transfer_cfg_s        struct_cfg;
+    axi5_slave_tx req_wr;
     axi5_slave_tx             axi5_slave_tx_clone_packet;
     axi5_slave_tx             local_write_addr_data_packet;
 
