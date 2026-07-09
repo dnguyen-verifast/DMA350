@@ -218,7 +218,7 @@ task axi5_slave_monitor_proxy::axi5_slave_write_data();
     //Combining write address and write data packets
     
     //Checking total beat count with burst length to avoid any mismatch11
-    if(beat_count != (local_write_addr_packet.awlen + 1)) begin
+    if(beat_count != local_write_addr_packet.awlen) begin
       `uvm_error("SLAVE_MONITOR",$sformatf("Beat count is not equal to burst length. Marking as error beat_count = %0d",beat_count));
     end else begin
       `uvm_info("SLAVE_MONITOR",$sformatf("Beat count is equal to burst length."),UVM_HIGH);
@@ -361,7 +361,7 @@ task axi5_slave_monitor_proxy::axi5_slave_read_data();
     axi5_slave_mon_bfm_h.axi5_read_data_sampling(struct_read_packet,struct_cfg,beat_read_count);
     axi5_slave_seq_item_converter::to_read_class(struct_read_packet,req_rd);
 
-    if(beat_read_count != (req_rd.arlen + 1)) begin
+    if(beat_read_count != req_rd.arlen) begin
       `uvm_error("SLAVE_MONITOR",$sformatf("Beat count is not equal to burst length. Marking as error beat_read_count = %0d",beat_read_count));
     end else begin
       `uvm_info("SLAVE_MONITOR",$sformatf("Beat count is equal to burst length."),UVM_LOW);
