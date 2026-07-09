@@ -14,7 +14,7 @@ class dma350_vseq_stop_pause extends dma350_vseq_base;
     super.body();
 
     // ---- lenh 1: copy dai, pause giua chung roi resume ----
-    cfg_ch_1d(.ch(0), .src(32'h0000_8000), .des(32'h0000_9000), .xsize(64));
+    cfg_ch(.ch(0), .src(32'h0000_8000), .des(32'h0000_9000), .xsize(64));
     enable_ch(0);
     apb_write(ch_addr(0,O_CMD), 32'h1 << B_PAUSE);
     wait_ch_bit(0, S_PAUSED, "PAUSED");
@@ -23,7 +23,7 @@ class dma350_vseq_stop_pause extends dma350_vseq_base;
     clear_ch_status(0);
 
     // ---- lenh 2: copy dai, stop giua chung ----
-    cfg_ch_1d(.ch(0), .src(32'h0000_A000), .des(32'h0000_B000), .xsize(64));
+    cfg_ch(.ch(0), .src(32'h0000_A000), .des(32'h0000_B000), .xsize(64));
     enable_ch(0);
     apb_write(ch_addr(0,O_CMD), 32'h1 << B_STOP);
     wait_ch_bit(0, S_STOPPED, "STOPPED");

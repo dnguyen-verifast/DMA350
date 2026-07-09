@@ -13,8 +13,8 @@ class dma350_vseq_allch_stop_pause extends dma350_vseq_base;
     super.body();
 
     // chay 2 channel de stop/pause co doi tuong tac dong
-    cfg_ch_1d(.ch(0), .src(32'h0003_0000), .des(32'h0003_4000), .xsize(64));
-    cfg_ch_1d(.ch(1), .src(32'h0003_8000), .des(32'h0003_C000), .xsize(64));
+    cfg_ch(.ch(0), .src(32'h0003_0000), .des(32'h0003_4000), .xsize(64));
+    cfg_ch(.ch(1), .src(32'h0003_8000), .des(32'h0003_C000), .xsize(64));
     enable_ch(0);
     enable_ch(1);
 

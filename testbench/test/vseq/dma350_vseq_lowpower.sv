@@ -20,7 +20,7 @@ class dma350_vseq_lowpower extends dma350_vseq_base;
     end
 
     // ---- busy: bat 1 copy dai roi xin quiesce (mong doi DENY) ----
-    cfg_ch_1d(.ch(0), .src(32'h0004_0000), .des(32'h0004_4000), .xsize(64));
+    cfg_ch(.ch(0), .src(32'h0004_0000), .des(32'h0004_4000), .xsize(64));
     enable_ch(0);
     begin
       crlp_qch_cycle_seq q = crlp_qch_cycle_seq::type_id::create("qch_busy");

@@ -13,7 +13,7 @@ class dma350_vseq_multi_channel extends dma350_vseq_base;
   virtual task body();
     super.body();
     for (int ch = 0; ch < num_ch; ch++)
-      cfg_ch_1d(.ch(ch), .src(32'h0001_0000 + ch*32'h1000),
+      cfg_ch(.ch(ch), .src(32'h0001_0000 + ch*32'h1000),
                          .des(32'h0002_0000 + ch*32'h1000), .xsize(8));
     for (int ch = 0; ch < num_ch; ch++)
       enable_ch(ch);
