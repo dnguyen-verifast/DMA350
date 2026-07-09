@@ -30,12 +30,22 @@ package dma350_test_pkg;
   // Env (scoreboard + virtual sequencer + dma350_env + dma_trig_item stub)
   import dma350_env_pkg::*;
 
-  // ---- sequence cho agent (directed APB) ----
-  `include "dma350_apb_seq_lib.sv"
+  // ---- sequence cho agent (directed APB) : moi class 1 file ----
+  `include "dma350_apb_write_seq.sv"
+  `include "dma350_apb_read_seq.sv"
 
-  // ---- virtual sequence ----
+  // ---- virtual sequence : base truoc, roi moi vseq 1 file ----
   `include "dma350_vseq_base.sv"
-  `include "dma350_vseq_lib.sv"
+  `include "dma350_vseq_reg_access.sv"
+  `include "dma350_vseq_single_copy.sv"
+  `include "dma350_vseq_fill.sv"
+  `include "dma350_vseq_2d_copy.sv"
+  `include "dma350_vseq_wrap.sv"
+  `include "dma350_vseq_multi_channel.sv"
+  `include "dma350_vseq_stop_pause.sv"
+  `include "dma350_vseq_allch_stop_pause.sv"
+  `include "dma350_vseq_lowpower.sv"
+  `include "dma350_vseq_gpo.sv"
 
   // ---- base test ----
   `include "dma350_base_test.sv"
