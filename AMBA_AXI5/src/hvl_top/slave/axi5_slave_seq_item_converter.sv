@@ -241,7 +241,7 @@ function void axi5_slave_seq_item_converter::to_write_class(input axi5_write_tra
   end
   `uvm_info("axi5_slave_seq_item_conv_class",$sformatf("after writnig wdata to class = \n %0s",output_conv_h.sprint()),UVM_FULL);
 
-  for(int i=0;i<input_conv_h.wdata[i];i++) begin
+  foreach(input_conv_h.wstrb[i]) begin
       output_conv_h.wstrb[i] = input_conv_h.wstrb[i];
   end
   `uvm_info("axi5_slave_seq_item_conv_class",$sformatf("after writnig wstrb to class = \n %0s",output_conv_h.sprint()),UVM_FULL);

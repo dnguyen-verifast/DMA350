@@ -362,7 +362,7 @@ task axi5_slave_monitor_proxy::axi5_slave_read_data();
     axi5_slave_seq_item_converter::to_read_class(struct_read_packet,req_rd);
 
     if(beat_read_count != req_rd.arlen) begin
-      `uvm_error("SLAVE_MONITOR",$sformatf("Beat count is not equal to burst length. Marking as error beat_read_count = %0d",beat_read_count));
+      `uvm_error("SLAVE_MONITOR",$sformatf("Beat count is not equal to burst length. Marking as error beat_read_count = %0d  arlen = %0d",beat_read_count, req_rd.arlen));
     end else begin
       `uvm_info("SLAVE_MONITOR",$sformatf("Beat count is equal to burst length."),UVM_LOW);
     end
