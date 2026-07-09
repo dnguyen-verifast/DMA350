@@ -71,9 +71,12 @@ module dma350_tb_top;
   assign axi5_m0_if.arcache = arcache4_m0[1:0];
   assign axi5_m0_if.awchid  = {3'b0, awchid1_m0};
   assign axi5_m0_if.archid  = {3'b0, archid1_m0};
-  assign axi5_m0_if.awlock  = 2'b00;  assign axi5_m0_if.awregion = 4'b0;
-  assign axi5_m0_if.awuser  = 1'b0;   assign axi5_m0_if.wuser    = 4'b0;
-  assign axi5_m0_if.arlock  = 2'b00;  assign axi5_m0_if.arregion = 4'b0;
+  assign axi5_m0_if.awlock  = 2'b00;  
+  assign axi5_m0_if.awregion = 4'b0;
+  assign axi5_m0_if.awuser  = 1'b0;   
+  assign axi5_m0_if.wuser    = 4'b0;
+  assign axi5_m0_if.arlock  = 2'b00;  
+  assign axi5_m0_if.arregion = 4'b0;
   assign axi5_m0_if.aruser  = 4'b0;
 
   assign axi5_m1_if.awlen   = awlen8_m1[3:0];
@@ -82,9 +85,12 @@ module dma350_tb_top;
   assign axi5_m1_if.arcache = arcache4_m1[1:0];
   assign axi5_m1_if.awchid  = {3'b0, awchid1_m1};
   assign axi5_m1_if.archid  = {3'b0, archid1_m1};
-  assign axi5_m1_if.awlock  = 2'b00;  assign axi5_m1_if.awregion = 4'b0;
-  assign axi5_m1_if.awuser  = 1'b0;   assign axi5_m1_if.wuser    = 4'b0;
-  assign axi5_m1_if.arlock  = 2'b00;  assign axi5_m1_if.arregion = 4'b0;
+  assign axi5_m1_if.awlock  = 2'b00;  
+  assign axi5_m1_if.awregion = 4'b0;
+  assign axi5_m1_if.awuser  = 1'b0;   
+  assign axi5_m1_if.wuser    = 4'b0;
+  assign axi5_m1_if.arlock  = 2'b00;  
+  assign axi5_m1_if.arregion = 4'b0;
   assign axi5_m1_if.aruser  = 4'b0;
 
   //---------------------------------------------------------------------------

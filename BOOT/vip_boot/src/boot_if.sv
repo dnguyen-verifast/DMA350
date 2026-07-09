@@ -16,6 +16,8 @@
 `ifndef BOOT_IF_SV
 `define BOOT_IF_SV
 
+`timescale 1ns/1ps
+
 interface boot_if #(
   // Address width of the DMAC (DMA_BUILDCFG0.ADDR_WIDTH + 1). 32 or 64.
   parameter int ADDR_WIDTH = 32

@@ -36,7 +36,7 @@
 `ifndef DMA350_SC_MAX_GPO_WIDTH
   `define DMA350_SC_MAX_GPO_WIDTH 32    // GPO_WIDTH    : 0..32  (3.4)
 `endif
-
+`timescale 1ns/1ps
 interface dma350_sc_if (input logic clk, input logic resetn);
 
   // --- sized locals -------------------------------------------------------

@@ -5,6 +5,8 @@
 `ifndef AXI_STREAM_IF_SV
 `define AXI_STREAM_IF_SV
 
+`timescale 1ns/1ps
+
 interface axi_stream_if #(
     parameter int DATA_WIDTH = 32,            // TDATA width in bits (integer # of bytes)
     parameter int ID_WIDTH   = 8,

@@ -15,6 +15,7 @@
 `ifndef CRLP_IF_SV
 `define CRLP_IF_SV
 
+`timescale 1ns/1ps
 interface crlp_if;
 
   // ---- Table A-1 : Clock and reset ----------------------------------------
