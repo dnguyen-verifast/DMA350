@@ -36,6 +36,15 @@ module dma350_top import dma350_pkg::*; #(
     parameter int POIS_WIDTH      = 1,
     parameter int NUM_CHANNELS    = 4,
     parameter int AXI5_M1_PRESENT = 0,
+    // Per-channel manager assignment: bit g = 1 routes channel g's read AND
+    // write to manager M1, 0 to M0 (DMA-350 assigns a whole channel to one
+    // manager, it does NOT split read/write across ports). Ignored unless
+    // AXI5_M1_PRESENT. Default: all channels on M0.
+    parameter [31:0] CH_MGR_SEL   = 32'h0,
+    // Opt-in load spreading: when 1 (and M1 present), channel g is auto-assigned
+    // to manager g[0] (even->M0, odd->M1) instead of using CH_MGR_SEL, so
+    // multiple channels naturally use both ports. Default off (use CH_MGR_SEL).
+    parameter int MGR_AUTO_SPREAD = 0,
     parameter int SECEXT_PRESENT  = 1,
     parameter int NUM_TRIGGER_IN  = 4,
     parameter int NUM_TRIGGER_OUT = 4,
@@ -242,7 +251,6 @@ module dma350_top import dma350_pkg::*; #(
     logic [31:0]  ch_prdata  [NUM_CHANNELS];
     logic [NUM_CHANNELS-1:0] ch_pslverr;
     reg           boot_pulse;
-    wire          wr_is_m1 = (AXI5_M1_PRESENT != 0);
     wire [NUM_CHANNELS-1:0] c_priv, c_nonsec;  // channel privilege/security ctx
     wire [31:0]   dma_lvl_rdata;               // DMA-unit frame read data
     reg           scfg_rsptype_q;              // SCFG_CTRL.RSPTYPE_SECACCVIO [1]
@@ -371,6 +379,28 @@ module dma350_top import dma350_pkg::*; #(
     wire [STRB_W-1:0]     c_wstrb  [NC];
     wire [NC-1:0]         c_wlast;
     wire [1:0]            c_bresp_m0, c_bresp_m1;
+
+    // per-manager return handshakes (OR-combined into the channel-facing nets;
+    // for any channel only the manager it is assigned to is ever active).
+    wire [NC-1:0] arready0, arready1, rvalid0, rvalid1;
+    wire [NC-1:0] awready0, awready1, wready0, wready1, bvalid0, bvalid1;
+    // per-channel manager assignment (whole channel -> one manager, R+W both):
+    // auto-spread by index if enabled, else the explicit CH_MGR_SEL bit; forced
+    // to M0 when M1 is absent.
+    wire [NC-1:0] mgr_vec;
+    genvar gm;
+    generate for (gm = 0; gm < NC; gm = gm + 1) begin : g_mgrsel
+        assign mgr_vec[gm] = (AXI5_M1_PRESENT == 0) ? 1'b0
+                           : (MGR_AUTO_SPREAD != 0)  ? gm[0]
+                           :                           CH_MGR_SEL[gm];
+    end endgenerate
+    // fold the two managers' return handshakes back to the channel (per channel
+    // exactly one manager is ever active, so OR is unambiguous).
+    assign c_arready = arready0 | arready1;
+    assign c_rvalid  = rvalid0  | rvalid1;
+    assign c_awready = awready0 | awready1;
+    assign c_wready  = wready0  | wready1;
+    assign c_bvalid  = bvalid0  | bvalid1;
 
     // boot
     wire [NC-1:0] c_boot_req;
@@ -561,9 +591,11 @@ module dma350_top import dma350_pkg::*; #(
             .m_axi_arsize(c_arsize[g]), .m_axi_arburst(c_arburst[g]),
             .m_axi_arvalid(c_arvalid[g]),
             .m_axi_arcmdlink(c_arcmdlink[g]), .m_axi_arready(c_arready[g]),
-            .m_axi_rdata(c_rdata_m0), .m_axi_rresp(c_rresp_m0),
-            .m_axi_rpoison(c_rpoison_m0),
-            .m_axi_rlast(c_rlast_m0), .m_axi_rvalid(c_rvalid[g]),
+            .m_axi_rdata(mgr_vec[g] ? c_rdata_m1 : c_rdata_m0),
+            .m_axi_rresp(mgr_vec[g] ? c_rresp_m1 : c_rresp_m0),
+            .m_axi_rpoison(mgr_vec[g] ? c_rpoison_m1 : c_rpoison_m0),
+            .m_axi_rlast(mgr_vec[g] ? c_rlast_m1 : c_rlast_m0),
+            .m_axi_rvalid(c_rvalid[g]),
             .m_axi_rready(c_rready[g]),
             .m_axi_awaddr(c_awaddr[g]), .m_axi_awlen(c_awlen[g]),
             .m_axi_awsize(c_awsize[g]), .m_axi_awburst(c_awburst[g]),
@@ -572,7 +604,7 @@ module dma350_top import dma350_pkg::*; #(
             .m_axi_wdata(c_wdata[g]), .m_axi_wstrb(c_wstrb[g]),
             .m_axi_wlast(c_wlast[g]), .m_axi_wvalid(c_wvalid[g]),
             .m_axi_wready(c_wready[g]),
-            .m_axi_bresp(wr_is_m1 ? c_bresp_m1 : c_bresp_m0),
+            .m_axi_bresp(mgr_vec[g] ? c_bresp_m1 : c_bresp_m0),
             .m_axi_bvalid(c_bvalid[g]), .m_axi_bready(c_bready[g]),
             .m_axis_out_tdata(str_out_tdata[g*DATA_WIDTH +: DATA_WIDTH]),
             .m_axis_out_tvalid(str_out_tvalid[g]),
@@ -1149,23 +1181,27 @@ module dma350_top import dma350_pkg::*; #(
     wire                poison_m1 = |rpoison_m1;
 
     generate if (AXI5_M1_PRESENT != 0) begin : g_two_ports
-        // M0 = reads, M1 = writes (bandwidth split)
+        // Two full managers. Each channel is assigned (via mgr_vec) to exactly
+        // one manager for BOTH its reads and writes; a manager arbitrates only
+        // the channels routed to it (AR/AW valids masked). This matches the
+        // DMA-350 model — a whole channel maps to a manager, reads and writes
+        // are NOT split across ports.
         dma350_axi_node #(.N(NC), .ADDR_WIDTH(ADDR_WIDTH), .DATA_WIDTH(DATA_WIDTH),
                           .ID_WIDTH(ID_WIDTH), .ARUSER_W(ARUSER_W), .AWUSER_W(AWUSER_W),
                           .ISSUING_CAP(ISSUING_CAP))
-        u_node_rd (
+        u_node0 (
             .clk(clk), .resetn(resetn), .ch_prio(c_chprio),
-            .ch_arvalid(c_arvalid), .ch_arready(c_arready), .ch_araddr(c_araddr),
+            .ch_arvalid(c_arvalid & ~mgr_vec), .ch_arready(arready0), .ch_araddr(c_araddr),
             .ch_arlen(c_arlen), .ch_arsize(c_arsize), .ch_arburst(c_arburst),
             .ch_aruser(c_aruser),
-            .ch_rvalid(c_rvalid), .ch_rready(c_rready),
+            .ch_rvalid(rvalid0), .ch_rready(c_rready),
             .ch_rdata(c_rdata_m0), .ch_rresp(c_rresp_m0), .ch_rpoison(c_rpoison_m0),
             .ch_rlast(c_rlast_m0),
-            .ch_awvalid('0), .ch_awready(), .ch_awaddr(c_awaddr),
+            .ch_awvalid(c_awvalid & ~mgr_vec), .ch_awready(awready0), .ch_awaddr(c_awaddr),
             .ch_awlen(c_awlen), .ch_awsize(c_awsize), .ch_awburst(c_awburst),
             .ch_awuser(c_awuser),
-            .ch_wvalid('0), .ch_wready(), .ch_wdata(c_wdata), .ch_wstrb(c_wstrb),
-            .ch_wlast('0), .ch_bvalid(), .ch_bready('0), .ch_bresp(c_bresp_m0),
+            .ch_wvalid(c_wvalid), .ch_wready(wready0), .ch_wdata(c_wdata), .ch_wstrb(c_wstrb),
+            .ch_wlast(c_wlast), .ch_bvalid(bvalid0), .ch_bready(c_bready), .ch_bresp(c_bresp_m0),
             .m_araddr(araddr_m0), .m_arlen(arlen_m0), .m_arsize(arsize_m0),
             .m_arburst(m0_arburst),
             .m_arid(arid_m0), .m_aruser(m0_aruser), .m_arvalid(arvalid_m0),
@@ -1182,20 +1218,20 @@ module dma350_top import dma350_pkg::*; #(
         dma350_axi_node #(.N(NC), .ADDR_WIDTH(ADDR_WIDTH), .DATA_WIDTH(DATA_WIDTH),
                           .ID_WIDTH(ID_WIDTH), .ARUSER_W(ARUSER_W), .AWUSER_W(AWUSER_W),
                           .ISSUING_CAP(ISSUING_CAP))
-        u_node_wr (
+        u_node1 (
             .clk(clk), .resetn(resetn), .ch_prio(c_chprio),
-            .ch_arvalid('0), .ch_arready(), .ch_araddr(c_araddr),
+            .ch_arvalid(c_arvalid & mgr_vec), .ch_arready(arready1), .ch_araddr(c_araddr),
             .ch_arlen(c_arlen), .ch_arsize(c_arsize), .ch_arburst(c_arburst),
             .ch_aruser(c_aruser),
-            .ch_rvalid(), .ch_rready('0),
+            .ch_rvalid(rvalid1), .ch_rready(c_rready),
             .ch_rdata(c_rdata_m1), .ch_rresp(c_rresp_m1), .ch_rpoison(c_rpoison_m1),
             .ch_rlast(c_rlast_m1),
-            .ch_awvalid(c_awvalid), .ch_awready(c_awready), .ch_awaddr(c_awaddr),
+            .ch_awvalid(c_awvalid & mgr_vec), .ch_awready(awready1), .ch_awaddr(c_awaddr),
             .ch_awlen(c_awlen), .ch_awsize(c_awsize), .ch_awburst(c_awburst),
             .ch_awuser(c_awuser),
-            .ch_wvalid(c_wvalid), .ch_wready(c_wready), .ch_wdata(c_wdata),
+            .ch_wvalid(c_wvalid), .ch_wready(wready1), .ch_wdata(c_wdata),
             .ch_wstrb(c_wstrb), .ch_wlast(c_wlast),
-            .ch_bvalid(c_bvalid), .ch_bready(c_bready), .ch_bresp(c_bresp_m1),
+            .ch_bvalid(bvalid1), .ch_bready(c_bready), .ch_bresp(c_bresp_m1),
             .m_araddr(araddr_m1), .m_arlen(arlen_m1), .m_arsize(arsize_m1),
             .m_arburst(m1_arburst),
             .m_arid(arid_m1), .m_aruser(m1_aruser), .m_arvalid(arvalid_m1),
@@ -1216,18 +1252,18 @@ module dma350_top import dma350_pkg::*; #(
                           .ISSUING_CAP(ISSUING_CAP))
         u_node (
             .clk(clk), .resetn(resetn), .ch_prio(c_chprio),
-            .ch_arvalid(c_arvalid), .ch_arready(c_arready), .ch_araddr(c_araddr),
+            .ch_arvalid(c_arvalid), .ch_arready(arready0), .ch_araddr(c_araddr),
             .ch_arlen(c_arlen), .ch_arsize(c_arsize), .ch_arburst(c_arburst),
             .ch_aruser(c_aruser),
-            .ch_rvalid(c_rvalid), .ch_rready(c_rready),
+            .ch_rvalid(rvalid0), .ch_rready(c_rready),
             .ch_rdata(c_rdata_m0), .ch_rresp(c_rresp_m0), .ch_rpoison(c_rpoison_m0),
             .ch_rlast(c_rlast_m0),
-            .ch_awvalid(c_awvalid), .ch_awready(c_awready), .ch_awaddr(c_awaddr),
+            .ch_awvalid(c_awvalid), .ch_awready(awready0), .ch_awaddr(c_awaddr),
             .ch_awlen(c_awlen), .ch_awsize(c_awsize), .ch_awburst(c_awburst),
             .ch_awuser(c_awuser),
-            .ch_wvalid(c_wvalid), .ch_wready(c_wready), .ch_wdata(c_wdata),
+            .ch_wvalid(c_wvalid), .ch_wready(wready0), .ch_wdata(c_wdata),
             .ch_wstrb(c_wstrb), .ch_wlast(c_wlast),
-            .ch_bvalid(c_bvalid), .ch_bready(c_bready), .ch_bresp(c_bresp_m0),
+            .ch_bvalid(bvalid0), .ch_bready(c_bready), .ch_bresp(c_bresp_m0),
             .m_araddr(araddr_m0), .m_arlen(arlen_m0), .m_arsize(arsize_m0),
             .m_arburst(m0_arburst),
             .m_arid(arid_m0), .m_aruser(m0_aruser), .m_arvalid(arvalid_m0),
@@ -1242,6 +1278,12 @@ module dma350_top import dma350_pkg::*; #(
             .m_bresp(bresp_m0), .m_bvalid(bvalid_m0), .m_bready(bready_m0), .m_bid(bid_m0)
         );
         assign m1_arburst = 2'b00; assign m1_awburst = 2'b00;
+        // M1 node absent: tie its channel-return nets low so the OR-combine and
+        // the mgr_vec data mux (forced to M0 here) resolve to M0 only.
+        assign arready1 = '0; assign rvalid1 = '0; assign awready1 = '0;
+        assign wready1  = '0; assign bvalid1 = '0;
+        assign c_rdata_m1 = '0; assign c_rresp_m1 = '0; assign c_rlast_m1 = 1'b0;
+        assign c_rpoison_m1 = 1'b0; assign c_bresp_m1 = '0;
 
         // M1 unused: tie off all outputs
         assign awakeup_m1=1'b0; assign awvalid_m1=1'b0; assign awaddr_m1='0;

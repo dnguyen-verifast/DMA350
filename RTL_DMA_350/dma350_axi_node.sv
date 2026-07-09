@@ -137,13 +137,15 @@ module dma350_axi_node #(
     wire             rd_cap_ok = (rd_out < ISSUING_CAP[CAPW-1:0]);
 
     always_comb begin
-        m_araddr  = ch_araddr[rgrant];
-        m_arlen   = ch_arlen[rgrant];
-        m_arsize  = ch_arsize[rgrant];
-        m_arburst = ch_arburst[rgrant];
-        m_aruser  = ch_aruser[rgrant];
-        m_arid    = {{(ID_WIDTH-IDXW){1'b0}}, rgrant};
+        // AR sideband is only meaningful while ARVALID is asserted; hold it at 0
+        // when idle so an unused manager does not present a phantom address.
         m_arvalid = ch_arvalid[rgrant] & rd_cap_ok;
+        m_araddr  = m_arvalid ? ch_araddr[rgrant]  : '0;
+        m_arlen   = m_arvalid ? ch_arlen[rgrant]   : '0;
+        m_arsize  = m_arvalid ? ch_arsize[rgrant]  : '0;
+        m_arburst = m_arvalid ? ch_arburst[rgrant] : '0;
+        m_aruser  = m_arvalid ? ch_aruser[rgrant]  : '0;
+        m_arid    = m_arvalid ? {{(ID_WIDTH-IDXW){1'b0}}, rgrant} : '0;
     end
     assign ch_arready = (m_arvalid & m_arready) ? (ONEHOT << rgrant) : '0;
 
@@ -198,22 +200,23 @@ module dma350_axi_node #(
     wire aw_can = (wr_out < ISSUING_CAP[CAPW-1:0]) & ~oq_full;
 
     always_comb begin
-        m_awaddr  = ch_awaddr[wgrant];
-        m_awlen   = ch_awlen[wgrant];
-        m_awsize  = ch_awsize[wgrant];
-        m_awburst = ch_awburst[wgrant];
-        m_awuser  = ch_awuser[wgrant];
-        m_awid    = {{(ID_WIDTH-IDXW){1'b0}}, wgrant};
+        // AW sideband gated by AWVALID (see AR note above).
         m_awvalid = ch_awvalid[wgrant] & aw_can;
+        m_awaddr  = m_awvalid ? ch_awaddr[wgrant]  : '0;
+        m_awlen   = m_awvalid ? ch_awlen[wgrant]   : '0;
+        m_awsize  = m_awvalid ? ch_awsize[wgrant]  : '0;
+        m_awburst = m_awvalid ? ch_awburst[wgrant] : '0;
+        m_awuser  = m_awvalid ? ch_awuser[wgrant]  : '0;
+        m_awid    = m_awvalid ? {{(ID_WIDTH-IDXW){1'b0}}, wgrant} : '0;
     end
     assign ch_awready = (m_awvalid & m_awready) ? (ONEHOT << wgrant) : '0;
 
     // W from the order-FIFO head owner; the owner delimits its burst with WLAST
     always_comb begin
-        m_wdata  = ch_wdata[w_owner];
-        m_wstrb  = ch_wstrb[w_owner];
-        m_wlast  = ch_wlast[w_owner];
         m_wvalid = ~oq_empty & ch_wvalid[w_owner];
+        m_wdata  = m_wvalid ? ch_wdata[w_owner] : '0;
+        m_wstrb  = m_wvalid ? ch_wstrb[w_owner] : '0;
+        m_wlast  = m_wvalid ? ch_wlast[w_owner] : 1'b0;
     end
     assign ch_wready = (~oq_empty & m_wready) ? (ONEHOT << w_owner) : '0;
 
