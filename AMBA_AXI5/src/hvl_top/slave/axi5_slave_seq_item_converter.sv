@@ -236,12 +236,12 @@ function void axi5_slave_seq_item_converter::to_write_class(input axi5_write_tra
   output_conv_h.awchid      = input_conv_h.awchid;
   output_conv_h.awchidvalid = input_conv_h.awchidvalid;
 
-  foreach(input_conv_h.wdata[i]) begin
+  for (int i = 0; i <= 2**LENGTH; i++) begin
       output_conv_h.wdata.push_back(input_conv_h.wdata[i]);
   end
   `uvm_info("axi4_slave_seq_item_conv_class",$sformatf("after writnig wdata to class = \n %0s",output_conv_h.sprint()),UVM_FULL);
 
-  foreach(input_conv_h.wdata[i]) begin
+  for (int i = 0; i <= 2**LENGTH; i++) begin
       output_conv_h.wstrb.push_back(input_conv_h.wstrb[i]);
   end
   `uvm_info("axi4_slave_seq_item_conv_class",$sformatf("after writnig wstrb to class = \n %0s",output_conv_h.sprint()),UVM_FULL);
@@ -307,7 +307,7 @@ function void axi5_slave_seq_item_converter::to_read_class( input axi5_read_tran
 
   `uvm_info("axi5_slave_seq_item_conv_class",$sformatf("after reading arlength = \n %0d",input_conv_h.arlen),UVM_FULL);
 
-  foreach(input_conv_h.rdata[i]) begin
+  for (int i = 0; i <= 2**LENGTH; i++) begin
       output_conv_h.rdata.push_back(input_conv_h.rdata[i]);
   end
     `uvm_info("axi5_slave_seq_item_conv_class",$sformatf("after reading rdata = \n %0s",output_conv_h.sprint()),UVM_FULL);
