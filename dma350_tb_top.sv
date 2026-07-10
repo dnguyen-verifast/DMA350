@@ -400,6 +400,10 @@ module dma350_tb_top;
     // ---- goc HDL path cho RAL backdoor (reg_env doc key nay) ----
     uvm_config_db#(string)::set(null, "*", "hdl_root", "dma350_tb_top.u_dut");
 
+    // ---- tham so build cua DUT: RAL sinh mang DMACH + slice CH_GPOREAD0 theo day ----
+    uvm_config_db#(int)::set(null, "*", "num_channels", NUM_CH);
+    uvm_config_db#(int)::set(null, "*", "gpo_width",    GPO_W);
+
     run_test("dma350_base_test");
   end
 

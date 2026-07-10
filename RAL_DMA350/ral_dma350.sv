@@ -1,13 +1,21 @@
 class ral_dma350 extends uvm_reg_block;
-    rand dmach_reg_block_config dmach;
-    rand dmaseccfg_reg_block_config dmaseccfg;
-    rand dmasecctrl_reg_block_config dmasecctrl;
+    rand dmach_reg_block_config       dmach[];   // 1 frame / channel, size = num_channels
+    rand dmaseccfg_reg_block_config   dmaseccfg;
+    rand dmasecctrl_reg_block_config  dmasecctrl;
     rand dmansecctrl_reg_block_config dmansecctrl;
-    rand dmainfo_reg_block_config dmainfo;
+    rand dmainfo_reg_block_config     dmainfo;
+
+    // Tham so build cua DUT. reg_env gan tu config_db TRUOC khi goi build().
+    int unsigned num_channels = 8;   // dma350_top #(.NUM_CHANNELS())
+    int unsigned gpo_width    = 4;   // dma350_top #(.GPO_WIDTH())
+
     `uvm_object_utils(ral_dma350)
     function new(string name="ral_dma350");
         super.new(name);
     endfunction
+
+    // LUU Y: build() KHONG goi lock_model(). reg_env phai add_hdl_path(hdl_root)
+    // roi moi lock_model() -- xem reg_env.sv.
     function void build();
         this.default_map = create_map(.name("ral_dma350"),
                                         .base_addr(0),
@@ -47,17 +55,21 @@ class ral_dma350 extends uvm_reg_block;
         this.default_map.add_submap(.child_map(this.dmainfo.default_map),
                                     .offset(`UVM_REG_ADDR_WIDTH'h0F00));
 
-        // DMACH Channel 0 frame @ 0x1000
-        // HDL path: instance register-frame cua channel 0 trong dma350_top
-        // (generate g_ch[0] -> dma350_ch_regs u_regs). Goc (dma350_tb_top.u_dut)
+        // DMACH<n> frame @ 0x1000 + n*0x100, n = 0 .. num_channels-1
+        // HDL path: register-frame cua channel n trong dma350_top
+        // (generate g_ch[n] -> dma350_ch_regs u_regs). Goc (dma350_tb_top.u_dut)
         // do reg_env add_hdl_path() tu config_db "hdl_root".
-        this.dmach = dmach_reg_block_config::type_id::create("dmach",, get_full_name());
-        this.dmach.configure(.parent(this),
-                                .hdl_path("g_ch[0].u_regs"));
-        this.dmach.build();
-        this.default_map.add_submap(.child_map(this.dmach.default_map),
-                                    .offset(`UVM_REG_ADDR_WIDTH'h1000));
-
-        this.lock_model();
+        this.dmach = new[num_channels];
+        foreach (this.dmach[i]) begin
+            this.dmach[i] = dmach_reg_block_config::type_id::create(
+                                $sformatf("dmach%0d", i),, get_full_name());
+            this.dmach[i].gpo_width = this.gpo_width;
+            this.dmach[i].configure(.parent(this),
+                                    .hdl_path($sformatf("g_ch[%0d].u_regs", i)));
+            this.dmach[i].build();
+            this.default_map.add_submap(.child_map(this.dmach[i].default_map),
+                                        .offset(`UVM_REG_ADDR_WIDTH'h1000 +
+                                                i * `UVM_REG_ADDR_WIDTH'h100));
+        end
     endfunction
 endclass

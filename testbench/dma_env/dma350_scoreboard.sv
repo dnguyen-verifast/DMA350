@@ -506,50 +506,52 @@ class dma350_scoreboard extends uvm_scoreboard;
 
     //=========================================================================
     // BACKDOOR helpers (peek) : doc trang thai thanh ghi RTL moi luc, khong can
-    // giao dich bus. RAL hien chi model channel 0 (ral.dmach) -> mo rong
-    // ral_reg() khi RAL them block channel khac.
+    // giao dich bus. RAL model day du NUM_CHANNELS frame DMACH (ral.dmach[ch]).
     //=========================================================================
     function uvm_reg ral_reg(int ch, bit [7:0] off);
-        if (m_ral_dma_model == null) return null;
-        if (ch != 0)                 return null;   // RAL moi model channel 0
+        if (m_ral_dma_model == null)                 return null;
+        if (ch < 0 || ch >= m_ral_dma_model.dmach.size()) return null;
         case (off)
-            CH_CMD:         return m_ral_dma_model.dmach.ch_cmd;
-            CH_STATUS:      return m_ral_dma_model.dmach.ch_status;
-            CH_INTREN:      return m_ral_dma_model.dmach.ch_intren;
-            CH_CTRL:        return m_ral_dma_model.dmach.ch_ctrl;
-            CH_SRCADDR:     return m_ral_dma_model.dmach.ch_srcaddr;
-            CH_SRCADDRHI:   return m_ral_dma_model.dmach.ch_srcaddrhi;
-            CH_DESADDR:     return m_ral_dma_model.dmach.ch_desaddr;
-            CH_DESADDRHI:   return m_ral_dma_model.dmach.ch_desaddrhi;
-            CH_XSIZE:       return m_ral_dma_model.dmach.ch_xsize;
-            CH_XSIZEHI:     return m_ral_dma_model.dmach.ch_xsizehi;
-            CH_SRCTRANSCFG: return m_ral_dma_model.dmach.ch_srctranscfg;
-            CH_DESTRANSCFG: return m_ral_dma_model.dmach.ch_destranscfg;
-            CH_XADDRINC:    return m_ral_dma_model.dmach.ch_xaddrinc;
-            CH_YADDRSTRIDE: return m_ral_dma_model.dmach.ch_yaddrstride;
-            CH_FILLVAL:     return m_ral_dma_model.dmach.ch_fillval;
-            CH_YSIZE:       return m_ral_dma_model.dmach.ch_ysize;
-            CH_SRCTRIGINCFG:return m_ral_dma_model.dmach.ch_srctrigincfg;
-            CH_DESTRIGINCFG:return m_ral_dma_model.dmach.ch_destrigincfg;
-            CH_TRIGOUTCFG:  return m_ral_dma_model.dmach.ch_trigoutcfg;
-            CH_GPOEN0:      return m_ral_dma_model.dmach.ch_gpoen0;
-            CH_GPOVAL0:     return m_ral_dma_model.dmach.ch_gpoval0;
-            CH_LINKADDR:    return m_ral_dma_model.dmach.ch_linkaddr;
-            CH_LINKADDRHI:  return m_ral_dma_model.dmach.ch_linkaddrhi;
-            CH_ERRINFO:     return m_ral_dma_model.dmach.ch_errinfo;
-            CH_GPOREAD0:    return m_ral_dma_model.dmach.ch_gporead0;
+            CH_CMD:         return m_ral_dma_model.dmach[ch].ch_cmd;
+            CH_STATUS:      return m_ral_dma_model.dmach[ch].ch_status;
+            CH_INTREN:      return m_ral_dma_model.dmach[ch].ch_intren;
+            CH_CTRL:        return m_ral_dma_model.dmach[ch].ch_ctrl;
+            CH_SRCADDR:     return m_ral_dma_model.dmach[ch].ch_srcaddr;
+            CH_SRCADDRHI:   return m_ral_dma_model.dmach[ch].ch_srcaddrhi;
+            CH_DESADDR:     return m_ral_dma_model.dmach[ch].ch_desaddr;
+            CH_DESADDRHI:   return m_ral_dma_model.dmach[ch].ch_desaddrhi;
+            CH_XSIZE:       return m_ral_dma_model.dmach[ch].ch_xsize;
+            CH_XSIZEHI:     return m_ral_dma_model.dmach[ch].ch_xsizehi;
+            CH_SRCTRANSCFG: return m_ral_dma_model.dmach[ch].ch_srctranscfg;
+            CH_DESTRANSCFG: return m_ral_dma_model.dmach[ch].ch_destranscfg;
+            CH_XADDRINC:    return m_ral_dma_model.dmach[ch].ch_xaddrinc;
+            CH_YADDRSTRIDE: return m_ral_dma_model.dmach[ch].ch_yaddrstride;
+            CH_FILLVAL:     return m_ral_dma_model.dmach[ch].ch_fillval;
+            CH_YSIZE:       return m_ral_dma_model.dmach[ch].ch_ysize;
+            CH_SRCTRIGINCFG:return m_ral_dma_model.dmach[ch].ch_srctrigincfg;
+            CH_DESTRIGINCFG:return m_ral_dma_model.dmach[ch].ch_destrigincfg;
+            CH_TRIGOUTCFG:  return m_ral_dma_model.dmach[ch].ch_trigoutcfg;
+            CH_GPOEN0:      return m_ral_dma_model.dmach[ch].ch_gpoen0;
+            CH_GPOVAL0:     return m_ral_dma_model.dmach[ch].ch_gpoval0;
+            CH_LINKADDR:    return m_ral_dma_model.dmach[ch].ch_linkaddr;
+            CH_LINKADDRHI:  return m_ral_dma_model.dmach[ch].ch_linkaddrhi;
+            CH_ERRINFO:     return m_ral_dma_model.dmach[ch].ch_errinfo;
+            CH_GPOREAD0:    return m_ral_dma_model.dmach[ch].ch_gporead0;
             default:        return null;
         endcase
     endfunction
 
-    // peek backdoor 1 thanh ghi. ok=0 neu khong co reg / khong co HDL path.
+    // peek backdoor 1 thanh ghi. ok=0 neu khong co reg / khong co backdoor.
+    // Thanh ghi hang so (CH_IIDR/AIDR/BUILDCFG*) co const_reg_backdoor nhung
+    // has_hdl_path()==0 -> phai kiem tra get_backdoor() truoc, neu khong se bi
+    // bo qua oan va roi ve mirror.
     task ral_peek(int ch, bit [7:0] off, output bit ok, output bit [31:0] val);
         uvm_reg        r = ral_reg(ch, off);
         uvm_status_e   st;
         uvm_reg_data_t d;
         ok = 0; val = 0;
-        if (r == null)          return;
-        if (!r.has_hdl_path())  return;   // path sai/thieu -> tranh gia tri rac
+        if (r == null) return;
+        if (r.get_backdoor() == null && !r.has_hdl_path()) return; // tranh gia tri rac
         r.peek(st, d);
         if (st == UVM_IS_OK) begin ok = 1; val = d[31:0]; end
     endtask

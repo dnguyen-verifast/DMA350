@@ -24,6 +24,9 @@ package ral_pkg;
   // ---- (1) bus item ----
   `include "apb_seq_item.sv"
 
+  // ---- (1b) backdoor tuy bien cho thanh ghi hang so (dung boi dmach block) ----
+  `include "const_reg_backdoor.sv"
+
   // ---- (2) DMACH : 38 thanh ghi kenh ----
   `include "DMACH/ch_cmd_reg.sv"
   `include "DMACH/ch_status_reg.sv"

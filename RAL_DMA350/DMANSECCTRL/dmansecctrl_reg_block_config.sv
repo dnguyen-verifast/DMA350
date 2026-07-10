@@ -16,8 +16,8 @@ class dmansecctrl_reg_block_config extends uvm_reg_block;
     endfunction
     virtual function void build();
         this.default_map = create_map(.name("DMANSECCTRL"),
-                                        .base_addr(16'h0200),
-                                        .n_bytes(256),
+                                        .base_addr(16'h0000),
+                                        .n_bytes(4),
                                         .endian(UVM_LITTLE_ENDIAN),
                                         .byte_addressing(1));
 

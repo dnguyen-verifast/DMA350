@@ -39,16 +39,24 @@ class dmach_reg_block_config extends uvm_reg_block;
     rand ch_buildcfg1_reg    ch_buildcfg1;
 
 
+    // Do block cha (ral_dma350) gan TRUOC khi goi build(). GPO_WIDTH la parameter
+    // cua DUT -> quyet dinh be rong slice backdoor cua CH_GPOREAD0.
+    int unsigned gpo_width = 4;
+
     `uvm_object_utils(dmach_reg_block_config)
     function new(string name = "dmach_reg_block_config");
         super.new(name,build_coverage(UVM_NO_COVERAGE));
     endfunction
     virtual function void build();
+        const_reg_backdoor bd_iidr, bd_aidr, bd_buildcfg0, bd_buildcfg1;
+        // base_addr = 0 : offset that cua frame do add_submap() o block cha quyet
+        // dinh (0x1000 + ch*0x100). add_submap goi add_parent_map() va ghi de
+        // m_base_addr, nen dat 0x1000 o day chi gay hieu nham.
         this.default_map = create_map(.name("DMACH"),
-                                        .base_addr(16'h1000),
-                                        .n_bytes(256),
+                                        .base_addr(0),
+                                        .n_bytes(4),
                                         .endian(UVM_LITTLE_ENDIAN),
-                                        .byte_addressing(0));
+                                        .byte_addressing(1));
         this.ch_cmd = ch_cmd_reg::type_id::create("ch_cmd",, get_full_name());
         this.ch_cmd.configure(.blk_parent(this),
                                 .regfile_parent(null),
@@ -60,7 +68,7 @@ class dmach_reg_block_config extends uvm_reg_block;
                                     .unmapped(0),
                                     .frontdoor(null));
 
-        this.ch_intren = ch_intren_reg::type_id::create("ch_intren_reg",, get_full_name());
+        this.ch_intren = ch_intren_reg::type_id::create("ch_intren",, get_full_name());
         this.ch_intren.configure(.blk_parent(this),
                                     .regfile_parent(null),
                                     .hdl_path(""));
@@ -253,12 +261,16 @@ class dmach_reg_block_config extends uvm_reg_block;
 
         //=====================================================================
         // HDL PATH (BACKDOOR) : map moi thanh ghi vao bien storage that trong
-        // RTL dma350_ch_regs.sv (instance: <hdl_root>.g_ch[0].u_regs.<ten>).
+        // RTL dma350_ch_regs.sv (instance: <hdl_root>.g_ch[<n>].u_regs.<ten>).
         // add_hdl_path_slice(ten_bien_RTL, lsb_trong_thanh_ghi, so_bit).
         //
-        // Thanh ghi KHONG co storage (hang so localparam / khong model):
-        //   CH_IIDR, CH_AIDR, CH_BUILDCFG0/1, CH_WRKREGVAL -> khong gan path
-        //   (peek se fallback frontdoor mirror trong scoreboard).
+        // Thanh ghi KHONG co storage trong RTL:
+        //   CH_IIDR/CH_AIDR/CH_BUILDCFG0/CH_BUILDCFG1 : localparam mux ra prdata.
+        //     uvm_hdl_read() khong doc duoc localparam -> dung const_reg_backdoor
+        //     (xem cuoi ham). has_hdl_path()==0 nhung get_backdoor()!=null.
+        //   CH_WRKREGVAL : read-mux theo CH_WRKREGPTR, khong co storage rieng
+        //     -> khong backdoor. peek() se UVM_ERROR; moi consumer phai kiem tra
+        //     get_backdoor()/has_hdl_path() truoc khi peek (xem dma350_scoreboard).
         //=====================================================================
         // CH_CMD 0x00 : cac bit lenh + SW trigger (pulse/sticky regs)
         this.ch_cmd.add_hdl_path_slice("enablecmd",      0, 1);
@@ -312,11 +324,61 @@ class dmach_reg_block_config extends uvm_reg_block;
         this.ch_autocfg     .add_hdl_path_slice("cmdrestartinfen", 16, 1);
         this.ch_linkaddr    .add_hdl_path_slice("linkaddr",       0, 32);
         this.ch_linkaddrhi  .add_hdl_path_slice("linkaddrhi_q",   0, 32);
-        // CH_GPOREAD0 0x80 : gia tri GPO dang giu (GPO_WIDTH=4 theo build DUT)
-        this.ch_gporead0    .add_hdl_path_slice("gpo_out_q",      0, 4);
+        // CH_GPOREAD0 0x80 : gia tri GPO dang giu, be rong = GPO_WIDTH cua DUT
+        this.ch_gporead0    .add_hdl_path_slice("gpo_out_q",      0, gpo_width);
         this.ch_wrkregptr   .add_hdl_path_slice("wrkregptr_q",    0, 32);
         // CH_ERRINFO 0x90 : wire tu command engine (uvm_hdl doc net duoc)
         this.ch_errinfo     .add_hdl_path_slice("errinfo",        0, 32);
         this.ch_issuecap    .add_hdl_path_slice("issuecap_q",     0, 32);
+
+        //=====================================================================
+        // BACKDOOR HANG SO : 4 thanh ghi ID/build-config la localparam trong RTL
+        // (CH_IIDR_VAL / CH_AIDR_VAL / CH_BUILDCFG0_VAL / CH_BUILDCFG1_VAL,
+        //  xem dma350_ch_regs.sv). Gia tri phai khop RTL.
+        //=====================================================================
+        bd_iidr      = new("bd_ch_iidr",      32'h3A00_043B);
+        bd_aidr      = new("bd_ch_aidr",      32'h0000_0010);
+        bd_buildcfg0 = new("bd_ch_buildcfg0", 32'h0000_0000);
+        bd_buildcfg1 = new("bd_ch_buildcfg1", 32'h0000_0000);
+        this.ch_iidr     .set_backdoor(bd_iidr);
+        this.ch_aidr     .set_backdoor(bd_aidr);
+        this.ch_buildcfg0.set_backdoor(bd_buildcfg0);
+        this.ch_buildcfg1.set_backdoor(bd_buildcfg1);
+
+        //=====================================================================
+        // LOAI KHOI BUILT-IN REG SEQUENCES.
+        //
+        // NO_REG_ACCESS_TEST : uvm_reg_access_seq ghi FRONTDOOR roi doc BACKDOOR
+        // va so sanh. Sai voi cac thanh ghi ma HW ghi de gia tri SW:
+        //   srcaddr/desaddr/linkaddr : output reg, live counter do command engine
+        //     cap nhat -> backdoor read khong bang gia tri vua ghi.
+        //   errinfo : input wire do dma350_channel lai, SW khong ghi duoc.
+        //   status/cmd : bit sticky (W1C) / pulse, doc-ghi khong doi xung.
+        //
+        // NO_REG_BIT_BASH_TEST : uvm_reg_bit_bash_seq chi dung FRONTDOOR (ghi
+        // tung bit, doc lai). Loai cac thanh ghi doc-ghi khong doi xung.
+        //=====================================================================
+        no_reg_access_test(this.ch_srcaddr);
+        no_reg_access_test(this.ch_desaddr);
+        no_reg_access_test(this.ch_linkaddr);
+        no_reg_access_test(this.ch_errinfo);
+        no_reg_access_test(this.ch_status);
+        no_reg_access_test(this.ch_cmd);
+        no_reg_bit_bash_test(this.ch_errinfo);
+        no_reg_bit_bash_test(this.ch_status);
+        no_reg_bit_bash_test(this.ch_cmd);
+        no_reg_bit_bash_test(this.ch_gporead0);
+    endfunction
+
+    // Helper: uvm_reg_access_seq doc key "NO_REG_ACCESS_TEST" tren scope
+    // "REG::<full_name>" cua tung thanh ghi.
+    protected function void no_reg_access_test(uvm_reg r);
+        uvm_resource_db#(bit)::set({"REG::", r.get_full_name()},
+                                    "NO_REG_ACCESS_TEST", 1, this);
+    endfunction
+
+    protected function void no_reg_bit_bash_test(uvm_reg r);
+        uvm_resource_db#(bit)::set({"REG::", r.get_full_name()},
+                                    "NO_REG_BIT_BASH_TEST", 1, this);
     endfunction
 endclass
