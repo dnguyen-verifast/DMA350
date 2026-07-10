@@ -479,10 +479,14 @@ module dma350_channel import dma350_pkg::*; #(
     wire            awq_full  = (awq_cnt == AWQ_DEPTH[AQCW-1:0]);
     reg  [8:0]      w_left;          // beats remaining in the current W burst
 
-    // normal W when data available; during abort, send dummy beats (WSTRB=0)
-    // to complete already-accepted bursts.
+    // Normal W when data is available. While draining (abort, end-of-line or
+    // end-of-transfer) wr_active is already deasserted, so any AW that was
+    // accepted but still owes W beats must be completed with dummy beats
+    // (WSTRB=0) — otherwise WLAST never goes out, the subordinate never returns
+    // B, and the drain states wait for outstanding_b forever.
+    wire wr_draining = abort_active | (ds == D_DRAIN) | (ds == D_NEXTLINE);
     wire w_active = (w_left != 9'd0) &
-                    ((wr_active & w_avail & (wr_rem != 0)) | abort_active);
+                    ((wr_active & w_avail & (wr_rem != 0)) | wr_draining);
 
     // fill word: replicate the 32-bit fill value across the bus
     wire [DATA_WIDTH-1:0] fill_word = {(DATA_WIDTH/32){fillval_q}};
@@ -490,7 +494,7 @@ module dma350_channel import dma350_pkg::*; #(
     assign m_axi_wvalid = w_active;
     assign m_axi_wdata  = ( (w_use_fifo ? (wsrc_low & bmask(nbytes_d)) : fill_word)
                             << ({3'd0,dst_lane}*8) );
-    assign m_axi_wstrb  = abort_active ? '0 : (smask(nbytes_d) << dst_lane);
+    assign m_axi_wstrb  = wr_draining ? '0 : (smask(nbytes_d) << dst_lane);
     assign m_axi_wlast  = w_active & (w_left == 9'd1);
 
     // =====================================================================
@@ -737,7 +741,11 @@ module dma350_channel import dma350_pkg::*; #(
                         link_fetch_addr<={boot_addr_i[ADDR_WIDTH-1:1],1'b0};
                         link_word_idx<=0; link_words_got<=0;
                         ds<=D_LINK_AR;
-                    end else if (enablecmd && !stop_eff) begin
+                    end else if (enablecmd && !clr_enablecmd && !stop_eff) begin
+                        // !clr_enablecmd: the auto-clear of ENABLECMD lands one
+                        // cycle after D_DONE/D_ERR drops us here, so without this
+                        // guard the channel would immediately re-arm and re-run
+                        // the (already consumed) command.
                         ch_enabled<=1'b1; errinfo<=0; ds<=D_CFG;
                     end
                 end
@@ -1056,6 +1064,7 @@ module dma350_channel import dma350_pkg::*; #(
                     m_axi_awvalid <= m_axi_awvalid & ~aw_fire;
                     // advance to the next 2D line once this line has fully drained
                     if (outstanding_b == 0 && rd_out_ch == 0
+                        && w_left == 9'd0 && awq_cnt == 0
                         && !m_axi_arvalid && !m_axi_awvalid) begin
                         if (err_pending) ds <= D_ERR;
                         else begin : nextline
@@ -1089,6 +1098,7 @@ module dma350_channel import dma350_pkg::*; #(
                     m_axi_awvalid <= m_axi_awvalid & ~aw_fire;
                     if (err_pending) ds <= D_ERR;
                     else if (outstanding_b == 0 && rd_out_ch == 0
+                             && w_left == 9'd0 && awq_cnt == 0
                              && !m_axi_arvalid && !m_axi_awvalid)
                         ds <= trigout_en ? D_TRIGOUT : D_DONE;
                 end
