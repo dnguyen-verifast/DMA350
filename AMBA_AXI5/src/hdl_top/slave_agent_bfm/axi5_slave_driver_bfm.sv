@@ -332,6 +332,7 @@ interface axi5_slave_driver_bfm(input                     aclk    ,
       `uvm_info(name,$sformatf("inside_detect_bready = %0d",bready),UVM_HIGH)
     end
     `uvm_info(name,$sformatf("After_loop_of_Detecting_bready = %0d",bready),UVM_HIGH)
+    @(posedge aclk);
     bvalid <= 1'b0;
   
   endtask : axi5_write_response_phase
