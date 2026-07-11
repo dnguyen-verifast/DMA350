@@ -311,8 +311,10 @@ task axi5_slave_driver_proxy::axi5_write_task();
 		
      // axi5_slave_write_data_out_fifo_h.peek(local_slave_data_tx);
    //   wait(axi5_slave_write_data_out_fifo_h.used()>0);
+   `uvm_info("SLAVE_AGENT",$sformatf("Waiting for write_data_chanel finish"),UVM_LOW);
 		wait(data_tx != null);
     data_tx.await();
+    `uvm_info("SLAVE_AGENT",$sformatf("Move on write_response_chanel finish"),UVM_LOW);
       //getting the data from response fifo
     axi5_slave_write_response_fifo_h.get(local_slave_response_tx);
       //Converting transactions into struct data type
@@ -377,7 +379,7 @@ task axi5_slave_driver_proxy::axi5_write_task();
     end
     // finish to compute the end address based on the burst type
 
-		`uvm_info("SLAVE_AGENT",$sformatf("read_data_mode = %0b",axi5_slave_agent_cfg_h.read_data_mode),UVM_LOW);
+		`uvm_info("SLAVE_AGENT",$sformatf("read_data_mode = %s",axi5_slave_agent_cfg_h.read_data_mode),UVM_LOW);
     `uvm_info("get_type_name",$sformatf("end_addr=%0h",end_wrap_addr),UVM_HIGH);
 
     // using the check_access_permission function to check the access permission for the write address and setting the write response accordingly
@@ -393,7 +395,7 @@ task axi5_slave_driver_proxy::axi5_write_task();
       local_slave_response_tx.bresp = local_slave_addr_tx.bresp;
       `uvm_info("DEBUG_SLAVE_WDATA_PROXY", $sformatf("AFTER :: Reciving struct pkt from bfm \n %p",struct_write_packet), UVM_HIGH);
     end
-    
+
     bid_local = local_slave_addr_tx.awid;
     axi5_slave_seq_item_converter::from_write_class(local_slave_response_tx,struct_write_packet);
     axi5_slave_drv_bfm_h.axi5_write_response_phase(struct_write_packet,struct_cfg,bid_local);
