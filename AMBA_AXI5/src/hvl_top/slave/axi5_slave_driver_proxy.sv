@@ -323,6 +323,7 @@ task axi5_slave_driver_proxy::axi5_write_task();
     `uvm_info(get_type_name(), $sformatf("from_write_class:: struct_cfg =  \n %0p",struct_cfg),UVM_HIGH);
     `uvm_info("slave_driver_proxy",$sformatf("min_tx=%0d",axi5_slave_agent_cfg_h.get_minimum_transactions),UVM_HIGH)
 
+    // resolving the out of order response for write channel
     if(axi5_slave_agent_cfg_h.slave_response_mode == WRITE_READ_RESP_OUT_OF_ORDER || axi5_slave_agent_cfg_h.slave_response_mode == ONLY_WRITE_RESP_OUT_OF_ORDER) begin
       `uvm_info("SLAVE_AGENT",$sformatf("Inside response OUT_OF_ORDER"),UVM_LOW);
       if(flag_to_read == 0) begin
@@ -348,7 +349,9 @@ task axi5_slave_driver_proxy::axi5_write_task();
       end
        axi5_slave_write_data_out_fifo_h.get(local_slave_data_tx);
     end
+    // finish the out of order response for write channel
 
+    // compute the end address based on the burst type
     if(local_slave_addr_tx.awburst == WRITE_FIXED) begin
       end_wrap_addr =  local_slave_addr_tx.awaddr + ((2**local_slave_addr_tx.awsize));
     end
@@ -372,10 +375,12 @@ task axi5_slave_driver_proxy::axi5_write_task();
         violation_addr = 0;
       end
     end
+    // finish to compute the end address based on the burst type
 
 		`uvm_info("SLAVE_AGENT",$sformatf("read_data_mode = %0b",axi5_slave_agent_cfg_h.read_data_mode),UVM_LOW);
     `uvm_info("get_type_name",$sformatf("end_addr=%0h",end_wrap_addr),UVM_HIGH);
 
+    // using the check_access_permission function to check the access permission for the write address and setting the write response accordingly
     if(axi5_slave_agent_cfg_h.read_data_mode == SLAVE_MEM_MODE || axi5_slave_agent_cfg_h.read_data_mode == SLAVE_ERR_RESP_MODE) begin
       slave_err = axi5_slave_mem_h.check_access_permission(local_slave_addr_tx.awaddr, 
                                                       region_e'(local_slave_addr_tx.awregion), 
@@ -385,13 +390,13 @@ task axi5_slave_driver_proxy::axi5_write_task();
                                         : ((violation_addr == 1)? ((local_slave_addr_tx.awlock == WRITE_NORMAL_ACCESS)? WRITE_OKAY : WRITE_EXOKAY) 
                                           : (local_slave_addr_tx.awlock == WRITE_NORMAL_ACCESS)? WRITE_EXOKAY : WRITE_OKAY);
       // write response_task
-      //local_slave_response_tx.bresp = local_slave_addr_tx.bresp;
-      bid_local = local_slave_addr_tx.awid;
-      axi5_slave_seq_item_converter::from_write_class(local_slave_response_tx,struct_write_packet);
-      axi5_slave_drv_bfm_h.axi5_write_response_phase(struct_write_packet,struct_cfg,bid_local);
+      local_slave_response_tx.bresp = local_slave_addr_tx.bresp;
       `uvm_info("DEBUG_SLAVE_WDATA_PROXY", $sformatf("AFTER :: Reciving struct pkt from bfm \n %p",struct_write_packet), UVM_HIGH);
     end
-
+    
+    bid_local = local_slave_addr_tx.awid;
+    axi5_slave_seq_item_converter::from_write_class(local_slave_response_tx,struct_write_packet);
+    axi5_slave_drv_bfm_h.axi5_write_response_phase(struct_write_packet,struct_cfg,bid_local);
       //Converting struct into transaction data type
     axi5_slave_seq_item_converter::to_write_class(struct_write_packet,local_slave_response_tx);
 
