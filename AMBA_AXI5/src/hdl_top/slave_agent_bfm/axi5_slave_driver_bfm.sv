@@ -296,31 +296,35 @@ interface axi5_slave_driver_bfm(input                     aclk    ,
     
     int j;
     @(posedge aclk);
+    bid <= bid_local; 
+    data_write_packet.bid <= bid_local; 
+    bresp <= data_write_packet.bresp;
+    buser <= data_write_packet.buser;
+    bvalid <= 1;
+    // if((struct_cfg.slave_response_mode == ONLY_WRITE_RESP_OUT_OF_ORDER) || (struct_cfg.slave_response_mode == WRITE_READ_RESP_OUT_OF_ORDER)) begin 
+    //   bid <= bid_local; 
+    //   data_write_packet.bid <= bid_local; 
+    //   bresp <= data_write_packet.bresp;
+    //   buser <= data_write_packet.buser;
+    //   bvalid <= 1;
+    // end
+  //   else begin 
+  //    data_write_packet.bid <= mem_awid[j]; 
+  //    `uvm_info("DEBUG_BRESP",$sformatf("BID = %0d",data_write_packet.bid),UVM_HIGH)
+  //    `uvm_info(name,"INSIDE WRITE_RESPONSE_PHASE",UVM_LOW)
 
-    if((struct_cfg.slave_response_mode == ONLY_WRITE_RESP_OUT_OF_ORDER) || (struct_cfg.slave_response_mode == WRITE_READ_RESP_OUT_OF_ORDER)) begin 
-      bid <= bid_local; 
-      data_write_packet.bid <= bid_local; 
-      bresp <= data_write_packet.bresp;
-      buser <= data_write_packet.buser;
-      bvalid <= 1;
-    end
-    else begin 
-     data_write_packet.bid <= mem_awid[j]; 
-     `uvm_info("DEBUG_BRESP",$sformatf("BID = %0d",data_write_packet.bid),UVM_HIGH)
-     `uvm_info(name,"INSIDE WRITE_RESPONSE_PHASE",UVM_LOW)
-
-     bid  <= mem_awid[j];
-     `uvm_info("DEBUG_BRESP",$sformatf("MEM_BID[%0d] = %0d",j,mem_awid[j]),UVM_HIGH)
-     `uvm_info("DEBUG_BRESP_WLAST",$sformatf("wlast = %0d,j=%0d",mem_wlast[j],j),UVM_NONE)
-     while(mem_wlast[j]!=1) begin
-       @(posedge aclk);
-     end
-     bresp <= data_write_packet.bresp;
-     buser<=data_write_packet.buser;
-     bvalid <= 1;
-     j++;
-     `uvm_info("DEBUG_BRESP",$sformatf("BID = %0d",bid),UVM_HIGH)
-   end
+  //    bid  <= mem_awid[j];
+  //    `uvm_info("DEBUG_BRESP",$sformatf("MEM_BID[%0d] = %0d",j,mem_awid[j]),UVM_HIGH)
+  //    `uvm_info("DEBUG_BRESP_WLAST",$sformatf("wlast = %0d,j=%0d",mem_wlast[j],j),UVM_NONE)
+  //    while(mem_wlast[j]!=1) begin
+  //      @(posedge aclk);
+  //    end
+  //    bresp <= data_write_packet.bresp;
+  //    buser<=data_write_packet.buser;
+  //    bvalid <= 1;
+  //    j++;
+  //    `uvm_info("DEBUG_BRESP",$sformatf("BID = %0d",bid),UVM_HIGH)
+  //  end
     
     while(bready === 0) begin
       @(posedge aclk);
