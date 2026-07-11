@@ -194,7 +194,6 @@ task axi5_slave_driver_proxy::axi5_write_task();
       axi5_slave_tx              local_slave_addr_tx;
       axi5_write_transfer_char_s struct_write_packet;
       axi5_transfer_cfg_s        struct_cfg;
-      bit[3:0]                   local_awid;
     
       //returns status of address thread
       addr_tx=process::self();
@@ -299,11 +298,13 @@ task axi5_slave_driver_proxy::axi5_write_task();
     axi5_slave_tx              packet;
     axi5_write_transfer_char_s struct_write_packet;
     axi5_transfer_cfg_s        struct_cfg;
-    bit[3:0]                   bid_local;
+    bit[3:0]                   bid_rsp;
+    bit[3:0]                   local_awid;
     int                        end_wrap_addr;
     int                        slave_err;
     bit                        violation_addr;   
     int                        min_addr;
+
       //returns status of response thread
     response_tx=process::self();
 
@@ -328,16 +329,23 @@ task axi5_slave_driver_proxy::axi5_write_task();
     // resolving the out of order response for write channel
     if(axi5_slave_agent_cfg_h.slave_response_mode == WRITE_READ_RESP_OUT_OF_ORDER || axi5_slave_agent_cfg_h.slave_response_mode == ONLY_WRITE_RESP_OUT_OF_ORDER) begin
       `uvm_info("SLAVE_AGENT",$sformatf("Inside response OUT_OF_ORDER"),UVM_LOW);
-      if(flag_to_read == 0) begin
-        wait(recieved_data_count >= axi5_slave_agent_cfg_h.get_minimum_transactions);
-        flag_to_read = 1;
+      // if(flag_to_read == 0) begin
+      //   wait(recieved_data_count >= axi5_slave_agent_cfg_h.get_minimum_transactions);
+      //   flag_to_read = 1;
+      // end
+      if(recieved_data_count >= axi5_slave_agent_cfg_h.get_minimum_transactions) begin
+        #100ns;
       end
-      random_index = $urandom_range(0, active_ids_q.size() - 1);
-      chosen_id = active_ids_q[random_index];
+      if(recieved_data_count >= axi5_slave_agent_cfg_h.get_minimum_transactions) begin
+        random_index = $urandom_range(0, active_ids_q.size() - 1);
+        chosen_id = active_ids_q[random_index];
+        active_ids_q.delete(random_index);
+      end else begin
+        chosen_id = active_ids_q.pop_front();
+      end
       local_slave_addr_tx = associate_queue_OoO_AW[chosen_id].pop_front();
       local_slave_data_tx = associate_queue_OoO_W[chosen_id].pop_front();
       recieved_data_count -- ;
-      active_ids_q.delete(random_index);
     end else begin 
       `uvm_info("SLAVE_AGENT",$sformatf("Inside response IN_ORDER"),UVM_LOW);
        //check for fifo empty if not get the data 
@@ -351,6 +359,8 @@ task axi5_slave_driver_proxy::axi5_write_task();
       end
        axi5_slave_write_data_out_fifo_h.get(local_slave_data_tx);
     end
+    //take id value
+    bid_rsp = local_slave_addr_tx.awid;
     // finish the out of order response for write channel
 
     // compute the end address based on the burst type
@@ -396,9 +406,8 @@ task axi5_slave_driver_proxy::axi5_write_task();
       `uvm_info("DEBUG_SLAVE_WDATA_PROXY", $sformatf("AFTER :: Reciving struct pkt from bfm \n %p",struct_write_packet), UVM_HIGH);
     end
 
-    bid_local = local_slave_addr_tx.awid;
     axi5_slave_seq_item_converter::from_write_class(local_slave_response_tx,struct_write_packet);
-    axi5_slave_drv_bfm_h.axi5_write_response_phase(struct_write_packet,struct_cfg,bid_local);
+    axi5_slave_drv_bfm_h.axi5_write_response_phase(struct_write_packet,struct_cfg,bid_rsp);
       //Converting struct into transaction data type
     axi5_slave_seq_item_converter::to_write_class(struct_write_packet,local_slave_response_tx);
 
