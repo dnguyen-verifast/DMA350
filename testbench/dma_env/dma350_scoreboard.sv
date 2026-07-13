@@ -426,6 +426,7 @@ class dma350_scoreboard extends uvm_scoreboard;
             forever begin crlp_analysis_fifo_h0.get(crlp_tx_h0);
                           process_lpi(crlp_tx_h0); end
             forever begin dma350_sta_ctrl_analysis_fifo_h0.get(dma350_sc_tx_h0);
+                          `uvm_info("process_status_control", $sformatf("process_status_control"),UVM_LOW)
                           process_status_control(dma350_sc_tx_h0); end
             forever begin boot_analysis_fifo_h0.get(boot_tx_h0);
                           process_boot(boot_tx_h0); end
