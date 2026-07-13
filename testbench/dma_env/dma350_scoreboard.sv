@@ -976,11 +976,13 @@ class dma350_scoreboard extends uvm_scoreboard;
     //=========================================================================
     // PHAN LOAI THANH GHI : quyet dinh co so mirror/backdoor duoc khong.
     //=========================================================================
-    // (b) CH_STATUS : chi 5 bit sticky [20:16] la FLOP (backdoor peek doc duoc).
-    //     Cac bit con lai (INTR [3:0], *WAIT [10:8], RESUMEWAIT [21],
-    //     TRIGINWAIT [26:24]) la TO HOP (build_status) - backdoor luon = 0,
-    //     chi frontdoor thay gia tri song => KHONG dua vao FD/BD compare.
-    localparam bit [31:0] STATUS_STICKY_MASK = 32'h001F_0000;   // [20:16]
+    // (b) CH_STATUS : thanh ghi co trang thai - KHONG so FD/BD, chi log.
+    //     Ly do 1 (bit thieu storage): chi 5 bit sticky [20:16] la FLOP; INTR
+    //       [3:0], *WAIT [10:8], RESUMEWAIT [21], TRIGINWAIT [26:24] la TO HOP
+    //       (build_status) -> backdoor luon doc ve 0.
+    //     Ly do 2 (lech truc thoi gian): frontdoor la snapshot tai canh SETUP,
+    //       backdoor peek chay sau 1-3 chu ky -> co vua set (DONE) lam lech
+    //       ca bit sticky trong transaction chuyen tiep.
 
     // (c) pha "HW khong ghi vao thanh ghi config" => mirror = RTL, so mirror OK.
     //     Truoc activation (chua ENABLED) hoac da ket thuc (DONE/ERROR/STOPPED/
@@ -995,21 +997,26 @@ class dma350_scoreboard extends uvm_scoreboard;
     //   Nguyen tac : chi so voi backdoor/mirror khi THANH GHI + PHA cho phep.
     //   * config TINH, pha static (truoc act / sau done) : prdata==peek==mirror
     //   * config TINH, pha operation (ENABLED/PAUSED) : RO-lock -> so cfg_snapshot
-    //   * HW-modified (counter/status/errinfo) : KHONG so full 32-bit
-    //       - CH_STATUS : chi so 5 bit sticky vs backdoor; to hop -> self-model
+    //   * HW-modified (counter/status/errinfo) : KHONG so FD/BD
+    //       - CH_STATUS : bo qua so sanh, chi log FD+BD; ngu nghia -> check_status
     //       - live-counter : da peek chu dong o bien AR/R/W, bo qua o day
     //=========================================================================
     task reconcile_readback(int ch, bit [7:0] off, bit [31:0] rd);
         bit ok; bit [31:0] bd;
 
         case (off)
-            //---- STATUS : sticky co flop -> so; to hop -> check self-model ----
+            //---- STATUS : thanh ghi CO TRANG THAI -> KHONG so FD/BD -----------
+            // frontdoor = anh chup tai canh SETUP cua chinh transaction;
+            // backdoor  = gia tri song tai thoi diem reconcile (tre 1-3 chu ky).
+            // Bit set trong cua so do (vd DONE) lam lech ca bit sticky, nen so
+            // truc tiep luon cho ket qua sai lech -> chi LOG hai goc nhin de
+            // debug; tinh dung/sai cua co van duoc kiem ngu nghia (check_status).
             CH_STATUS: begin
                 ral_peek(ch, off, ok, bd);
-                if (ok && (rd & STATUS_STICKY_MASK) !== (bd & STATUS_STICKY_MASK))
-                    `uvm_error("SB_FDBD", $sformatf(
-                      "CH%0d STATUS sticky : frontdoor=0x%08h backdoor=0x%08h (mask 0x%08h)",
-                      ch, rd, bd, STATUS_STICKY_MASK))
+                if (ok)
+                    `uvm_info("SB_FDBD", $sformatf(
+                      "CH%0d STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x%08h backdoor=0x%08h",
+                      ch, rd, bd), UVM_MEDIUM)
                 check_status(ch, rd);              // ngu nghia done/err vs bus
             end
 
