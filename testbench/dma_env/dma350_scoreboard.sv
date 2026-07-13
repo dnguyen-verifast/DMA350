@@ -947,6 +947,7 @@ class dma350_scoreboard extends uvm_scoreboard;
                 if (wstrb[b]) begin           // xu ly unaligned dau/cuoi qua wstrb
                     refmem.set_actual(a+b, beat[8*b +: 8]);
                     ctx[ch].bytes_written++;
+                    `uvm_info("SB_W", $sformatf("Counter byte written to des %d",ctx[ch].bytes_written++), UVM_LOW)
                 end
             end
             if (!ob.fixed) a += bpb;
