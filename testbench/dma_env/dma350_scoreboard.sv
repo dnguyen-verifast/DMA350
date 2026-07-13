@@ -974,33 +974,84 @@ class dma350_scoreboard extends uvm_scoreboard;
     endtask
 
     //=========================================================================
-    // (6) RECONCILE READBACK : vai tro moi = FRONTDOOR<->BACKDOOR consistency.
-    //   * prdata (doc APB, frontdoor) PHAI khop peek (backdoor) cung thoi diem
-    //   * RO-khi-enabled : config reg khong duoc doi so voi snapshot activation
-    //   * STATUS/ERRINFO : bit ket thuc/loi phai khop dieu kien quan sat tren bus
-    // (Live counter da duoc peek chu dong o bien AR/R/W -> khong lam lai o day.)
+    // PHAN LOAI THANH GHI : quyet dinh co so mirror/backdoor duoc khong.
+    //=========================================================================
+    // (b) CH_STATUS : chi 5 bit sticky [20:16] la FLOP (backdoor peek doc duoc).
+    //     Cac bit con lai (INTR [3:0], *WAIT [10:8], RESUMEWAIT [21],
+    //     TRIGINWAIT [26:24]) la TO HOP (build_status) - backdoor luon = 0,
+    //     chi frontdoor thay gia tri song => KHONG dua vao FD/BD compare.
+    localparam bit [31:0] STATUS_STICKY_MASK = 32'h001F_0000;   // [20:16]
+
+    // (c) pha "HW khong ghi vao thanh ghi config" => mirror = RTL, so mirror OK.
+    //     Truoc activation (chua ENABLED) hoac da ket thuc (DONE/ERROR/STOPPED/
+    //     DISABLED). Trong luc ENABLED/PAUSED : dang operation, config bi RO-lock
+    //     boi HW => doi chieu voi cfg_snapshot, khong phai mirror.
+    function bit ch_in_static_phase(int ch);
+        return !(ctx[ch].state inside {CH_ST_ENABLED, CH_ST_PAUSED});
+    endfunction
+
+    //=========================================================================
+    // (6) RECONCILE READBACK : doi chieu prdata (frontdoor) voi mo hinh.
+    //   Nguyen tac : chi so voi backdoor/mirror khi THANH GHI + PHA cho phep.
+    //   * config TINH, pha static (truoc act / sau done) : prdata==peek==mirror
+    //   * config TINH, pha operation (ENABLED/PAUSED) : RO-lock -> so cfg_snapshot
+    //   * HW-modified (counter/status/errinfo) : KHONG so full 32-bit
+    //       - CH_STATUS : chi so 5 bit sticky vs backdoor; to hop -> self-model
+    //       - live-counter : da peek chu dong o bien AR/R/W, bo qua o day
     //=========================================================================
     task reconcile_readback(int ch, bit [7:0] off, bit [31:0] rd);
         bit ok; bit [31:0] bd;
-        // 1) consistency frontdoor vs backdoor tai cung thoi diem doc
-        ral_peek(ch, off, ok, bd);
-        if (ok && rd !== bd)
-            `uvm_error("SB_FDBD", $sformatf(
-              "CH%0d off=0x%02h : frontdoor prdata=0x%08h != backdoor peek=0x%08h",
-              ch, off, rd, bd))
-        // 2) kiem ngu nghia theo tung thanh ghi
+
         case (off)
-            CH_STATUS:  check_status(ch, rd);
+            //---- STATUS : sticky co flop -> so; to hop -> check self-model ----
+            CH_STATUS: begin
+                ral_peek(ch, off, ok, bd);
+                if (ok && (rd & STATUS_STICKY_MASK) !== (bd & STATUS_STICKY_MASK))
+                    `uvm_error("SB_FDBD", $sformatf(
+                      "CH%0d STATUS sticky : frontdoor=0x%08h backdoor=0x%08h (mask 0x%08h)",
+                      ch, rd, bd, STATUS_STICKY_MASK))
+                check_status(ch, rd);              // ngu nghia done/err vs bus
+            end
+
+            //---- ERRINFO : HW set theo loi thuc -> chi check ngu nghia ----
             CH_ERRINFO: check_errinfo(ch, rd);
-            CH_SRCADDR, CH_DESADDR, CH_XSIZE: ; // live-counter: da peek o bien bus
-            CH_GPOREAD0: ;                        // doi chieu qua gpo_ch (status agent)
-            default:
-                // RO-khi-enabled : config phai giu = snapshot chot luc activation
-                if (ctx[ch].state == CH_ST_ENABLED &&
-                    ctx[ch].cfg_snapshot.exists(off) && rd !== ctx[ch].cfg_snapshot[off])
-                    `uvm_warning("SB_ROLOCK", $sformatf(
-                      "CH%0d config off=0x%02h doi khi ENABLED : snapshot=0x%08h act=0x%08h",
-                      ch, off, ctx[ch].cfg_snapshot[off], rd))
+
+            //---- live-counter : HW ghi lien tuc -> da peek o bien bus ----
+            CH_SRCADDR, CH_SRCADDRHI, CH_DESADDR, CH_DESADDRHI,
+            CH_XSIZE, CH_XSIZEHI, CH_YSIZE: ;
+
+            //---- GPO read : doi chieu qua gpo_ch (status agent) ----
+            CH_GPOREAD0: ;
+
+            //---- CH_CMD : write-mostly, bit tu xoa -> bo qua readback ----
+            CH_CMD: ;
+
+            //---- config TINH : tuy PHA moi chon nguon compare ----
+            default: begin
+                if (ch_in_static_phase(ch)) begin
+                    // HW khong ghi : prdata phai == backdoor == mirror y dinh SW
+                    ral_peek(ch, off, ok, bd);
+                    if (ok && rd !== bd)
+                        `uvm_error("SB_FDBD", $sformatf(
+                          "CH%0d off=0x%02h (static) : frontdoor=0x%08h != backdoor=0x%08h",
+                          ch, off, rd, bd))
+                    if (ctx[ch].reg_mirror.exists(off) &&
+                        rd !== ctx[ch].reg_mirror[off])
+                        `uvm_error("SB_MIRROR", $sformatf(
+                          "CH%0d off=0x%02h (static) : readback=0x%08h != mirror SW=0x%08h",
+                          ch, off, rd, ctx[ch].reg_mirror[off]))
+                end
+                else begin
+                    // dang operation : config bi RO-lock boi HW -> so snapshot,
+                    // KHONG so mirror (mirror la y dinh SW, co the da bi ghi de
+                    // sau activation ma HW khong nhan cho command dang chay).
+                    if (ctx[ch].cfg_snapshot.exists(off) &&
+                        rd !== ctx[ch].cfg_snapshot[off])
+                        `uvm_warning("SB_ROLOCK", $sformatf(
+                          "CH%0d config off=0x%02h doi khi ENABLED : snapshot=0x%08h act=0x%08h",
+                          ch, off, ctx[ch].cfg_snapshot[off], rd))
+                end
+            end
         endcase
     endtask
 
