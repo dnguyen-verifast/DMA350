@@ -334,7 +334,7 @@ task axi5_slave_monitor_proxy::axi5_slave_read_address();
       `uvm_info("SLAVE_MONITOR",$sformatf("Transfer size is less than or equal to DATA_WIDTH."),UVM_LOW);
     end
 
-    axi5_slave_read_fifo_h.get(req_rd);
+    axi5_slave_read_fifo_h.put(req_rd);
 
     $cast(req_rd_clone_packet,req_rd.clone());
     `uvm_info(get_type_name(),$sformatf("Packet received from axi5_slave_read_address is \n %s",req_rd_clone_packet.sprint()),UVM_HIGH)
