@@ -719,6 +719,7 @@ class dma350_scoreboard extends uvm_scoreboard;
         int max_wr = gi.des_maxburstlen + 1;
         longint sa = gi.srcaddr, da = gi.desaddr;
         if (gi.usestream) return;   // stream path: du doan qua AXI-Stream, khong AXI-M
+        `uvm_info("SB_PRED_BURST", $sformatf("build_predicted_bursts = %d ",lines),UVM_LOW)
         for (int y=0; y<lines; y++) begin
             // moi dong: src_xsize beat kich thuoc src_transize
             if (!gi.fill_en)   // FILL khong doc nguon
