@@ -701,8 +701,10 @@ class dma350_scoreboard extends uvm_scoreboard;
             int nb = calc_beats(rem, cur, size, eff_fixed, max_beats);
             bd = dma_axi_burst::type_id::create("bd");
             bd.addr = cur; bd.beats = nb; bd.size = size; bd.fixed = eff_fixed;
-            `uvm_info("SB_PRED_SIDE", $sformatf("push_back to exp_wr"),UVM_LOW)
-            if (is_read) ctx[ch].exp_rd.push_back(bd);
+            if (is_read) begin 
+                ctx[ch].exp_rd.push_back(bd);
+                `uvm_info("SB_PRED_SIDE", $sformatf("ctx[ch].exp_rd.push_back(bd)"),UVM_LOW)
+            end
             else begin        
                 ctx[ch].exp_wr.push_back(bd);
                 `uvm_info("SB_PRED_SIDE", $sformatf("ctx[ch].exp_wr.push_back(bd)"),UVM_LOW)
@@ -811,6 +813,7 @@ class dma350_scoreboard extends uvm_scoreboard;
             err_addr_mismatch++;
         end
         else begin
+            `uvm_info("SB_AR", $sformatf("pop_front exp_rd queue"), UVM_LOW)
             exp = ctx[ch].exp_rd.pop_front();
             if (exp.addr !== t.araddr || exp.beats != beats || exp.size != size) begin
                 `uvm_error("SB_AR", $sformatf(
