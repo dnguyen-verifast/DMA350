@@ -696,10 +696,12 @@ class dma350_scoreboard extends uvm_scoreboard;
         dma_axi_burst bd;
         // neu increment=0 -> FIXED (dia chi khong tang)
         bit        eff_fixed = fixed || (elem_inc == 0);
+        `uvm_info("SB_PRED_SIDE", $sformatf("total_beats = %d ",rem),UVM_LOW)
         while (rem > 0) begin
             int nb = calc_beats(rem, cur, size, eff_fixed, max_beats);
             bd = dma_axi_burst::type_id::create("bd");
             bd.addr = cur; bd.beats = nb; bd.size = size; bd.fixed = eff_fixed;
+            `uvm_info("SB_PRED_SIDE", $sformatf("push_back to exp_wr"),UVM_LOW)
             if (is_read) ctx[ch].exp_rd.push_back(bd);
             else begin        
                 ctx[ch].exp_wr.push_back(bd);
@@ -707,8 +709,6 @@ class dma350_scoreboard extends uvm_scoreboard;
             end
             if (!eff_fixed) cur += (nb << size);
             rem -= nb;
-
-            
         end
     endfunction
 
