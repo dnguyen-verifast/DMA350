@@ -1128,6 +1128,7 @@ class dma350_scoreboard extends uvm_scoreboard;
             // Bao phu APB-ENABLE, command-link VA autoboot (khong chi APB ENABLE),
             // vi moi con duong deu ket thuc bang viec ch_enabled len 1.
             if (en && !ctx[ch].prev_enabled)
+                `uvm_info("SB_FSM", $sformatf("do_activation_snapshot(ch%d)",ch),UVM_LOW)
                 do_activation_snapshot(ch);       // settle 1 clock roi peek config
             // ch_enabled canh XUONG (khong con paused) => command ket thuc
             if (!en && ctx[ch].prev_enabled && ctx[ch].state == CH_ST_ENABLED)
