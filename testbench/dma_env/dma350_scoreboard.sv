@@ -700,7 +700,10 @@ class dma350_scoreboard extends uvm_scoreboard;
             bd = dma_axi_burst::type_id::create("bd");
             bd.addr = cur; bd.beats = nb; bd.size = size; bd.fixed = eff_fixed;
             if (is_read) ctx[ch].exp_rd.push_back(bd);
-            else         ctx[ch].exp_wr.push_back(bd);
+            else begin        
+                ctx[ch].exp_wr.push_back(bd);
+                `uvm_info("SB_PRED_SIDE", $sformatf("ctx[ch].exp_wr.push_back(bd)"),UVM_LOW)
+            end
             if (!eff_fixed) cur += (nb << size);
             rem -= nb;
 
