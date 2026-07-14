@@ -23,6 +23,7 @@ class axis_master_driver extends uvm_driver #(axis_seq_item);
     endfunction
 
     task run_phase(uvm_phase phase);
+        super.run_phase(phase);
         drive_idle();
         @(posedge vif.ARESETn);
         @(vif.mst_cb);
