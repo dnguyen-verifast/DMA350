@@ -20,20 +20,14 @@ interface axi_stream_if #(
     localparam int STRB_WIDTH = DATA_WIDTH / 8;
 
     // Handshake
-    // logic                    TVALID;
-    // logic                    TREADY;
+    logic                    TVALID;
+    logic                    TREADY;
 
-    // // Payload
-    // logic [DATA_WIDTH-1:0]   TDATA;
-    // logic [STRB_WIDTH-1:0]   TSTRB;
-    // logic [STRB_WIDTH-1:0]   TKEEP;
-    // logic                    TLAST;
-    logic TVALID = 1'b0;
-    logic TREADY = 1'b0;
-    logic [DATA_WIDTH-1:0] TDATA = '0;
-    logic [STRB_WIDTH-1:0] TSTRB = '0;
-    logic [STRB_WIDTH-1:0] TKEEP = '0;
-    logic TLAST  = 1'b0;
+    // Payload
+    logic [DATA_WIDTH-1:0]   TDATA;
+    logic [STRB_WIDTH-1:0]   TSTRB;
+    logic [STRB_WIDTH-1:0]   TKEEP;
+    logic                    TLAST;
     logic [ID_WIDTH-1:0]     TID;
     logic [DEST_WIDTH-1:0]   TDEST;
     logic [USER_WIDTH-1:0]   TUSER;
@@ -88,7 +82,7 @@ interface axi_stream_if #(
 
     // During reset, TVALID must be LOW.
     property p_reset_tvalid_low;
-        @(posedge ACLK) (!ARESETn) |-> (!TVALID);
+        @(posedge mst_cb) (!ARESETn) |-> (!TVALID);
     endproperty
     a_reset_tvalid_low: assert property (p_reset_tvalid_low)
         else $error("AXIS: TVALID must be LOW during reset");
