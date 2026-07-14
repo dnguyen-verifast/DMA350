@@ -63,7 +63,7 @@ interface axi_stream_if #(
     // pragma translate_off
     // Once TVALID is asserted it must remain asserted until the handshake.
     property p_tvalid_stable;
-        @(posedge ACLK) disable iff (!ARESETn)
+        @(posedge mst_cb.ACLK) disable iff (!ARESETn)
             (TVALID && !TREADY) |=> TVALID;
     endproperty
     a_tvalid_stable: assert property (p_tvalid_stable)
@@ -71,7 +71,7 @@ interface axi_stream_if #(
 
     // Payload must remain stable while TVALID is high and waiting for TREADY.
     property p_payload_stable;
-        @(posedge ACLK) disable iff (!ARESETn)
+        @(posedge mst_cb.ACLK) disable iff (!ARESETn)
             (TVALID && !TREADY) |=> $stable(TDATA) && $stable(TLAST) &&
                                     $stable(TID)   && $stable(TDEST) &&
                                     $stable(TSTRB) && $stable(TKEEP) &&
@@ -82,13 +82,13 @@ interface axi_stream_if #(
 
     // During reset, TVALID must be LOW.
     property p_reset_tvalid_low;
-        @(posedge ACLK) (!ARESETn) |-> (TVALID == 0);
+        @(posedge mst_cb.ACLK) (!ARESETn) |-> (TVALID == 0);
     endproperty
     a_reset_tvalid_low: assert property (p_reset_tvalid_low)
         else $error("AXIS: TVALID must be LOW during reset");
     // pragma translate_on
     property p_twakeup_valid;
-        @(posedge ACLK) disable iff(!ARESETn)
+        @(posedge mst_cb.ACLK) disable iff(!ARESETn)
             (TVALID && TWAKEUP && !TREADY) |=> $stable(TWAKEUP);
     endproperty
     a_twakeup_valid : assert property (p_twakeup_valid);

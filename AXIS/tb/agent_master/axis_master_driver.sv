@@ -36,15 +36,15 @@ class axis_master_driver extends uvm_driver #(axis_seq_item);
 
     // ARM IHI 0051B 2.8.2: TVALID must be LOW during reset.
     task drive_idle();
-        vif.TVALID  = 1'b0;
-        vif.TDATA   = '0;
-        vif.TSTRB   = '0;
-        vif.TKEEP   = '0;
-        vif.TLAST   = 1'b0;
-        vif.TID     = '0;
-        vif.TDEST   = '0;
-        vif.TUSER   = '0;
-        vif.TWAKEUP = 1'b0;
+        vif.TVALID  <= 1'b0;
+        vif.TDATA   <= '0;
+        vif.TSTRB   <= '0;
+        vif.TKEEP   <= '0;
+        vif.TLAST   <= 1'b0;
+        vif.TID     <= '0;
+        vif.TDEST   <= '0;
+        vif.TUSER   <= '0;
+        vif.TWAKEUP <= 1'b0;
     endtask
 
     task drive_transfer(axis_seq_item tr);
