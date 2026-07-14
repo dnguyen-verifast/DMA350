@@ -932,7 +932,6 @@ class dma350_scoreboard extends uvm_scoreboard;
     //=========================================================================
     task process_w(axi5_slave_tx t, int port);
         // ch tu AW outstanding gan nhat (W bam theo AW cung id).
-        `uvm_info("SB_PROCESS_W",$sformatf("Packet received from axi5_slave_write_data is \n %s",t.sprint()),UVM_HIGH)
         int ch = pick_wr_channel(t);
         dma_axi_burst ob;
         int size, bpb, nbeats;
@@ -947,6 +946,7 @@ class dma350_scoreboard extends uvm_scoreboard;
         size = ob.size; bpb = (1<<size);
         nbeats = t.wdata.size();
         a = ob.addr;
+        `uvm_info("SB_PROCESS_W",$sformatf("Packet received from axi5_slave_write_data is \n %s",t.sprint()),UVM_LOW)
         for (int i=0; i<nbeats; i++) begin
             bit [DATA_WIDTH-1:0]     beat  = t.wdata[i];
             bit [(DATA_WIDTH/8)-1:0] wstrb = (i < t.wstrb.size()) ? t.wstrb[i] : '1;
