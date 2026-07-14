@@ -343,14 +343,14 @@ function  void axi5_slave_seq_item_converter::tx_write_packet(input axi5_slave_t
   packet_h.awcache=input_addr_h.awcache;
   `uvm_info("axi5_slave_seq_item_conv_class",$sformatf("combined addr packet=\n%s",packet_h.sprint),UVM_FULL);
 
-  while(input_data_h.wdata[i]!==0) begin
+  for(int i = 0; i < input_addr_h.awlen +1; i++) begin
     packet_h.wdata[i]= input_data_h.wdata[i];
     i++;
   end
 
   `uvm_info("axi5_slave_seq_item_conv_class",$sformatf("combined data packet after writing wdata= %0p",packet_h.wdata[i]),UVM_FULL);
 
-  for(int i=0;i<input_data_h.wdata[i];i++) begin
+  for(int i = 0; i < input_addr_h.awlen +1; i++) begin
     packet_h.wstrb[i] = input_data_h.wstrb[i];
   end
   `uvm_info("axi5_slave_seq_item_conv_class",$sformatf("combined packet for strobe after writing wstrb =  %0p",packet_h.wstrb[i]),UVM_FULL);
@@ -432,14 +432,14 @@ function void axi5_slave_seq_item_converter::to_write_addr_data_class(input axi5
   output_conv_h.awaddr = waddr_packet.awaddr;
   output_conv_h.awqos = waddr_packet.awqos;
 
-  foreach(input_conv_h.wdata[i]) begin
+  for(int i =0; i < waddr_packet.awlen + 1; i++) begin
     if(input_conv_h.wdata[i] != 0)begin
       output_conv_h.wdata.push_front(input_conv_h.wdata[i]);
       `uvm_info("axi5_slave_seq_item_conv_class",$sformatf("After converting wdata[%0d] =  %0h",i,output_conv_h.wdata[i]),UVM_HIGH);
     end
   end
 
-  foreach(input_conv_h.wdata[i]) begin
+  for(int i =0; i < waddr_packet.awlen + 1; i++) begin
     if(input_conv_h.wdata[i] != 0)begin
       output_conv_h.wstrb.push_front(input_conv_h.wstrb[i]);
       `uvm_info("axi5_slave_seq_item_conv_class",$sformatf("After converting wstrb[%0d] =  %0d",i,output_conv_h.wstrb[i]),UVM_HIGH);
@@ -482,18 +482,18 @@ function void axi5_slave_seq_item_converter::to_write_addr_data_resp_class(input
   output_conv_h.awaddr = waddr_data_packet.awaddr;
   output_conv_h.awqos = waddr_data_packet.awqos;
 
-  foreach(waddr_data_packet.wdata[i]) begin
-    if(waddr_data_packet.wdata[i] != 0)begin
+  for(int i =0; i < waddr_data_packet.awlen + 1; i++) begin
+//    if(waddr_data_packet.wdata[i] != 0)begin
       output_conv_h.wdata.push_back(waddr_data_packet.wdata[i]);
       `uvm_info("axi5_slave_seq_item_conv_class",$sformatf("After converting wdata[%0d] =  %0h",i,output_conv_h.wdata[i]),UVM_HIGH);
-    end
+//    end
   end
 
-  foreach(waddr_data_packet.wdata[i]) begin
-    if(waddr_data_packet.wdata[i] != 0)begin
+  for(int i =0; i < waddr_data_packet.awlen + 1; i++) begin
+//    if(waddr_data_packet.wdata[i] != 0)begin
       output_conv_h.wstrb.push_back(waddr_data_packet.wstrb[i]);
       `uvm_info("axi5_slave_seq_item_conv_class",$sformatf("After converting wstrb[%0d] =  %0d",i,output_conv_h.wstrb[i]),UVM_HIGH);
-    end
+//    end
   end
 
   output_conv_h.wlast = waddr_data_packet.wlast;
