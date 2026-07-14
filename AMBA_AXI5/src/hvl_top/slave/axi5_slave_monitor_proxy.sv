@@ -361,15 +361,14 @@ task axi5_slave_monitor_proxy::axi5_slave_read_data();
     axi5_slave_mon_bfm_h.axi5_read_data_sampling(struct_read_packet,struct_cfg,beat_read_count);
     axi5_slave_seq_item_converter::to_read_class(struct_read_packet,req_rd);
     axi5_slave_read_fifo_h.get(local_read_addr_packet);
-    `uvm_info(get_type_name(),$sformatf("READ_ADDR_Packet received from fifo is \n %s",local_read_addr_packet.sprint()),UVM_HIGH)
+     `uvm_info(get_type_name(),$sformatf("READ_ADDR_Packet received from fifo is \n %s",local_read_addr_packet.sprint()),UVM_HIGH)
      
-    if(beat_read_count != req_rd.arlen) begin
+    if(beat_read_count != local_read_addr_packet.arlen) begin
       `uvm_error("SLAVE_MONITOR",$sformatf("Beat count is not equal to burst length. Marking as error beat_read_count = %0d  arlen = %0d",beat_read_count, req_rd.arlen));
     end else begin
       `uvm_info("SLAVE_MONITOR",$sformatf("Beat count is equal to burst length."),UVM_LOW);
     end
       
-    
     axi5_slave_seq_item_converter::to_read_addr_data_class(local_read_addr_packet,struct_read_packet,req_rd);
     //clone and publish the clone to the analysis port 
     $cast(req_rd_clone_packet,req_rd.clone());

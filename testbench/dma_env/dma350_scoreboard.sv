@@ -215,12 +215,14 @@ class dma_ref_memory extends uvm_object;
 
     // predictor/ref-model dat byte du kien tai dia chi dich
     function void set_expected(longint a, bit [7:0] d);
+        `uvm_info("DMA_REF_MM",$sformatf("set expected value for read / fillvalue"),UVM_LOW)
         exp[a] = d; exp_v[a] = 1;
         try_compare(a);
     endfunction
 
     // comparator: byte thuc te tu W-channel (chi khi wstrb=1)
     function void set_actual(longint a, bit [7:0] d);
+        `uvm_info("DMA_REF_MM",$sformatf("set actual value for write"),UVM_LOW)
         act[a] = d; act_v[a] = 1;
         try_compare(a);
     endfunction
