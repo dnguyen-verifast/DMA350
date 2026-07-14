@@ -947,10 +947,9 @@ class dma350_scoreboard extends uvm_scoreboard;
         nbeats = t.wdata.size();
         a = ob.addr;
         for (int i=0; i<nbeats; i++) begin
-            `uvm_info("SB_W", $sformatf("Counter beat written to des %d",nbeats), UVM_LOW)
             bit [DATA_WIDTH-1:0]     beat  = t.wdata[i];
             bit [(DATA_WIDTH/8)-1:0] wstrb = (i < t.wstrb.size()) ? t.wstrb[i] : '1;
-
+            `uvm_info("SB_W", $sformatf("Counter beat written to des %d",nbeats), UVM_LOW)
             if (gi_fill_only(ch)) begin
                 // FILL: byte dich ky vong = FILLVAL (theo lane) - dat truc tiep
                 for (int b=0; b<bpb; b++)
