@@ -15,8 +15,12 @@ class dma350_env extends uvm_env;
 
     axis_master_agent axis_agent_in_h;
     axis_master_cfg axis_master_cfg_in_h;
+    axis_slave_agent axis_slave_agent_in_h;
+    axis_slave_cfg axis_slave_cfg_in_h;
 
-    axis_slave_agent axis_agent_out_h;
+    axis_master_agent axis_agent_out_h;
+    axis_master_cfg axis_master_cfg_out_h;
+    axis_slave_agent axis_slave_agent_out_h;
     axis_slave_cfg axis_slave_cfg_out_h;
 
     boot_agent boot_agent_h;
@@ -59,7 +63,7 @@ class dma350_env extends uvm_env;
             `uvm_fatal("FATAL_ENV_AGENT_CONFIG", $sformatf("Couldn't get the axis_master_cfg from config_db"))
         end
 
-        if(!uvm_config_db #(axis_slave_cfg)::get(this,"","axis_slave_cfg_out",axis_slave_cfg_out_h)) begin
+        if(!uvm_config_db #(axis_slave_cfg)::get(this,"","axis_slave_cfg_out",axis_slave_cfg_in_h)) begin
             `uvm_fatal("FATAL_ENV_AGENT_CONFIG", $sformatf("Couldn't get the axis_slave_cfg from config_db"))
         end
 
@@ -87,7 +91,7 @@ class dma350_env extends uvm_env;
         //     la du som). Key phai la "cfg" + dung ten instance cua agent.
         //---------------------------------------------------------------------
         uvm_config_db#(axis_master_cfg)::set(this, "axis_agent_in_h",   "cfg", axis_master_cfg_in_h);
-        uvm_config_db#(axis_slave_cfg )::set(this, "axis_agent_out_h",  "cfg", axis_slave_cfg_out_h);
+        uvm_config_db#(axis_slave_cfg )::set(this, "axis_slave_agent_in_h",  "cfg", axis_slave_cfg_in_h);
         uvm_config_db#(boot_agent_cfg )::set(this, "boot_agent_h",      "cfg", boot_agent_cfg_h);
         uvm_config_db#(dma_irq_config#())::set(this, "dma_irq_agent_h",   "cfg", dma_irq_config_h);
         uvm_config_db#(crlp_config    )::set(this, "crlp_agent_h",      "cfg", crlp_config_h);
@@ -101,7 +105,7 @@ class dma350_env extends uvm_env;
         axi5_agent_slv1_h = axi5_slave_agent::type_id::create("axi5_agent_slv1_h",this);
         apb_agent_mst_h   = apb_agent_master::type_id::create("apb_agent_mst_h",this);
         axis_agent_in_h   = axis_master_agent::type_id::create("axis_agent_in_h",this);
-        axis_agent_out_h  = axis_slave_agent::type_id::create("axis_agent_out_h",this);
+        axis_slave_agent_in_h  = axis_slave_agent::type_id::create("axis_slave_agent_in_h",this);
         boot_agent_h      = boot_agent::type_id::create("boot_agent_h",this);
         dma_irq_agent_h   = dma_irq_agent#()::type_id::create("dma_irq_agent_h",this);
         crlp_agent_h      = crlp_agent::type_id::create("crlp_agent_h",this);
@@ -165,7 +169,7 @@ class dma350_env extends uvm_env;
         //   scoreboard.process_stream(t, is_master): master=1, slave=0
         //=====================================================================
         axis_agent_in_h.ap.connect (dma350_scb_h.axis_master_analysis_fifo_h0.analysis_export);
-        axis_agent_out_h.ap.connect(dma350_scb_h.axis_slave_analysis_fifo_h0.analysis_export);
+        axis_slave_agent_in_h.ap.connect(dma350_scb_h.axis_slave_analysis_fifo_h0.analysis_export);
 
         //=====================================================================
         // Boot / CRLP (clock-reset-lowpower) -> scoreboard
@@ -220,8 +224,8 @@ class dma350_env extends uvm_env;
         end
         if (axis_master_cfg_in_h.is_active == UVM_ACTIVE)
             v_seqr_h.axis_mst_seqr_h = axis_agent_in_h.sqr;
-        if (axis_slave_cfg_out_h.is_active == UVM_ACTIVE)
-            v_seqr_h.axis_slv_seqr_h = axis_agent_out_h.sqr;
+        if (axis_slave_cfg_in_h.is_active == UVM_ACTIVE)
+            v_seqr_h.axis_slv_seqr_h = axis_slave_agent_in_h.sqr;
         if (boot_agent_cfg_h.is_active == UVM_ACTIVE)
             v_seqr_h.boot_seqr_h = boot_agent_h.sqr;
         if (crlp_config_h.is_active == UVM_ACTIVE)
