@@ -82,7 +82,7 @@ interface axi_stream_if #(
 
     // During reset, TVALID must be LOW.
     property p_reset_tvalid_low;
-        @(posedge ACLK) (!ARESETn) |-> (!TVALID);
+        @(posedge ACLK) (!ARESETn) |-> (TVALID == 0);
     endproperty
     a_reset_tvalid_low: assert property (p_reset_tvalid_low)
         else $error("AXIS: TVALID must be LOW during reset");
