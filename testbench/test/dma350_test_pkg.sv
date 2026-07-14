@@ -37,10 +37,10 @@ package dma350_test_pkg;
   // ---- virtual sequence : base truoc, roi moi vseq 1 file ----
   `include "dma350_vseq_base.sv"
   `include "dma350_vseq_reg_access.sv"
-  `include "dma350_vseq_single_copy.sv"
-  `include "dma350_vseq_fill.sv"
+  `include "dma350_vseq_1d_single_continue.sv"
+  `include "dma350_vseq_1d_single_fill.sv"
+  `include "dma350_vseq_1d_single_wrap.sv"
   `include "dma350_vseq_2d_copy.sv"
-  `include "dma350_vseq_wrap.sv"
   `include "dma350_vseq_multi_channel.sv"
   `include "dma350_vseq_stop_pause.sv"
   `include "dma350_vseq_allch_stop_pause.sv"
@@ -52,10 +52,10 @@ package dma350_test_pkg;
 
   // ---- 10 testcase ----
   `include "dma350_reg_access_test.sv"
-  `include "dma350_single_copy_test.sv"
-  `include "dma350_fill_test.sv"
+  `include "dma350_1d_single_continue_test.sv"
+  `include "dma350_1d_single_fill_test.sv"
+  `include "dma350_1d_single_wrap_test.sv"
   `include "dma350_2d_copy_test.sv"
-  `include "dma350_wrap_test.sv"
   `include "dma350_multi_channel_test.sv"
   `include "dma350_stop_pause_test.sv"
   `include "dma350_allch_stop_pause_test.sv"
