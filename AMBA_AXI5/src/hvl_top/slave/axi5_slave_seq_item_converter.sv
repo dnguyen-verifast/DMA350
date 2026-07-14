@@ -433,12 +433,12 @@ function void axi5_slave_seq_item_converter::to_write_addr_data_class(input axi5
   output_conv_h.awqos = waddr_packet.awqos;
 
   for(int i =0; i < waddr_packet.awlen + 1; i++) begin
-      output_conv_h.wdata.push_front(input_conv_h.wdata[i]);
+      output_conv_h.wdata.push_back(input_conv_h.wdata[i]);
       `uvm_info("axi5_slave_seq_item_conv_class",$sformatf("After converting wdata[%0d] =  %0h",i,output_conv_h.wdata[i]),UVM_HIGH);
   end
 
   for(int i =0; i < waddr_packet.awlen + 1; i++) begin
-      output_conv_h.wstrb.push_front(input_conv_h.wstrb[i]);
+      output_conv_h.wstrb.push_back(input_conv_h.wstrb[i]);
       `uvm_info("axi5_slave_seq_item_conv_class",$sformatf("After converting wstrb[%0d] =  %0d",i,output_conv_h.wstrb[i]),UVM_HIGH);
   end
 
