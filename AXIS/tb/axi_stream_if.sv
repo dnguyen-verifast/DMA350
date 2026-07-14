@@ -56,7 +56,10 @@ interface axi_stream_if #(
     modport mst (clocking mst_cb, input ACLK, input ARESETn);
     modport slv (clocking slv_cb, input ACLK, input ARESETn);
     modport mon (clocking mon_cb, input ACLK, input ARESETn);
-
+    initial begin
+        TVALID  = 1'b0;
+        TLAST  = 1'b0;        
+    end
     //--------------------------------------------------------------------------
     // Protocol assertions (ARM IHI 0051B, section 2.2 / 2.8)
     //--------------------------------------------------------------------------
@@ -82,7 +85,7 @@ interface axi_stream_if #(
 
     // During reset, TVALID must be LOW.
     property p_reset_tvalid_low;
-        @(posedge mst_cb) (!ARESETn) |-> (!TVALID);
+        @(posedge ACLK) (!ARESETn) |-> (!TVALID);
     endproperty
     a_reset_tvalid_low: assert property (p_reset_tvalid_low)
         else $error("AXIS: TVALID must be LOW during reset");
