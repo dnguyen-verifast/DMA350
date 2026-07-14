@@ -236,7 +236,7 @@ task axi5_slave_monitor_proxy::axi5_slave_write_data();
     //clone and publish the clone to the analysis port
     axi5_slave_seq_item_converter::to_write_addr_data_class(local_write_addr_packet,struct_write_packet,req_wr); 
     $cast(req_wr_clone_packet,req_wr.clone());
-    `uvm_info(get_type_name(),$sformatf("Packet received from axi5_slave_write_data is \n %s",req_wr_clone_packet.sprint()),UVM_HIGH)
+    `uvm_info(get_type_name(),$sformatf("Packet received from axi5_slave_write_data is \n %s",req_wr.sprint()),UVM_LOW)
     axi5_slave_write_data_analysis_port.write(req_wr);
   end
 
