@@ -947,20 +947,24 @@ class dma350_scoreboard extends uvm_scoreboard;
         nbeats = t.wdata.size();
         a = ob.addr;
         for (int i=0; i<nbeats; i++) begin
+            `uvm_info("SB_W", $sformatf("Counter beat written to des %d",nbeats), UVM_LOW)
             bit [DATA_WIDTH-1:0]     beat  = t.wdata[i];
             bit [(DATA_WIDTH/8)-1:0] wstrb = (i < t.wstrb.size()) ? t.wstrb[i] : '1;
+
             if (gi_fill_only(ch)) begin
                 // FILL: byte dich ky vong = FILLVAL (theo lane) - dat truc tiep
                 for (int b=0; b<bpb; b++)
                     refmem.set_expected(a+b, ctx[ch].intent.fillval[8*(b%4) +: 8]);
             end
+
             for (int b=0; b<bpb; b++) begin
                 if (wstrb[b]) begin           // xu ly unaligned dau/cuoi qua wstrb
                     refmem.set_actual(a+b, beat[8*b +: 8]);
                     ctx[ch].bytes_written++;
-                    `uvm_info("SB_W", $sformatf("Counter byte written to des %d",ctx[ch].bytes_written++), UVM_LOW)
+                    `uvm_info("SB_W", $sformatf("Counter byte written to des %d",ctx[ch].bytes_written), UVM_LOW)
                 end
             end
+
             if (!ob.fixed) a += bpb;
         end
         peek_check_counters(ch);           // (6) peek live counter tai bien W
