@@ -479,14 +479,22 @@ module dma350_channel import dma350_pkg::*; #(
     wire            awq_full  = (awq_cnt == AWQ_DEPTH[AQCW-1:0]);
     reg  [8:0]      w_left;          // beats remaining in the current W burst
 
-    // Normal W when data is available. While draining (abort, end-of-line or
-    // end-of-transfer) wr_active is already deasserted, so any AW that was
-    // accepted but still owes W beats must be completed with dummy beats
-    // (WSTRB=0) — otherwise WLAST never goes out, the subordinate never returns
-    // B, and the drain states wait for outstanding_b forever.
-    wire wr_draining = abort_active | (ds == D_DRAIN) | (ds == D_NEXTLINE);
+    // W-beat emission. Three sources of a beat:
+    //   * in-line  : the active line still has destination bytes and data is
+    //                available in the FIFO (or FILLVAL) -> REAL data + strobe.
+    //   * end-of-line / end-of-transfer drain (D_NEXTLINE / D_DRAIN, NOT abort):
+    //                an AW was accepted whose W beats trail into the drain state
+    //                (e.g. WRAP/2D passes are pipelined). These carry REAL data,
+    //                so they must still wait for w_avail and drive REAL strobe -
+    //                zeroing them here would silently drop the payload.
+    //   * abort (D_ERR / D_STOPPED): the accepted AW must be completed to free
+    //                the subordinate, but the data is discarded -> dummy beats
+    //                (WSTRB = 0), fired regardless of w_avail so we never hang.
+    wire draining_norm = (ds == D_DRAIN) | (ds == D_NEXTLINE);
     wire w_active = (w_left != 9'd0) &
-                    ((wr_active & w_avail & (wr_rem != 0)) | wr_draining);
+                    ( (wr_active     & w_avail & (wr_rem != 0))   // in-line
+                    | (draining_norm & w_avail)                   // trailing real beats
+                    | abort_active );                             // dummy flush
 
     // fill word: replicate the 32-bit fill value across the bus
     wire [DATA_WIDTH-1:0] fill_word = {(DATA_WIDTH/32){fillval_q}};
@@ -494,7 +502,9 @@ module dma350_channel import dma350_pkg::*; #(
     assign m_axi_wvalid = w_active;
     assign m_axi_wdata  = ( (w_use_fifo ? (wsrc_low & bmask(nbytes_d)) : fill_word)
                             << ({3'd0,dst_lane}*8) );
-    assign m_axi_wstrb  = wr_draining ? '0 : (smask(nbytes_d) << dst_lane);
+    // strobe follows the DATA, not the FSM: only abort (no real payload) masks
+    // it. Every non-abort beat is gated on w_avail, so it always carries data.
+    assign m_axi_wstrb  = abort_active ? '0 : (smask(nbytes_d) << dst_lane);
     assign m_axi_wlast  = w_active & (w_left == 9'd1);
 
     // =====================================================================
