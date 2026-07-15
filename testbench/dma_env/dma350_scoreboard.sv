@@ -908,7 +908,7 @@ class dma350_scoreboard extends uvm_scoreboard;
             exp = ctx[ch].exp_wr.pop_front();
             if (exp.addr !== t.awaddr || exp.beats != beats || exp.size != size) begin
                 `uvm_error("SB_AW", $sformatf(
-                    "CH%0d AW mismatch\n  exp %s\n  act addr=0x%0h len=%0d size=%0d",
+                    "CH%0d AW mismatch  exp %s,  act addr=0x%0h len=%0d size=%0d",
                     ch, exp.convert2string(), t.awaddr, t.awlen, size))
                 err_addr_mismatch++;
             end

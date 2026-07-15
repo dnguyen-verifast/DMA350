@@ -22,10 +22,12 @@ class axi5_slave_tx extends axi5_base_tx;
   //Adding constraint to select the type of read response
   constraint rresp_c1 {soft rresp == READ_OKAY;}
 
+  constraint rpoison_c1 {soft rpoison == 0;}
+
   //Constraint : rresp_c1
   //Adding constraint to select the type of read response
   constraint bresp_c1 {soft bresp == WRITE_OKAY;}
-
+ 
   //Constraint : wait_states_c1             
   //To randomise the wait states in range of 0 to 3
   constraint wait_states_c1 {soft no_of_wait_states inside {[0:3]};}
