@@ -87,6 +87,11 @@ class dma_axi_burst extends uvm_object;
     int        size;    // log2 bytes/beat (AxSIZE)
     bit        fixed;    // 1 = FIXED, 0 = INCR
     bit        is_cmdlink; // 1 = fetch descriptor command-link (loai khoi data path)
+    // anh xa du lieu (chi read-burst): byte thu k cua burst nay du kien duoc
+    // ghi toi dest_base+k; byte vuot dest_cap la phan doc-thua bi drain (vd
+    // wrap pass cuoi doc du sb nhung chi ghi phan du, continue des<src).
+    longint    dest_base;
+    longint    dest_cap;   // dia chi dich MOT-QUA-CUOI (exclusive)
     `uvm_object_utils(dma_axi_burst)
     function new(string name="dma_axi_burst"); super.new(name); endfunction
     function int len();      return beats-1;           endfunction   // AxLEN
@@ -690,10 +695,15 @@ class dma350_scoreboard extends uvm_scoreboard;
         return m;
     endfunction
 
+    // Phan ra 1 phia (read/write) cua MOT line thanh chuoi burst.
+    //   dest_base/dest_cap (chi read-side): byte dau cua line nay se duoc ghi
+    //   toi dest_base; byte vuot dest_cap la doc-thua (drain, khong vao ref-mem).
     function void predict_side(int ch, longint start_addr, int total_beats,
                                int size, bit fixed, int max_beats,
-                               int signed elem_inc, bit is_read);
+                               int signed elem_inc, bit is_read,
+                               longint dest_base = 0, longint dest_cap = 0);
         longint    cur = start_addr;
+        longint    dptr = dest_base;
         int        rem = total_beats;
         dma_axi_burst bd;
         // neu increment=0 -> FIXED (dia chi khong tang)
@@ -703,41 +713,91 @@ class dma350_scoreboard extends uvm_scoreboard;
             int nb = calc_beats(rem, cur, size, eff_fixed, max_beats);
             bd = dma_axi_burst::type_id::create("bd");
             bd.addr = cur; bd.beats = nb; bd.size = size; bd.fixed = eff_fixed;
-            if (is_read) begin 
+            bd.dest_base = dptr; bd.dest_cap = dest_cap;
+            if (is_read) begin
                 ctx[ch].exp_rd.push_back(bd);
-                `uvm_info("SB_PRED_SIDE", $sformatf("ctx[ch].exp_rd.push_back(bd)"),UVM_LOW)
+                `uvm_info("SB_PRED_SIDE", $sformatf("exp_rd push %s -> dest 0x%0h..0x%0h",
+                          bd.convert2string(), dptr, dest_cap), UVM_LOW)
             end
-            else begin        
+            else begin
                 ctx[ch].exp_wr.push_back(bd);
-                `uvm_info("SB_PRED_SIDE", $sformatf("ctx[ch].exp_wr.push_back(bd)"),UVM_LOW)
+                `uvm_info("SB_PRED_SIDE", $sformatf("exp_wr push %s", bd.convert2string()), UVM_LOW)
             end
             if (!eff_fixed) cur += (nb << size);
+            dptr += (nb << size);          // dich luon tien theo byte da doc
             rem -= nb;
         end
     endfunction
 
+    // Phan ra golden intent theo DUNG hinh hoc cua RTL (dma350_channel D_IDLE):
+    //   sb = src_xsize*unit ; db = des_xsize*unit
+    //   * 2D   (ysize>1)                : moi line doc sb / ghi db, base += stride
+    //   * WRAP (wrap_en && db>sb && sb>0): passes = ceil(db/sb); moi pass DOC LAI
+    //         du sb byte tu srcaddr (stride nguon = 0), GHI sb byte vao block
+    //         dich ke tiep (stride dich = sb); pass cuoi chi ghi db-(passes-1)*sb
+    //         (van doc du sb - phan thua bi FIFO-flush drain)
+    //   * CONTINUE                      : 1 pass, ghi min(sb,db)
+    //   * FILL                          : khong doc nguon, ghi du db
     function void build_predicted_bursts(int ch);
         dma_golden_intent gi = ctx[ch].intent;
-        int lines = (gi.ytype!=0 && gi.ysize>0) ? gi.ysize : 1;
+        int unit   = 1 << gi.src_transize;
+        longint sb = longint'(gi.src_xsize) * unit;   // tong byte nguon (1 line)
+        longint db = longint'(gi.des_xsize) * unit;   // tong byte dich
         int max_rd = gi.src_maxburstlen + 1;
         int max_wr = gi.des_maxburstlen + 1;
-        longint sa = gi.srcaddr, da = gi.desaddr;
+        longint total_wr_bytes = 0;
         if (gi.usestream) return;   // stream path: du doan qua AXI-Stream, khong AXI-M
-        `uvm_info("SB_PRED_BURST", $sformatf("build_predicted_bursts = %d ",lines),UVM_LOW)
-        for (int y=0; y<lines; y++) begin
-            `uvm_info("SB_PRED_BURST", $sformatf("in loop for (int y=0; y<lines; y++)"),UVM_LOW)
-            // moi dong: src_xsize beat kich thuoc src_transize
-            if (!gi.fill_en)   // FILL khong doc nguon
-                predict_side(ch, sa, gi.src_xsize, gi.src_transize,
-                             1'b0, max_rd, gi.src_xaddrinc, 1'b1);
-            predict_side(ch, da, gi.des_xsize, gi.des_transize,
-                         1'b0, max_wr, gi.des_xaddrinc, 1'b0);
-            sa += gi.src_stride;   // buoc dong 2D (byte)
-            da += gi.des_stride;
+
+        if (gi.ysize > 1) begin
+            // ---- 2D that: passes = ysize, doc sb / ghi db moi line ----
+            longint sa = gi.srcaddr, da = gi.desaddr;
+            for (int y = 0; y < gi.ysize; y++) begin
+                if (!gi.fill_en)
+                    predict_side(ch, sa, gi.src_xsize, gi.src_transize, 1'b0,
+                                 max_rd, gi.src_xaddrinc, 1'b1, da, da + db);
+                predict_side(ch, da, gi.des_xsize, gi.des_transize, 1'b0,
+                             max_wr, gi.des_xaddrinc, 1'b0);
+                total_wr_bytes += db;
+                sa += gi.src_stride;
+                da += gi.des_stride;
+            end
         end
-        `uvm_info("SB_PRED", $sformatf("CH%0d predicted %0d rd-burst, %0d wr-burst (%0d byte)",
+        else if (gi.wrap_en && (db > sb) && (sb > 0) && !gi.fill_en) begin
+            // ---- 1D WRAP: lap doc-lai nguon, dich tien tung block sb ----
+            int passes = (db + sb - 1) / sb;
+            for (int p = 0; p < passes; p++) begin
+                longint dbase = gi.desaddr + longint'(p) * sb;
+                longint wbytes = (p == passes-1) ? (db - longint'(passes-1)*sb) : sb;
+                // doc: LUON du sb byte tu srcaddr (pass cuoi doc thua -> drain,
+                // gioi han boi dest_cap)
+                predict_side(ch, gi.srcaddr, gi.src_xsize, gi.src_transize, 1'b0,
+                             max_rd, gi.src_xaddrinc, 1'b1, dbase, dbase + wbytes);
+                // ghi: chi wbytes vao block dich nay
+                predict_side(ch, dbase, int'(wbytes) >> gi.des_transize,
+                             gi.des_transize, 1'b0, max_wr, gi.des_xaddrinc, 1'b0);
+                total_wr_bytes += wbytes;
+            end
+            `uvm_info("SB_PRED_BURST", $sformatf(
+                "CH%0d WRAP: sb=%0d db=%0d passes=%0d last=%0d",
+                ch, sb, db, passes, db - longint'(passes-1)*sb), UVM_LOW)
+        end
+        else begin
+            // ---- CONTINUE / FILL (1 pass) : ghi = fill? db : min(sb,db) ----
+            longint wbytes = gi.fill_en ? db : ((db < sb) ? db : sb);
+            if (!gi.fill_en)
+                predict_side(ch, gi.srcaddr, gi.src_xsize, gi.src_transize, 1'b0,
+                             max_rd, gi.src_xaddrinc, 1'b1,
+                             gi.desaddr, gi.desaddr + wbytes);
+            predict_side(ch, gi.desaddr, int'(wbytes) >> gi.des_transize,
+                         gi.des_transize, 1'b0, max_wr, gi.des_xaddrinc, 1'b0);
+            total_wr_bytes = wbytes;
+        end
+
+        // tong byte dich ky vong = tong byte GHI (dung cho check_status DONE)
+        ctx[ch].exp_total_bytes = total_wr_bytes;
+        `uvm_info("SB_PRED", $sformatf("CH%0d predicted %0d rd-burst, %0d wr-burst (%0d byte ghi)",
                   ch, ctx[ch].exp_rd.size(), ctx[ch].exp_wr.size(),
-                  ctx[ch].exp_total_bytes), UVM_HIGH)
+                  ctx[ch].exp_total_bytes), UVM_LOW)
     endfunction
 
     //=========================================================================
@@ -750,11 +810,16 @@ class dma350_scoreboard extends uvm_scoreboard;
         bit ok_s, ok_d, ok_x;
         bit [31:0] s, d, x;
         dma_golden_intent gi = ctx[ch].intent;
+        bit multi_pass;
         if (gi == null) return;
+        // WRAP/2D: RTL nap lai SRCADDR = line-base va XSIZE = line-size o MOI
+        // pass/line (dma350_channel D_NEXTLINE) -> "dia chi lui"/"xsize tang"
+        // la hanh vi DUNG. Chi kiem don dieu + bounds cho lenh 1-pass.
+        multi_pass = gi.wrap_en || (gi.ysize > 1);
         ral_peek(ch, CH_SRCADDR, ok_s, s);
         ral_peek(ch, CH_DESADDR, ok_d, d);
         ral_peek(ch, CH_XSIZE,   ok_x, x);
-        if (ok_s) begin
+        if (ok_s && !multi_pass) begin
             longint lo = gi.srcaddr;
             longint hi = gi.srcaddr + gi.total_src_bytes();
             if (!gi.fill_en && !(s >= lo[31:0] && s <= hi[31:0]))
@@ -763,16 +828,18 @@ class dma350_scoreboard extends uvm_scoreboard;
             if (ctx[ch].cnt_peek_valid && !gi.fill_en && s < ctx[ch].last_src_peek)
                 mism_status($sformatf("CH%0d live SRCADDR lui: 0x%0h < 0x%0h",
                                       ch, s, ctx[ch].last_src_peek));
-            ctx[ch].last_src_peek = s;
         end
+        if (ok_s) ctx[ch].last_src_peek = s;
         if (ok_d) begin
-            if (ctx[ch].cnt_peek_valid && d < ctx[ch].last_des_peek)
+            // DESADDR luon tien (moi mode: wrap dich cung tien block ke tiep)
+            if (ctx[ch].cnt_peek_valid && !multi_pass && d < ctx[ch].last_des_peek)
                 mism_status($sformatf("CH%0d live DESADDR lui: 0x%0h < 0x%0h",
                                       ch, d, ctx[ch].last_des_peek));
             ctx[ch].last_des_peek = d;
         end
         if (ok_x) begin
-            if (ctx[ch].cnt_peek_valid && int'(x[15:0]) > ctx[ch].last_xsize_peek)
+            if (ctx[ch].cnt_peek_valid && !multi_pass
+                && int'(x[15:0]) > ctx[ch].last_xsize_peek)
                 mism_status($sformatf("CH%0d live SRCXSIZE tang: %0d > %0d",
                                       ch, x[15:0], ctx[ch].last_xsize_peek));
             ctx[ch].last_xsize_peek = x[15:0];
@@ -826,10 +893,17 @@ class dma350_scoreboard extends uvm_scoreboard;
             else `uvm_info("SB_AR",
                 $sformatf("CH%0d AR OK %s", ch, exp.convert2string()), UVM_HIGH)
         end
-        // outstanding de dat R data
+        // outstanding de dat R data; mang theo anh xa dich tu burst du doan
         obs = dma_axi_burst::type_id::create("obs");
         obs.addr=t.araddr; obs.beats=beats; obs.size=size;
         obs.fixed=(burst==BURST_FIXED); obs.is_cmdlink=0;
+        if (exp != null) begin
+            obs.dest_base = exp.dest_base;   // predictor da tinh theo pass/line
+            obs.dest_cap  = exp.dest_cap;
+        end
+        else begin
+            obs.dest_base = 0; obs.dest_cap = 0;  // AR thua: khong anh xa data
+        end
         ctx[ch].out_rd.push_back(obs);
         ctx[ch].outstanding_rd++;
         peek_check_counters(ch);           // (6) peek live counter tai bien AR
@@ -859,32 +933,22 @@ class dma350_scoreboard extends uvm_scoreboard;
         size = ob.size; bpb = (1<<size);
         nbeats = t.rdata.size();               // so beat thuc su co data
         a = ob.addr;
+        // Anh xa du lieu theo ke hoach cua PREDICTOR (dest_base/dest_cap tinh
+        // theo pass/line): byte thu k cua burst -> dest_base+k. Dung cho ca
+        // wrap (moi pass co dest block rieng), 2D va continue. Byte vuot
+        // dest_cap la doc-thua (wrap pass cuoi / continue des<src) -> drain.
         for (int i=0; i<nbeats; i++) begin
             bit [DATA_WIDTH-1:0] beat = t.rdata[i];
             for (int b=0; b<bpb; b++) begin
-                ctx[ch].src_stream.push_back(beat[8*b +: 8]);
+                longint dst = ob.dest_base + longint'(i)*bpb + b;
+                if (dst < ob.dest_cap)
+                    refmem.set_expected(dst, beat[8*b +: 8]);
                 ctx[ch].bytes_read++;
             end
             if (!ob.fixed) a += bpb;
         end
-        // sau khi co them byte nguon, nap byte dich ky vong vao ref-memory
-        push_expected_dest(ch);
         peek_check_counters(ch);           // (6) peek live counter tai bien R
     endtask
-
-    // ap bien doi command len src_stream -> set_expected tai dia chi dich
-    function void push_expected_dest(int ch);
-        dma_golden_intent gi = ctx[ch].intent;
-        if (gi == null) return;
-        // COPY 1D (duong datapath duoc RTL model): byte dich = byte nguon theo
-        // thu tu; dia chi dich tang theo des_xaddrinc*unit (increment=0 => FIXED)
-        while (ctx[ch].src_stream.size() > 0) begin
-            bit [7:0] d = ctx[ch].src_stream.pop_front();
-            refmem.set_expected(ctx[ch].des_fill_ptr, d);
-            // buoc dia chi dich: dung 1 byte (contiguous) cho copy don gian
-            ctx[ch].des_fill_ptr += 1;
-        end
-    endfunction
 
     //=========================================================================
     // (4) COMPARATOR write-address : so AW thuc te voi burst du doan
@@ -1100,15 +1164,18 @@ class dma350_scoreboard extends uvm_scoreboard;
         if (stat_paus) ctx[ch].state = CH_ST_PAUSED;
     endtask
 
-    // DONE-exact : srcaddr = start + tong byte (INCR) / giu (FIXED); xsize = 0
+    // DONE-exact : srcaddr = start + tong byte (INCR) / giu (FIXED); xsize = 0.
+    // WRAP 1D van dung (stride nguon=0 -> SRCADDR cuoi = srcaddr + sb).
+    // 2D bo qua (SRCADDR cuoi = base line cuoi + sb, phu thuoc stride).
     task check_done_counters(int ch);
         dma_golden_intent gi = ctx[ch].intent;
         bit ok_s, ok_x; bit [31:0] s, x;
         if (gi == null) return;
+        if (gi.ysize > 1) return;          // 2D: diem cuoi phu thuoc stride
         ral_peek(ch, CH_SRCADDR, ok_s, s);
         ral_peek(ch, CH_XSIZE,   ok_x, x);
         if (ok_s && !gi.fill_en) begin
-            longint expa = gi.srcaddr + (gi.src_xaddrinc==0 ? 0 : gi.total_src_bytes());
+            longint expa = gi.srcaddr + (gi.src_xaddrinc==0 ? 0 : gi.line_bytes());
             if (s !== expa[31:0])
                 mism_status($sformatf("CH%0d DONE SRCADDR peek=0x%0h exp=0x%0h",ch,s,expa));
         end
