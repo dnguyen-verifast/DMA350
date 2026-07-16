@@ -649,7 +649,9 @@ class dma350_scoreboard extends uvm_scoreboard;
         gi.linkaddren  = rd_mirror(ch,CH_LINKADDR) & 32'h1;
 
         ctx[ch].clear_command();
+
         ctx[ch].intent = gi;
+
         ctx[ch].exp_total_bytes = gi.total_src_bytes();
         ctx[ch].des_fill_ptr    = gi.desaddr;
         // luu snapshot RAW config (khong gom live-counter) cho RO-lock check
@@ -950,6 +952,18 @@ class dma350_scoreboard extends uvm_scoreboard;
             end
             if (!ob.fixed) a += bpb;
         end
+        // fetch expect value to queue array with fill transfer
+        if(gi_fill_only(ch) && (ctx[ch].intent.src_xsize < ctx[ch].intent.des_xsize)) begin
+            for (int i= nbeats; i< ctx[ch].intent.des_xsize; i++) begin
+                for (int b=0; b<bpb; b++) begin
+                    longint dst = ob.dest_base + longint'(i)*bpb + b;
+                        refmem.set_expected(, ctx[ch].intent.fillval[8*(b%4) +: 8]);
+                    ctx[ch].bytes_read++;
+                end
+                if (!ob.fixed) a += bpb;
+            end
+        end
+
         peek_check_counters(ch);           // (6) peek live counter tai bien R
     endtask
 
