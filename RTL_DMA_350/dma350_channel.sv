@@ -409,7 +409,10 @@ module dma350_channel import dma350_pkg::*; #(
 
     // Pause stops issuing NEW AR/AW bursts (handled in the FSM); in-flight data
     // beats are allowed to drain so AXI VALID is never dropped mid-handshake.
-    wire rd_run  = rd_active & ~fill_q & (rd_rem != 0);   // accepting read beats
+    // FILL still reads its SRCXSIZE source bytes (rd_active reflects sbytes!=0);
+    // the FILLVAL padding only substitutes for the source *shortfall*, so reads
+    // must NOT be suppressed in fill mode.
+    wire rd_run  = rd_active & (rd_rem != 0);             // accepting read beats
     wire rf_room = ((FBYTES[FCW-1:0] - rf_count) >= BPB[FCW-1:0]); // room for a beat
 
     // drain (discard) any straggler read beats while finishing a line/command
@@ -849,17 +852,14 @@ module dma350_channel import dma350_pkg::*; #(
                             sstride_q <= '0;                        // re-read source
                             dstride_q <= sb;                        // next dest block
                         end else begin
-                            // continue: stop at min(src,des); fill: write all dest
+                            // continue: stop at min(src,des). FILL: read the
+                            // SRCXSIZE source bytes normally, but write the full
+                            // DESXSIZE destination - the source shortfall
+                            // (DESXSIZE-SRCXSIZE) is padded with FILLVAL once the
+                            // source data has drained (see w_use_fill below).
                             ln_des = fill_en ? db : ((db < sb) ? db : sb);
                             sstride_q <= src_stride; dstride_q <= des_stride;
                         end
-                        // FILL (TRM 5.2): the destination is written with
-                        // FILLVAL and the source side carries NO transfers at
-                        // all, regardless of SRCXSIZE. The read side must see
-                        // zero bytes: reads are suppressed anyway (~fill_q),
-                        // so a nonzero rd_rem would keep src_drained low and
-                        // the FILLVAL beats would never be released (W hang).
-                        if (fill_en) ln_src = 32'd0;
                         y_rem          <= passes;
                         line_src_bytes <= ln_src;
                         line_des_bytes <= ln_des;
@@ -985,7 +985,7 @@ module dma350_channel import dma350_pkg::*; #(
                         // (multi-outstanding); gen sides (template / strided) issue
                         // one 1-beat access per element, single-outstanding, and
                         // step over template gaps with no transfer.
-                        if (!m_axi_arvalid && rd_active && ~fill_q) begin
+                        if (!m_axi_arvalid && rd_active) begin
                             if (gen_s_q) begin
                                 if (!gen_rd_busy && rd_rem != 0) begin
                                     if (~rd_tmpl_sel) begin             // template gap
