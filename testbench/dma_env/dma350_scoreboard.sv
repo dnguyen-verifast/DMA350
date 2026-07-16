@@ -793,7 +793,7 @@ class dma350_scoreboard extends uvm_scoreboard;
             total_wr_bytes = wbytes;
             `uvm_info("SB_PRED_BURST", $sformatf(
                 "CH%0d FILL: sb=%0d db=%0d last=%0d",
-                ch, sb, db, db - longint'(passes-1)*sb), UVM_LOW)
+                ch, sb, db, db - sb), UVM_LOW)
         end
 
         // tong byte dich ky vong = tong byte GHI (dung cho check_status DONE)
