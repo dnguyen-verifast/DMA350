@@ -752,8 +752,8 @@ class dma350_scoreboard extends uvm_scoreboard;
             // ---- 2D that: passes = ysize, doc sb / ghi db moi line ----
             longint sa = gi.srcaddr, da = gi.desaddr;
             for (int y = 0; y < gi.ysize; y++) begin
-                if (!gi.fill_en)
-                    predict_side(ch, sa, gi.src_xsize, gi.src_transize, 1'b0,
+                // if (!gi.fill_en)
+                predict_side(ch, sa, gi.src_xsize, gi.src_transize, 1'b0,
                                  max_rd, gi.src_xaddrinc, 1'b1, da, da + db);
                 predict_side(ch, da, gi.des_xsize, gi.des_transize, 1'b0,
                              max_wr, gi.des_xaddrinc, 1'b0);
@@ -784,8 +784,8 @@ class dma350_scoreboard extends uvm_scoreboard;
         else begin
             // ---- CONTINUE / FILL (1 pass) : ghi = fill? db : min(sb,db) ----
             longint wbytes = gi.fill_en ? db : ((db < sb) ? db : sb);
-            if (!gi.fill_en)
-                predict_side(ch, gi.srcaddr, gi.src_xsize, gi.src_transize, 1'b0,
+            // if (!gi.fill_en)
+            predict_side(ch, gi.srcaddr, gi.src_xsize, gi.src_transize, 1'b0,
                              max_rd, gi.src_xaddrinc, 1'b1,
                              gi.desaddr, gi.desaddr + wbytes);
             predict_side(ch, gi.desaddr, int'(wbytes) >> gi.des_transize,
