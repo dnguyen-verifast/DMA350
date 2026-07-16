@@ -853,6 +853,13 @@ module dma350_channel import dma350_pkg::*; #(
                             ln_des = fill_en ? db : ((db < sb) ? db : sb);
                             sstride_q <= src_stride; dstride_q <= des_stride;
                         end
+                        // FILL (TRM 5.2): the destination is written with
+                        // FILLVAL and the source side carries NO transfers at
+                        // all, regardless of SRCXSIZE. The read side must see
+                        // zero bytes: reads are suppressed anyway (~fill_q),
+                        // so a nonzero rd_rem would keep src_drained low and
+                        // the FILLVAL beats would never be released (W hang).
+                        if (fill_en) ln_src = 32'd0;
                         y_rem          <= passes;
                         line_src_bytes <= ln_src;
                         line_des_bytes <= ln_des;
