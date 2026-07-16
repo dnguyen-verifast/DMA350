@@ -17,7 +17,7 @@
 //============================================================================
 `ifndef DMA_TRIG_IF_SV
 `define DMA_TRIG_IF_SV
-
+`timescale 1ns/1ps
 interface dma_trig_if (input logic clk, input logic resetn);
 
   // ---- trig-in (<TI>) ----
