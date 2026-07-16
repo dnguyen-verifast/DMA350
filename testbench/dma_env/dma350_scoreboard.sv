@@ -111,6 +111,7 @@ class dma_golden_intent extends uvm_object;
     // dia chi + kich thuoc
     bit [63:0] srcaddr, desaddr;
     int        src_xsize, des_xsize;      // so item nguon/dich
+
     int        src_transize, des_transize; // log2 byte / item
     int signed src_xaddrinc, des_xaddrinc; // buoc dia chi (element)
     // kieu transfer
@@ -957,7 +958,7 @@ class dma350_scoreboard extends uvm_scoreboard;
             for (int i= nbeats; i< ctx[ch].intent.des_xsize; i++) begin
                 for (int b=0; b<bpb; b++) begin
                     longint dst = ob.dest_base + longint'(i)*bpb + b;
-                        refmem.set_expected(, ctx[ch].intent.fillval[8*(b%4) +: 8]);
+                        refmem.set_expected(dst, ctx[ch].intent.fillval[8*(b%4) +: 8]);
                     ctx[ch].bytes_read++;
                 end
                 if (!ob.fixed) a += bpb;
