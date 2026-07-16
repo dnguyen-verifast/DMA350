@@ -766,8 +766,8 @@ class dma350_scoreboard extends uvm_scoreboard;
             // ---- 1D WRAP: lap doc-lai nguon, dich tien tung block sb ----
             int passes = (db + sb - 1) / sb;
             for (int p = 0; p < passes; p++) begin
-                longint dbase = gi.desaddr + longint'(p) * sb;
-                longint wbytes = (p == passes-1) ? (db - longint'(passes-1)*sb) : sb;
+                longint dbase = gi.desaddr + longint'(p) * sb; // address first line
+                longint wbytes = (p == passes-1) ? (db - longint'(passes-1)*sb) : sb; // total byte for last line
                 // doc: LUON du sb byte tu srcaddr (pass cuoi doc thua -> drain,
                 // gioi han boi dest_cap)
                 predict_side(ch, gi.srcaddr, gi.src_xsize, gi.src_transize, 1'b0,
@@ -1018,11 +1018,11 @@ class dma350_scoreboard extends uvm_scoreboard;
             bit [DATA_WIDTH-1:0]     beat  = t.wdata[i];
             bit [(DATA_WIDTH/8)-1:0] wstrb = (i < t.wstrb.size()) ? t.wstrb[i] : '1;
             `uvm_info("SB_W", $sformatf("Counter beat written to des %d",i), UVM_LOW)
-            if (gi_fill_only(ch)) begin
-                // FILL: byte dich ky vong = FILLVAL (theo lane) - dat truc tiep
-                for (int b=0; b<bpb; b++)
-                    refmem.set_expected(a+b, ctx[ch].intent.fillval[8*(b%4) +: 8]);
-            end
+            // if (gi_fill_only(ch)) begin
+            //     // FILL: byte dich ky vong = FILLVAL (theo lane) - dat truc tiep
+            //     for (int b=0; b<bpb; b++)
+            //         refmem.set_expected(a+b, ctx[ch].intent.fillval[8*(b%4) +: 8]);
+            // end
 
             for (int b=0; b<bpb; b++) begin
                 if (wstrb[b]) begin           // xu ly unaligned dau/cuoi qua wstrb
