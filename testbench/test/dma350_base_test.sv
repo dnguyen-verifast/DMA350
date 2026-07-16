@@ -15,8 +15,9 @@ class dma350_base_test extends uvm_test;
   dma350_env dma350_env_h;
 
   // Tham so build (khop RTL config params)
-  localparam int  NUM_CH = 8;
-  localparam bit  SECEXT = 1;
+  localparam int  NUM_CH   = 8;
+  localparam bit  SECEXT   = 1;
+  localparam int  NUM_TRIG = 4;   // NUM_TRIGGER_IN = NUM_TRIGGER_OUT = 4
 
   //-------------------------------------------------------
   // Config handle cho tung agent
@@ -28,6 +29,7 @@ class dma350_base_test extends uvm_test;
   dma_irq_config#()       dma_irq_cfg_h;
   crlp_config             crlp_cfg_h;
   dma350_sc_cfg           dma350_sc_cfg_h;
+  dma_trig_cfg            trig_cfg_h[NUM_TRIG];
 
   //-------------------------------------------------------
   // Externally defined Tasks and Functions
@@ -43,6 +45,7 @@ class dma350_base_test extends uvm_test;
   extern virtual function void setup_dma_irq_agent_cfg();
   extern virtual function void setup_crlp_agent_cfg();
   extern virtual function void setup_status_control_agent_cfg();
+  extern virtual function void setup_trigger_agent_cfg();
   extern virtual function void setup_scoreboard_cfg();
   extern virtual function void end_of_elaboration_phase(uvm_phase phase);
   extern virtual task run_phase(uvm_phase phase);
@@ -82,6 +85,7 @@ function void dma350_base_test::setup_dma350_env_cfg();
   setup_dma_irq_agent_cfg();
   setup_crlp_agent_cfg();
   setup_status_control_agent_cfg();
+  setup_trigger_agent_cfg();
   setup_scoreboard_cfg();
 endfunction : setup_dma350_env_cfg
 
@@ -202,6 +206,36 @@ function void dma350_base_test::setup_status_control_agent_cfg();
   uvm_config_db#(virtual dma350_sc_if.MON)::set(this,"*","vif", vif);
   uvm_config_db#(virtual dma350_sc_if.DRV)::set(this,"*","vif", vif);
 endfunction : setup_status_control_agent_cfg
+
+//--------------------------------------------------------------------------------------------
+// Function: setup_trigger_agent_cfg
+//  4 cong trigger (bi danh t0..t3), moi cong 1 interface TONG dma_trig_if.
+//  Agent tu get key "cfg"/"vif" o scope cua no -> test set THANG vao tung agent.
+//  trig-out: khong co agent rieng; driver auto-ack de DMAC ha trig_out_req.
+//--------------------------------------------------------------------------------------------
+function void dma350_base_test::setup_trigger_agent_cfg();
+  for (int i = 0; i < NUM_TRIG; i++) begin
+    virtual dma_trig_if vif;
+    string              agt_path = $sformatf("dma350_env_h.trig_agt_t%0d", i);
+
+    if (!uvm_config_db#(virtual dma_trig_if)::get(this,"",$sformatf("trig_vif_t%0d",i),vif))
+      `uvm_fatal("NOVIF", $sformatf("trig_vif_t%0d chua duoc set tu tb_top", i))
+
+    trig_cfg_h[i] = dma_trig_cfg::type_id::create($sformatf("trig_cfg_t%0d", i));
+    trig_cfg_h[i].is_active         = uvm_active_passive_enum'(UVM_ACTIVE);
+    trig_cfg_h[i].en_cov            = 1;
+    trig_cfg_h[i].port_id           = i;          // monitor gan vao transaction_id
+    trig_cfg_h[i].mode              = DMA_TRIG_MODE_CMD;
+    trig_cfg_h[i].blk_size          = 4;
+    // trig-out: auto-ack ngay (0 chu ky tre) de channel khong treo cho ack.
+    // Test muon thu stall/SW-ack thi override trigout_auto_ack=0.
+    trig_cfg_h[i].trigout_auto_ack  = 1;
+    trig_cfg_h[i].trigout_ack_delay = 0;
+
+    uvm_config_db#(dma_trig_cfg)::set       (this, agt_path, "cfg", trig_cfg_h[i]);
+    uvm_config_db#(virtual dma_trig_if)::set(this, agt_path, "vif", vif);
+  end
+endfunction : setup_trigger_agent_cfg
 
 //--------------------------------------------------------------------------------------------
 // Function: setup_scoreboard_cfg

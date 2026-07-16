@@ -37,6 +37,17 @@ class dma350_env extends uvm_env;
 
     reg_env reg_env_h;
 
+    //-------------------------------------------------------------------------
+    // TRIGGER (CTI) : NUM_TRIGGER_IN = NUM_TRIGGER_OUT = 4 (khop RTL dma350_top).
+    // Moi agent bam 1 interface TONG dma_trig_if (6 signal) = 1 cap cong
+    // <TI i> + <TO i>. Bi danh: t0..t3.
+    //   * trig-in  : agent la REQUESTER (sequence lai req/req_type)
+    //   * trig-out : DMAC tu phat -> driver AUTO-ACK de DMAC ha req (khong can
+    //                agent trig_out rieng)
+    //-------------------------------------------------------------------------
+    localparam int NUM_TRIG = 4;
+    dma_trig_in_agent trig_agt_h[NUM_TRIG];
+
     // Virtual sequencer: virtual sequence dieu khien toan testbench qua day
     dma350_virtual_sequencer v_seqr_h;
 
@@ -113,6 +124,12 @@ class dma350_env extends uvm_env;
 
         reg_env_h = reg_env::type_id::create("reg_env_h",this);
 
+        // 4 agent trigger, bi danh t0..t3. cfg + vif do test set truc tiep vao
+        // scope tung agent (agent tu get key "cfg"/"vif" trong build_phase).
+        foreach (trig_agt_h[i])
+            trig_agt_h[i] = dma_trig_in_agent::type_id::create(
+                                $sformatf("trig_agt_t%0d", i), this);
+
         v_seqr_h = dma350_virtual_sequencer::type_id::create("v_seqr_h",this);
 
         //---------------------------------------------------------------------
@@ -186,6 +203,15 @@ class dma350_env extends uvm_env;
         dma350_sc_agent_h.ap_status.connect(dma350_scb_h.dma350_sta_ctrl_analysis_fifo_h0.analysis_export);
 
         //=====================================================================
+        // TRIGGER -> scoreboard : ca 4 cong deu do vao CUNG 1 FIFO trig.
+        // process_trigger() kiem acktype hop le + vi pham 4-phase (comb ack),
+        // khong phu thuoc cong nao -> fan-in chung la du. Muon phan biet cong
+        // thi doc it.get_transaction_id() (monitor da set = cfg.port_id).
+        //=====================================================================
+        foreach (trig_agt_h[i])
+            trig_agt_h[i].ap.connect(dma350_scb_h.dma_trig_analysis_fifo_h0.analysis_export);
+
+        //=====================================================================
         // RAL : frontdoor sequencer + auto-predict + handoff model cho backdoor
         //=====================================================================
         reg_env_h.m_ral_model.default_map.set_sequencer(
@@ -232,6 +258,10 @@ class dma350_env extends uvm_env;
             v_seqr_h.crlp_seqr_h = crlp_agent_h.sqr;
         if (dma350_sc_cfg_h.is_active == UVM_ACTIVE)
             v_seqr_h.sc_seqr_h = dma350_sc_agent_h.sqr;
+        // Trigger: cfg cua agent da duoc chinh no lay trong build_phase
+        foreach (trig_agt_h[i])
+            if (trig_agt_h[i].cfg.is_active == UVM_ACTIVE)
+                v_seqr_h.trig_seqr_h[i] = trig_agt_h[i].sqr;
 
         //=====================================================================
         // GAP con thieu trong codebase (chua wire duoc vi thieu doi tac):
@@ -239,9 +269,6 @@ class dma350_env extends uvm_env;
         //      analysis_fifo tieu thu IRQ. Can them irq_analysis_fifo +
         //      process_irq() vao dma350_scoreboard (doi chieu DONE/ERR interrupt
         //      voi STATUS) roi connect: dma_irq_agent_h.ap.connect(...).
-        //   2) scoreboard.dma_trig_analysis_fifo_h0 (dma_trig_item) CHUA co agent
-        //      trigger phat item. Can bo sung VIP trigger (dma_trig_item) roi
-        //      connect vao FIFO nay.
         //=====================================================================
     endfunction
 

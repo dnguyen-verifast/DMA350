@@ -124,6 +124,32 @@ module dma350_tb_top;
   end
 
   //---------------------------------------------------------------------------
+  // TRIGGER (CTI) : NUM_TRIGGER_IN = NUM_TRIGGER_OUT = 4 (khop DUT).
+  // Moi index i = 1 interface TONG dma_trig_if (6 signal) cho cap <TI i>/<TO i>.
+  // Bi danh: trig_if_i[0..3] <-> agent trig_agt_t0..t3 <-> key trig_vif_t0..t3.
+  //
+  // DUT flatten: req/ack = bit i ; req_type/ack_type = lane [2i +: 2].
+  //---------------------------------------------------------------------------
+  localparam int NUM_TRIG = 4;
+
+  dma_trig_if trig_if_i [NUM_TRIG] (.clk(tb_clk), .resetn(tb_resetn));
+
+  wire [NUM_TRIG-1:0]   trig_in_req_w,  trig_in_ack_w;
+  wire [2*NUM_TRIG-1:0] trig_in_req_type_w, trig_in_ack_type_w;
+  wire [NUM_TRIG-1:0]   trig_out_req_w, trig_out_ack_w;
+
+  for (genvar ti = 0; ti < NUM_TRIG; ti++) begin : g_trig
+    // trig-in : VIP (requester) lai req/req_type -> DUT ; DUT tra ack/ack_type
+    assign trig_in_req_w[ti]              = trig_if_i[ti].trig_in_req;
+    assign trig_in_req_type_w[2*ti +: 2]  = trig_if_i[ti].trig_in_req_type;
+    assign trig_if_i[ti].trig_in_ack      = trig_in_ack_w[ti];
+    assign trig_if_i[ti].trig_in_ack_type = trig_in_ack_type_w[2*ti +: 2];
+    // trig-out : DUT phat req -> VIP ; VIP auto-ack (trong driver) -> DUT ha req
+    assign trig_if_i[ti].trig_out_req     = trig_out_req_w[ti];
+    assign trig_out_ack_w[ti]             = trig_if_i[ti].trig_out_ack;
+  end
+
+  //---------------------------------------------------------------------------
   // boot_fetch_started : dan xuat theo huong dan trong boot_if.sv
   //---------------------------------------------------------------------------
   assign boot_if_i.boot_fetch_started =
@@ -217,10 +243,10 @@ module dma350_tb_top;
       .bvalid_m1(axi5_m1_if.bvalid), .bready_m1(axi5_m1_if.bready),
       .bid_m1(axi5_m1_if.bid), .bresp_m1(axi5_m1_if.bresp),
 
-      // ---- A-7 Trigger : chua co VIP trigger -> tie-off idle ----
-      .trig_in_req(4'b0), .trig_in_req_type(8'b0),
-      .trig_in_ack(), .trig_in_ack_type(),
-      .trig_out_req(), .trig_out_ack(4'b0),
+      // ---- A-7 Trigger (VIP CTI: 4 cap cong, flatten theo index) ----
+      .trig_in_req(trig_in_req_w), .trig_in_req_type(trig_in_req_type_w),
+      .trig_in_ack(trig_in_ack_w), .trig_in_ack_type(trig_in_ack_type_w),
+      .trig_out_req(trig_out_req_w), .trig_out_ack(trig_out_ack_w),
 
       // ---- A-8 IRQ ----
       .irq_channel(irq_if_i.irq_channel),
@@ -386,6 +412,13 @@ module dma350_tb_top;
     uvm_config_db#(virtual dma_irq_if)::set   (null, "*", "irq_vif",     irq_if_i);
     uvm_config_db#(virtual apb_interface)::set(null, "*", "apb_vif",     apb_if_i);
     uvm_config_db#(virtual dma350_sc_if)::set (null, "*", "sc_vif",      sc_if_i);
+
+    // ---- Trigger (CTI): 1 interface TONG / cong. Index HANG SO (interface
+    //      array khong the index bang bien trong initial). ----
+    uvm_config_db#(virtual dma_trig_if)::set(null, "*", "trig_vif_t0", trig_if_i[0]);
+    uvm_config_db#(virtual dma_trig_if)::set(null, "*", "trig_vif_t1", trig_if_i[1]);
+    uvm_config_db#(virtual dma_trig_if)::set(null, "*", "trig_vif_t2", trig_if_i[2]);
+    uvm_config_db#(virtual dma_trig_if)::set(null, "*", "trig_vif_t3", trig_if_i[3]);
 
     // ---- AXI5 BFM: key SCOPE THEO AGENT (M0 -> slv0, M1 -> slv1) ----
     uvm_config_db#(virtual axi5_slave_driver_bfm)::set(null,

@@ -42,6 +42,12 @@ class dma350_virtual_sequencer extends uvm_sequencer;
   // ---- Status / Control (allch stop-pause, CTI halt/restart) ----
   dma350_sc_sequencer         sc_seqr_h;
 
+  // ---- Trigger (CTI) : 4 cong, bi danh t0..t3 (khop NUM_TRIGGER_IN=4 cua RTL)
+  // Moi sequencer lai phia trig-in (requester) cua cap cong tuong ung. Phia
+  // trig-out do driver AUTO-ACK, khong can sequencer.
+  //   vd: dma_trig_in_single_seq s; s.start(p_sequencer.trig_seqr_h[0]);
+  dma_trig_in_sequencer       trig_seqr_h[4];
+
   function new(string name = "dma350_virtual_sequencer", uvm_component parent = null);
     super.new(name, parent);
   endfunction

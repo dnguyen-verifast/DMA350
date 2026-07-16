@@ -26,6 +26,10 @@ package dma350_test_pkg;
   import crlp_pkg::*;             // crlp_por_seq / crlp_qch_cycle_seq / crlp_pch_seq
   import dma350_sc_pkg::*;        // dma350_sc_stop_seq / pause_seq / cti_seq ...
   import ral_pkg::*;
+  // Trigger VIP (CTI). KHONG import dma_trig_out_pkg: trig-out do DMAC tu phat,
+  // driver trig-in tu auto-ack -> khong dung agent trig_out.
+  import dma_trig_common_pkg::*;  // dma_trig_cfg, dma_trig_item, enum reqtype/mode
+  import dma_trig_in_pkg::*;      // dma_trig_in_agent + dma_trig_in_*_seq
 
   // Env (scoreboard + virtual sequencer + dma350_env + dma_trig_item stub)
   import dma350_env_pkg::*;

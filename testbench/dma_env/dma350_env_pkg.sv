@@ -10,11 +10,12 @@
 //       axis_slave_pkg, boot_pkg, dma_irq_pkg, crlp_pkg, dma350_sc_pkg,
 //       ral_pkg
 //   * Cac INTERFACE (compile o top-level, ngoai package):
-//       dma350_sc_if, apb interface, axi_stream_if, boot_if, crlp/lpi if...
+//       dma350_sc_if, apb interface, axi_stream_if, boot_if, crlp/lpi if,
+//       dma_trig_if (interface TONG 6 signal cua 1 cap cong trigger)
 //
 // THU TU INCLUDE noi bo:
-//   1) dma_trig_item.sv    (STUB - xem file, thay bang VIP trigger that)
-//   2) dma350_scoreboard.sv
+//   1) dma350_scoreboard.sv
+//   2) dma350_virtual_sequencer.sv
 //   3) dma350_env.sv
 //==============================================================================
 `ifndef DMA350_ENV_PKG_SV
@@ -48,17 +49,20 @@ package dma350_env_pkg;
   import crlp_pkg::*;            // crlp_agent, crlp_config, crlp_seq_item + enum LPI
   import dma350_sc_pkg::*;       // dma350_sc_agent, dma350_sc_cfg, dma350_sc_item
   import ral_pkg::*;             // reg_env, ral_dma350, reg2apb_adapter, apb_seq_item
+  // Trigger VIP (CTI). dma_trig_item la item that ma scoreboard.process_trigger
+  // tieu thu (observed_reqtype/observed_acktype/comb_ack_seen).
+  // KHONG import dma_trig_out_pkg: trig-out do DMAC tu phat, chi can auto-ack
+  // trong dma_trig_in_driver -> khong dung agent trig_out rieng.
+  import dma_trig_common_pkg::*; // dma_trig_item, dma_trig_cfg, enum reqtype/acktype
+  import dma_trig_in_pkg::*;     // dma_trig_in_agent, _sequencer, cac sequence
 
-  // ---- (1) STUB trigger item (scoreboard phu thuoc) ----
-  `include "dma_trig_item.sv"
-
-  // ---- (2) scoreboard ----
+  // ---- (1) scoreboard ----
   `include "dma350_scoreboard.sv"
 
-  // ---- (3) virtual sequencer (truoc env - env tham chieu no) ----
+  // ---- (2) virtual sequencer (truoc env - env tham chieu no) ----
   `include "dma350_virtual_sequencer.sv"
 
-  // ---- (4) env ----
+  // ---- (3) env ----
   `include "dma350_env.sv"
 
 endpackage : dma350_env_pkg

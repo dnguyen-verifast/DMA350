@@ -55,6 +55,8 @@
 +incdir+Status_Control/dma350_sc_agent/components
 +incdir+Status_Control/dma350_sc_agent/sequences
 +incdir+RAL_DMA350
++incdir+CTI/common
++incdir+CTI/trig_in
 
 // ----------------------------------------------------------------------------
 // (1) GLOBALS package (axi5_if import axi5_globals_pkg -> phai compile truoc)
@@ -71,6 +73,9 @@ IRQ/dma_irq_if.sv
 APB4/vip2vip/interface/apb_interface.sv
 Status_Control/dma350_sc_agent/interface/dma350_sc_if.sv
 AMBA_AXI5/src/hdl_top/axi5_interface/axi5_if.sv
+// Interface TONG cua 1 cap cong trigger (6 signal: trig-in + trig-out).
+// Thay cho dma_trig_in_if/dma_trig_out_if (chi dung boi tb standalone cua CTI).
+CTI/rtl/dma_trig_if.sv
 
 // ----------------------------------------------------------------------------
 // (3) PACKAGE VIP con (thu tu phu thuoc)
@@ -88,6 +93,10 @@ IRQ/dma_irq_pkg.sv
 POWER_CTL/tb/crlp_pkg.sv
 Status_Control/dma350_sc_agent/pkg/dma350_sc_pkg.sv
 RAL_DMA350/ral_pkg.sv
+// Trigger VIP (CTI). Chi common + trig_in: trig-out do DMAC tu phat, driver
+// trig-in auto-ack -> khong can dma_trig_out_pkg.
+CTI/common/dma_trig_common_pkg.sv
+CTI/trig_in/dma_trig_in_pkg.sv
 
 // ----------------------------------------------------------------------------
 // (4) AXI5 slave BFM (driver + monitor; import axi5_slave_pkg -> sau (3)).

@@ -1,0 +1,7 @@
+# DMA-350 Trigger VIP regression testlist
+# One test per line; lines starting with '#' are ignored.
+# Run flow test separately with +FLOW (see Makefile/doc), so it is not listed here.
+
+dma_trig_smoke_test
+dma_trig_distribute_test
+dma_trig_stall_test
