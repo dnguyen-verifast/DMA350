@@ -39,7 +39,7 @@ class dma_trig_in_monitor extends uvm_monitor;
       @(vif.mon_cb iff (vif.resetn && vif.mon_cb.trig_in_req === 1'b1));
       comb = (vif.mon_cb.trig_in_ack === 1'b1);   // ack in same cycle as req
       it = dma_trig_item::type_id::create("trig_in_hs");
-      it.set_transaction_id(port_id);
+      it.port_id = port_id;
       it.observed_reqtype = dma_trig_reqtype_e'(vif.mon_cb.trig_in_req_type);
       it.reqtype          = it.observed_reqtype;
       it.t_req            = $time;

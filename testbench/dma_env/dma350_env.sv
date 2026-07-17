@@ -94,6 +94,8 @@ class dma350_env extends uvm_env;
             `uvm_fatal("FATAL_ENV_AGENT_CONFIG", $sformatf("Couldn't get the dma350_sc_cfg from config_db"))
         end
 
+        
+
         //---------------------------------------------------------------------
         // (B) Phan phoi config XUONG tung agent qua config_db.
         //     Cac agent nay lay cfg bang uvm_config_db#(...)::get(this,"","cfg",cfg)

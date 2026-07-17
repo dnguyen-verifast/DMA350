@@ -76,6 +76,9 @@
 
     typedef enum { CH_ST_DISABLED, CH_ST_ENABLED, CH_ST_PAUSED,
                    CH_ST_DONE, CH_ST_STOPPED, CH_ST_ERROR } ch_state_e;
+    typedef enum {
+        SW_CONTROL_MODE, TRIGGER_CONTROL_MODE, INTERNAL_TRIGGER_MODE 
+    } mode_operation_e;
 
 
 //=============================================================================
@@ -153,6 +156,7 @@ endclass
 class dma_ch_ctx extends uvm_object;
     int              chan_id;
     ch_state_e       state = CH_ST_DISABLED;
+    mode_operation_e mode_operation = SW_CONTROL_MODE;
     dma_golden_intent intent;             // command dang chay (null neu idle)
 
     // predictor: chuoi burst AR/AW ky vong (pop khi thay tren bus)
@@ -293,9 +297,15 @@ class dma350_scoreboard extends uvm_scoreboard;
 
     boot_seq_item boot_tx_h0;
     uvm_tlm_analysis_fifo#(boot_seq_item) boot_analysis_fifo_h0;
-
+    // setup port and item for trigger port 
     dma_trig_item dma_trig_tx_h0;
+    // dma_trig_item dma_trig_tx_h1;
+    // dma_trig_item dma_trig_tx_h2;
+    // dma_trig_item dma_trig_tx_h3;
     uvm_tlm_analysis_fifo#(dma_trig_item) dma_trig_analysis_fifo_h0;
+    // uvm_tlm_analysis_fifo#(dma_trig_item) dma_trig_analysis_fifo_h1;
+    // uvm_tlm_analysis_fifo#(dma_trig_item) dma_trig_analysis_fifo_h2;
+    // uvm_tlm_analysis_fifo#(dma_trig_item) dma_trig_analysis_fifo_h3;
 
     crlp_seq_item crlp_tx_h0;
     uvm_tlm_analysis_fifo#(crlp_seq_item) crlp_analysis_fifo_h0;
@@ -342,7 +352,12 @@ class dma350_scoreboard extends uvm_scoreboard;
         axis_master_analysis_fifo_h0 = new("axis_master_analysis_fifo_h0",this);
         apb_master_analysis_fifo_h0  = new("apb_master_analysis_fifo_h0",this);
         boot_analysis_fifo_h0        = new("boot_analysis_fifo_h0",this);
+
         dma_trig_analysis_fifo_h0    = new("dma_trig_analysis_fifo_h0",this);
+        // dma_trig_analysis_fifo_h1    = new("dma_trig_analysis_fifo_h1",this);
+        // dma_trig_analysis_fifo_h2    = new("dma_trig_analysis_fifo_h2",this);
+        // dma_trig_analysis_fifo_h3    = new("dma_trig_analysis_fifo_h3",this);
+
         crlp_analysis_fifo_h0        = new("crlp_analysis_fifo_h0",this);
         dma350_sta_ctrl_analysis_fifo_h0 = new("dma350_sta_ctrl_analysis_fifo_h0",this);
     endfunction
@@ -429,8 +444,17 @@ class dma350_scoreboard extends uvm_scoreboard;
             forever begin axi5_slave1_write_response_analysis_fifo.get(axi5_slave1_tx_h5);
                           process_b (axi5_slave1_tx_h5, 1); end
             // (8) trigger, (10) LPI, (6) status/control, stream
+
             forever begin dma_trig_analysis_fifo_h0.get(dma_trig_tx_h0);
                           process_trigger(dma_trig_tx_h0); end
+            // forever begin dma_trig_analysis_fifo_h1.get(dma_trig_tx_h1);
+            //               process_trigger(dma_trig_tx_h1); end
+            // forever begin dma_trig_analysis_fifo_h2.get(dma_trig_tx_h2);
+            //               process_trigger(dma_trig_tx_h2); end
+            // forever begin dma_trig_analysis_fifo_h3.get(dma_trig_tx_h3);
+            //               process_trigger(dma_trig_tx_h3); end
+
+
             forever begin crlp_analysis_fifo_h0.get(crlp_tx_h0);
                           process_lpi(crlp_tx_h0); end
             forever begin dma350_sta_ctrl_analysis_fifo_h0.get(dma350_sc_tx_h0);
@@ -651,8 +675,9 @@ class dma350_scoreboard extends uvm_scoreboard;
 
         ctx[ch].clear_command();
 
+//----------------fetch config into chanel index ch---------------------------//
         ctx[ch].intent = gi;
-
+        
         ctx[ch].exp_total_bytes = gi.total_src_bytes();
         ctx[ch].des_fill_ptr    = gi.desaddr;
         // luu snapshot RAW config (khong gom live-counter) cho RO-lock check

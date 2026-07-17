@@ -10,6 +10,7 @@
 class dma_trig_item extends uvm_sequence_item;
 
   // ---- trig-in (REQUESTER) stimulus : the VIP drives req/req_type ----
+  rand [7:0]              port_id;
   rand dma_trig_reqtype_e reqtype;            // request type to drive
   rand int unsigned       pre_delay;          // idle cycles before asserting req
   // Error injection (illegal stimulus, off by default):
