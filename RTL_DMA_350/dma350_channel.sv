@@ -510,6 +510,21 @@ module dma350_channel import dma350_pkg::*; #(
     assign m_axi_wstrb  = abort_active ? '0 : (smask(nbytes_d) << dst_lane);
     assign m_axi_wlast  = w_active & (w_left == 9'd1);
 
+    // Post-beat (end-of-cycle) view of the line counters/addresses. The live
+    // write-back to CH_SRCADDR/CH_DESADDR/CH_XSIZE must publish the state the
+    // datapath will hold AFTER this beat: the write-back that rides along with
+    // the FINAL beat is the last one the FSM issues (the completion leaves
+    // D_XFER in the same cycle), so publishing the pre-decrement value would
+    // freeze CH_XSIZE at 1 unit with the transfer already fully done.
+    wire rd_step = push_fire;
+    wire wr_step = w_fire & ~abort_active;
+    wire [31:0] rd_rem_nxt = rd_step ? (rd_rem - {19'd0, nbytes_s}) : rd_rem;
+    wire [31:0] wr_rem_nxt = wr_step ? (wr_rem - {19'd0, nbytes_d}) : wr_rem;
+    wire [ADDR_WIDTH-1:0] rd_addr_nxt =
+        (rd_step & ~gen_s_q & ~sfixed_q) ? (rd_byte_addr + nbytes_s) : rd_byte_addr;
+    wire [ADDR_WIDTH-1:0] wr_addr_nxt =
+        (wr_step & ~gen_d_q & ~dfixed_q) ? (wr_byte_addr + nbytes_d) : wr_byte_addr;
+
     // =====================================================================
     // FSM
     // =====================================================================
@@ -1041,12 +1056,14 @@ module dma350_channel import dma350_pkg::*; #(
                             m_axi_awvalid <= 1'b0;   // outstanding_b counted globally
                         end
 
-                        // live write-back (approximate)
+                        // live write-back: publish the POST-beat state so the
+                        // final update (which rides with the last beat) reports
+                        // XSIZE = 0 / the end address, not one unit short.
                         live_we        <= 1'b1;
-                        live_srcaddr   <= rd_byte_addr;
-                        live_desaddr   <= wr_byte_addr;
-                        live_src_xsize <= rd_rem >> axsize_s_q;
-                        live_des_xsize <= wr_rem >> axsize_d_q;
+                        live_srcaddr   <= rd_addr_nxt;
+                        live_desaddr   <= wr_addr_nxt;
+                        live_src_xsize <= rd_rem_nxt >> axsize_s_q;
+                        live_des_xsize <= wr_rem_nxt >> axsize_d_q;
 
                         // line completion: all destination bytes written
                         if (wr_rem == 0 || (w_fire && wr_rem == {19'd0,nbytes_d})) begin
