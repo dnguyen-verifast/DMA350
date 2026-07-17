@@ -80,6 +80,12 @@ usage:
 	echo "Example:":
 	echo "make regression testlist_name=dma350_regression.list";
 	echo "";
+	echo "PASS/FAIL (dua vao UVM_ERROR + UVM_FATAL trong log):"
+	echo "  make simulate test=<ten>    -> tu in ket qua test do o cuoi";
+	echo "  make regression ...          -> tu in bang tong ket o cuoi";
+	echo "  make check_test test=<ten>   -> chi doc lai log, khong chay sim";
+	echo "  make report testlist_name=<list> -> bang tong ket, khong chay sim";
+	echo "";
 	echo "-----------------------------------------------------------------";
 	echo "-----------------------------------------------------------------";
 	echo "";
@@ -159,6 +165,8 @@ simulate:
 
 	# For checking and reporting simulation errors
 	make simulate_war_err
+	# Ket luan PASS/FAIL cuoi cung (dua vao UVM_ERROR / UVM_FATAL trong log)
+	make check_test
 	# make merge_cov_report
 
 	## For coverage report in text format
@@ -183,6 +191,49 @@ simulate:
 waves:
 	vsim -view $(test_folder)/waveform.wlf -do $(wave_do) &
 
+##
+## PASS/FAIL reporting
+##
+# Ket luan cho 1 test. PASS khi log co "UVM Report Summary" VA UVM_ERROR=0 VA
+# UVM_FATAL=0. Chi tiet tieu chi: xem check_result.sh
+#   make check_test test=dma350_single_copy_test
+check_test:
+	@echo "";
+	@echo "-----------------------------------------------------------------";
+	@echo "------------------------ TEST RESULT ----------------------------";
+	@sh ./check_result.sh $(test_folder)/$(test).log $(test); \
+	 rc=$$?; \
+	 echo "-----------------------------------------------------------------"; \
+	 echo ""; \
+	 exit $$rc
+
+# Bang tong ket PASS/FAIL cho MOI test trong testlist (khong chay lai sim).
+#   make report testlist_name=dma350_regression.list
+report:
+	@echo "";
+	@echo "=================================================================";
+	@echo "===================== REGRESSION SUMMARY ========================";
+	@echo "";
+	@pass=0; fail=0; failed=""; \
+	 for t in `grep "_test" $(testlist_name) | grep -v "^\#"`; do \
+	   if sh ./check_result.sh $$t/$$t.log $$t; then \
+	     pass=`expr $$pass + 1`; \
+	   else \
+	     fail=`expr $$fail + 1`; failed="$$failed $$t"; \
+	   fi; \
+	 done; \
+	 total=`expr $$pass + $$fail`; \
+	 echo ""; \
+	 echo "  TONG: $$total | PASS: $$pass | FAIL: $$fail"; \
+	 if [ $$fail -ne 0 ]; then \
+	   echo ""; \
+	   echo "  Test FAIL:"; \
+	   for f in $$failed; do echo "    - $$f   (log: $$f/$$f.log)"; done; \
+	 fi; \
+	 echo "================================================================="; \
+	 echo ""; \
+	 [ $$fail -eq 0 ]
+
 clean_simulate:
 	rm -rf *_test*
 
@@ -197,13 +248,17 @@ clean:
 ##
 ## For Regression and coverage merge
 ##
-# Doc tung dong (bo dong # comment) trong testlist va chay make simulate
+# Doc tung dong (bo dong # comment) trong testlist va chay make simulate.
+# '|| true' de 1 test FAIL khong lam dung ca regression -> van chay het roi
+# tong ket o buoc 'report'.
 regression:
 	for t in `grep "_test" $(testlist_name) | grep -v "^\#"`; do \
-		make simulate test=$$t; \
+		make simulate test=$$t || true; \
 	done
-	# Merge coverage
-	make merge_cov_report
+	# Merge coverage ('-' = bo qua loi, khong duoc chan bang tong ket ben duoi)
+	-make merge_cov_report
+	# Bang tong ket PASS/FAIL - hien CUOI CUNG
+	make report testlist_name=$(testlist_name)
 
 # For merge to happen, the coverage names for each test must be different
 #
