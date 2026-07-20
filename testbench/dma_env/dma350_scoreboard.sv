@@ -78,7 +78,11 @@
                    CH_ST_DONE, CH_ST_STOPPED, CH_ST_ERROR } ch_state_e;
     typedef enum {
         SW_CONTROL_MODE, TRIGGER_CONTROL_MODE, INTERNAL_TRIGGER_MODE 
-    } mode_operation_e;
+    } dma_operation_mode_e;
+
+    typedef enum {
+       NOTHING_OCCUR , READ_ONLY, WRITE_ONLY, WRITE_READ
+    } axi_operation_e;
 
 
 //=============================================================================
@@ -138,6 +142,8 @@ class dma_golden_intent extends uvm_object;
     int        srctrig_blksize, destrig_blksize;
     bit [1:0]  srctrig_type, destrig_type, trigout_type;
 
+    bit [1:0] streamtype;
+
     `uvm_object_utils(dma_golden_intent)
     function new(string name="dma_golden_intent"); super.new(name); endfunction
 
@@ -156,7 +162,7 @@ endclass
 class dma_ch_ctx extends uvm_object;
     int              chan_id;
     ch_state_e       state = CH_ST_DISABLED;
-    mode_operation_e mode_operation = SW_CONTROL_MODE;
+    dma_operation_mode_e mode_operation = SW_CONTROL_MODE;
     dma_golden_intent intent;             // command dang chay (null neu idle)
 
     // predictor: chuoi burst AR/AW ky vong (pop khi thay tren bus)
@@ -325,6 +331,8 @@ class dma350_scoreboard extends uvm_scoreboard;
     dma_ch_ctx     ctx[MAX_CHANNELS];         // context per-channel
     dma_ref_memory refmem;                    // reference-memory dung chung
     int            num_channels = 1;          // lay tu config (mac dinh 1)
+
+    axi_operation_e axi_operation = WRITE_READ;
 
     // thong ke tong
     int  err_addr_mismatch = 0;
@@ -621,6 +629,7 @@ class dma350_scoreboard extends uvm_scoreboard;
         dma_golden_intent gi = dma_golden_intent::type_id::create("gi");
         bit [31:0] ctrl, xsz, xszhi, xinc, ystr, sctc, dstc, scfg, dcfg, tocfg;
         bit [31:0] sa_lo, sa_hi, da_lo, da_hi, fillv, ysz, la_lo, la_hi;
+        bit [31:0] stremintcofig;
         peek_or_mirror(ch, CH_CTRL,         ctrl);
         peek_or_mirror(ch, CH_XSIZE,        xsz);
         peek_or_mirror(ch, CH_XSIZEHI,      xszhi);
@@ -639,6 +648,9 @@ class dma350_scoreboard extends uvm_scoreboard;
         peek_or_mirror(ch, CH_YSIZE,        ysz);
         peek_or_mirror(ch, CH_LINKADDR,     la_lo);
         peek_or_mirror(ch, CH_LINKADDRHI,   la_hi);
+        peek_or_mirror(ch, CH_STREAMINTCFG, stremintcofig);
+
+
 
         gi.srcaddr  = {sa_hi, sa_lo};
         gi.desaddr  = {da_hi, da_lo};
@@ -672,6 +684,8 @@ class dma350_scoreboard extends uvm_scoreboard;
         gi.srctrig_type=scfg[9:8]; gi.destrig_type=dcfg[9:8]; gi.trigout_type=tocfg[9:8];
         gi.linkaddr    = {rd_mirror(ch,CH_LINKADDRHI), rd_mirror(ch,CH_LINKADDR)};
         gi.linkaddren  = rd_mirror(ch,CH_LINKADDR) & 32'h1;
+
+        gi.streamtype = stremintcofig[10:9];
 
         ctx[ch].clear_command();
 
@@ -774,8 +788,14 @@ class dma350_scoreboard extends uvm_scoreboard;
         int max_rd = gi.src_maxburstlen + 1;
         int max_wr = gi.des_maxburstlen + 1;
         longint total_wr_bytes = 0;
-        if (gi.usestream) return;   // stream path: du doan qua AXI-Stream, khong AXI-M
 
+        if (gi.usestream && streamtype == 2'b00) return;   // stream path: du doan qua AXI-Stream, khong AXI-M
+
+        if(sb == 0 && db == 0) axi_operation = NOTHING_OCCUR;
+        if(sb == 0 && db != 0) axi_operation = READ_ONLY;
+        if(sb != 0 && db == 0) axi_operation = WRITE_ONLY;
+        if(sb != 0 && db != 0) axi_operation = WRITE_READ;
+        // predict burst axi for 2D
         if (gi.ysize > 1) begin
             // ---- 2D that: passes = ysize, doc sb / ghi db moi line ----
             longint sa = gi.srcaddr, da = gi.desaddr;
@@ -790,6 +810,7 @@ class dma350_scoreboard extends uvm_scoreboard;
                 da += gi.des_stride;
             end
         end
+        // predict burst axi for 1D
         else if (gi.wrap_en && (db > sb) && (sb > 0) && !gi.fill_en) begin
             // ---- 1D WRAP: lap doc-lai nguon, dich tien tung block sb ----
             int passes = (db + sb - 1) / sb;
@@ -798,11 +819,15 @@ class dma350_scoreboard extends uvm_scoreboard;
                 longint wbytes = (p == passes-1) ? (db - longint'(passes-1)*sb) : sb; // total byte for last line
                 // doc: LUON du sb byte tu srcaddr (pass cuoi doc thua -> drain,
                 // gioi han boi dest_cap)
-                predict_side(ch, gi.srcaddr, gi.src_xsize, gi.src_transize, 1'b0,
+                if(gi.usestream && !(streamtype == 2'b10)) begin  // using stream out for read data
+                    predict_side(ch, gi.srcaddr, gi.src_xsize, gi.src_transize, 1'b0,
                              max_rd, gi.src_xaddrinc, 1'b1, dbase, dbase + wbytes);
+                end
                 // ghi: chi wbytes vao block dich nay
-                predict_side(ch, dbase, int'(wbytes) >> gi.des_transize,
+                if(gi.usestream && !(streamtype == 2'b01)) begin  // using stream out for write data
+                `predict_side(ch, dbase, int'(wbytes) >> gi.des_transize,
                              gi.des_transize, 1'b0, max_wr, gi.des_xaddrinc, 1'b0);
+                end
                 total_wr_bytes += wbytes;
             end
             `uvm_info("SB_PRED_BURST", $sformatf(
@@ -813,15 +838,32 @@ class dma350_scoreboard extends uvm_scoreboard;
             // ---- CONTINUE / FILL (1 pass) : ghi = fill? db : min(sb,db) ----
             longint wbytes = gi.fill_en ? db : ((db < sb) ? db : sb);
             // if (!gi.fill_en)
-            predict_side(ch, gi.srcaddr, gi.src_xsize, gi.src_transize, 1'b0,
+            if(gi.usestream && !(streamtype == 2'b10)) begin  // using stream out for read data
+                predict_side(ch, gi.srcaddr, gi.src_xsize, gi.src_transize, 1'b0,
                              max_rd, gi.src_xaddrinc, 1'b1,
                              gi.desaddr, gi.desaddr + wbytes);
-            predict_side(ch, gi.desaddr, int'(wbytes) >> gi.des_transize,
+            end
+            if(gi.usestream && !(streamtype == 2'b01)) begin  // using stream out for write data
+                predict_side(ch, gi.desaddr, int'(wbytes) >> gi.des_transize,
                          gi.des_transize, 1'b0, max_wr, gi.des_xaddrinc, 1'b0);
+            end
+            
             total_wr_bytes = wbytes;
             `uvm_info("SB_PRED_BURST", $sformatf(
                 "CH%0d FILL: sb=%0d db=%0d last=%0d",
                 ch, sb, db, db - sb), UVM_LOW)
+        end
+
+        // Set expect with write_only situation, no read occur and fillval will be set expect value
+        if(axi_operation == WRITE_ONLY) begin
+            for (int i= 0; i< gi.des_xsize; i++) begin
+                for (int b=0; b<unit; b++) begin
+                    longint dst = gi.desaddr + longint'(i)*unit + b;
+                        refmem.set_expected(dst, ctx[ch].intent.fillval[8*(b%4) +: 8]);
+                    ctx[ch].bytes_read++;
+                end
+                if (!(gi.des_xaddrinc == 0)) a += unit;
+            end
         end
 
         // tong byte dich ky vong = tong byte GHI (dung cho check_status DONE)
