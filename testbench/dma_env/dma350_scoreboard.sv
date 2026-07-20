@@ -854,17 +854,17 @@ class dma350_scoreboard extends uvm_scoreboard;
             `uvm_info("SB_PRED_BURST", $sformatf(
                 "CH%0d FILL: sb=%0d db=%0d last=%0d",
                 ch, sb, db, db - sb), UVM_LOW)
-        end
 
-        // Set expect with write_only situation, no read occur and fillval will be set expect value
-        if(axi_operation == WRITE_ONLY) begin
-            for (int i= 0; i< gi.des_xsize; i++) begin
-                for (int b=0; b<unit; b++) begin
-                    longint dst = gi.desaddr + longint'(i)*unit + b;
-                        refmem.set_expected(dst, ctx[ch].intent.fillval[8*(b%4) +: 8]);
-                    ctx[ch].bytes_read++;
+            // Set expect with write_only situation, no read occur and fillval will be set expect value
+            if(((axi_operation == WRITE_ONLY) || (sb < db)) && gi.fill_en) begin
+                for (int i= 0; i< gi.des_xsize; i++) begin
+                    for (int b=0; b<unit; b++) begin
+                        longint dst = gi.desaddr + longint'(i)*unit + b;
+                            refmem.set_expected(dst, ctx[ch].intent.fillval[8*(b%4) +: 8]);
+                        ctx[ch].bytes_read++;
+                    end
+                    // if (!(gi.des_xaddrinc == 0)) a += unit;
                 end
-                // if (!(gi.des_xaddrinc == 0)) a += unit;
             end
         end
 
