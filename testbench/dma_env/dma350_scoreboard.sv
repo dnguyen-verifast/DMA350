@@ -271,10 +271,10 @@ class dma_ref_memory extends uvm_object;
     endfunction
 
     // comparing burst fixed with desaddincr = 0
-    function void fixed_compare ( int beat);
+    function void fixed_compare ( int beat, int destranszie);
         bit [7:0] expv_fifo, actv_fifo;
         for (int i= 0; i< beat; i++) begin
-            for (int b=0; b<bpb; b++) begin
+            for (int b=0; b< destranszie; b++) begin
                 expv_fifo = exp_fifo.pop_front();
                 actv_fifo = act_fifo.pop_front();
                 if(expv_fifo == actv_fifo) begin
@@ -1158,7 +1158,7 @@ class dma350_scoreboard extends uvm_scoreboard;
 
             if (!ob.fixed) a += bpb;
         end
-        refmem.fixed_compare(size);
+        refmem.fixed_compare(size,bpb);
         peek_check_counters(ch);           // (6) peek live counter tai bien W
     endtask
 
