@@ -819,12 +819,12 @@ class dma350_scoreboard extends uvm_scoreboard;
                 longint wbytes = (p == passes-1) ? (db - longint'(passes-1)*sb) : sb; // total byte for last line
                 // doc: LUON du sb byte tu srcaddr (pass cuoi doc thua -> drain,
                 // gioi han boi dest_cap)
-                if(gi.usestream && !(gi.streamtype == 2'b10)) begin  // using stream out for read data
+                if(!gi.usestream || (gi.usestream && !(gi.streamtype == 2'b10))) begin  // using stream out for read data
                     predict_side(ch, gi.srcaddr, gi.src_xsize, gi.src_transize, 1'b0,
                              max_rd, gi.src_xaddrinc, 1'b1, dbase, dbase + wbytes);
                 end
                 // ghi: chi wbytes vao block dich nay
-                if(gi.usestream && !(gi.streamtype == 2'b01)) begin  // using stream out for write data
+                if(!gi.usestream ||(gi.usestream && !(gi.streamtype == 2'b01))) begin  // using stream out for write data
                 predict_side(ch, dbase, int'(wbytes) >> gi.des_transize,
                              gi.des_transize, 1'b0, max_wr, gi.des_xaddrinc, 1'b0);
                 end
@@ -838,14 +838,16 @@ class dma350_scoreboard extends uvm_scoreboard;
             // ---- CONTINUE / FILL (1 pass) : ghi = fill? db : min(sb,db) ----
             longint wbytes = gi.fill_en ? db : ((db < sb) ? db : sb);
             // if (!gi.fill_en)
-            if(gi.usestream && !(gi.streamtype == 2'b10)) begin  // using stream out for read data
+            if(!gi.usestream ||(gi.usestream && !(gi.streamtype == 2'b10))) begin  // using stream out for read data
                 predict_side(ch, gi.srcaddr, gi.src_xsize, gi.src_transize, 1'b0,
                              max_rd, gi.src_xaddrinc, 1'b1,
                              gi.desaddr, gi.desaddr + wbytes);
+                `uvm_info("SB_PRED_BURST", $sformatf("Push expect axi burst read for fill/continue"), UVM_LOW)
             end
-            if(gi.usestream && !(gi.streamtype == 2'b01)) begin  // using stream out for write data
+            if(!gi.usestream ||(gi.usestream && !(gi.streamtype == 2'b01))) begin  // using stream out for write data
                 predict_side(ch, gi.desaddr, int'(wbytes) >> gi.des_transize,
                          gi.des_transize, 1'b0, max_wr, gi.des_xaddrinc, 1'b0);
+                `uvm_info("SB_PRED_BURST", $sformatf("Push expect axi burst write for fill/continue"), UVM_LOW)
             end
             
             total_wr_bytes = wbytes;
