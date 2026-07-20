@@ -219,10 +219,17 @@ endclass
 // exp[addr]=byte du kien ghi ; act[addr]=byte thuc te ghi.
 //=============================================================================
 class dma_ref_memory extends uvm_object;
+    // associate array using for incr burst
     bit [7:0] exp   [longint];
     bit       exp_v [longint];
     bit [7:0] act   [longint];
     bit       act_v [longint];
+
+    // queue array using for fixed, stream
+
+    bit [7:0] exp_fifo [$];
+    bit [7:0] act_fifo [$];
+
     int       mismatches = 0;
     int       match    = 0;
 
@@ -260,6 +267,22 @@ class dma_ref_memory extends uvm_object;
             end
             // da doi chieu: xoa de end-of-test chi con byte chua khop
             exp_v[a]=0; act_v[a]=0;
+        end
+    endfunction
+
+    // comparing burst fixed with desaddincr = 0
+    function void fixed_compare ( int beat);
+        bit [7:0] expv_fifo, actv_fifo;
+        for (int i= 0; i< beat; i++) begin
+            for (int b=0; b<bpb; b++) begin
+                expv_fifo = exp_fifo.pop_front();
+                actv_fifo = act_fifo.pop_front();
+                if(expv_fifo == actv_fifo) begin
+                    `uvm_info("SB_DATA",
+                    $sformatf("DATA MATCH : exp=0x%02h act=0x%02h", expv_fifo, actv_fifo),UVM_LOW)
+                end else `uvm_error("SB_DATA",
+                    $sformatf("DATA MISMATCH : exp=0x%02h act=0x%02h", expv_fifo, actv_fifo))
+            end
         end
     endfunction
 
@@ -1020,10 +1043,14 @@ class dma350_scoreboard extends uvm_scoreboard;
         for (int i=0; i<nbeats; i++) begin
             bit [DATA_WIDTH-1:0] beat = t.rdata[i];
             for (int b=0; b<bpb; b++) begin
-                longint dst = ob.dest_base + longint'(i)*bpb + b;
-                if (dst < ob.dest_cap)
-                    refmem.set_expected(dst, beat[8*b +: 8]);
-                ctx[ch].bytes_read++;
+                if(!ob.fixed) begin
+                    longint dst = ob.dest_base + longint'(i)*bpb + b;
+                    if (dst < ob.dest_cap)
+                        refmem.set_expected(dst, beat[8*b +: 8]);
+                    ctx[ch].bytes_read++;
+                end else begin
+                    refmem.exp_fifo.push_back(beat[8*b +: 8]);
+                end
             end
             if (!ob.fixed) a += bpb;
         end
@@ -1031,9 +1058,13 @@ class dma350_scoreboard extends uvm_scoreboard;
         if(gi_fill_only(ch) && (ctx[ch].intent.src_xsize < ctx[ch].intent.des_xsize)) begin
             for (int i= nbeats; i< ctx[ch].intent.des_xsize; i++) begin
                 for (int b=0; b<bpb; b++) begin
-                    longint dst = ob.dest_base + longint'(i)*bpb + b;
-                        refmem.set_expected(dst, ctx[ch].intent.fillval[8*(b%4) +: 8]);
-                    ctx[ch].bytes_read++;
+                    if(!ob.fixed) begin
+                        longint dst = ob.dest_base + longint'(i)*bpb + b;
+                            refmem.set_expected(dst, ctx[ch].intent.fillval[8*(b%4) +: 8]);
+                        ctx[ch].bytes_read++;
+                    end else begin
+                        refmem.exp_fifo.push_back(ctx[ch].intent.fillval[8*(b%4) +: 8]);
+                    end
                 end
                 if (!ob.fixed) a += bpb;
             end
@@ -1115,7 +1146,11 @@ class dma350_scoreboard extends uvm_scoreboard;
 
             for (int b=0; b<bpb; b++) begin
                 if (wstrb[b]) begin           // xu ly unaligned dau/cuoi qua wstrb
-                    refmem.set_actual(a+b, beat[8*b +: 8]);
+                    if(!ob.fixed) begin
+                        refmem.set_actual(a+b, beat[8*b +: 8]);
+                    end else begin
+                        refmem.act_fifo.push_back(beat[8*b +: 8]);
+                    end
                     ctx[ch].bytes_written++;
                     `uvm_info("SB_W", $sformatf("Counter byte written to des %d",ctx[ch].bytes_written), UVM_LOW)
                 end
@@ -1123,6 +1158,7 @@ class dma350_scoreboard extends uvm_scoreboard;
 
             if (!ob.fixed) a += bpb;
         end
+        refmem.fixed_compare(size);
         peek_check_counters(ch);           // (6) peek live counter tai bien W
     endtask
 
