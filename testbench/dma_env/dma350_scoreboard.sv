@@ -888,18 +888,19 @@ class dma350_scoreboard extends uvm_scoreboard;
             if(((axi_operation == WRITE_ONLY)) && gi.fill_en) begin
                 for (int i= 0; i< gi.des_xsize; i++) begin
                     for (int b=0; b<unit; b++) begin
-                    if(ctx[ch].intent.des_xaddrinc != 0) begin
-                        longint dst = gi.desaddr + longint'(i)*unit + b;
-                            refmem.set_expected(dst, ctx[ch].intent.fillval[8*(b%4) +: 8]);
-                        ctx[ch].bytes_read++;
-                    end else begin
-                        refmem.exp_fifo.push_back(ctx[ch].intent.fillval[8*(b%4) +: 8]);
-                    end
+                        if(ctx[ch].intent.des_xaddrinc != 0) begin
+                            longint dst = gi.desaddr + longint'(i)*unit + b;
+                                refmem.set_expected(dst, ctx[ch].intent.fillval[8*(b%4) +: 8]);
+                            ctx[ch].bytes_read++;
+                        end else begin
+                            refmem.exp_fifo.push_back(ctx[ch].intent.fillval[8*(b%4) +: 8]);
+                        end
                     // if (!(gi.des_xaddrinc == 0)) a += unit;
+                    end
                 end
             end
+            
         end
-
         // tong byte dich ky vong = tong byte GHI (dung cho check_status DONE)
         ctx[ch].exp_total_bytes = total_wr_bytes;
         `uvm_info("SB_PRED", $sformatf("CH%0d predicted %0d rd-burst, %0d wr-burst (%0d byte ghi)",
