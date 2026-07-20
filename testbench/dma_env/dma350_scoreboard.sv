@@ -1043,7 +1043,7 @@ class dma350_scoreboard extends uvm_scoreboard;
         for (int i=0; i<nbeats; i++) begin
             bit [DATA_WIDTH-1:0] beat = t.rdata[i];
             for (int b=0; b<bpb; b++) begin
-                if(!ob.fixed) begin
+                if(ctx[ch].intent.des_xaddrinc != 0) begin
                     longint dst = ob.dest_base + longint'(i)*bpb + b;
                     if (dst < ob.dest_cap)
                         refmem.set_expected(dst, beat[8*b +: 8]);
@@ -1058,7 +1058,7 @@ class dma350_scoreboard extends uvm_scoreboard;
         if(gi_fill_only(ch) && (ctx[ch].intent.src_xsize < ctx[ch].intent.des_xsize)) begin
             for (int i= nbeats; i< ctx[ch].intent.des_xsize; i++) begin
                 for (int b=0; b<bpb; b++) begin
-                    if(!ob.fixed) begin
+                    if(ctx[ch].intent.des_xaddrinc != 0) begin
                         longint dst = ob.dest_base + longint'(i)*bpb + b;
                             refmem.set_expected(dst, ctx[ch].intent.fillval[8*(b%4) +: 8]);
                         ctx[ch].bytes_read++;
@@ -1158,7 +1158,8 @@ class dma350_scoreboard extends uvm_scoreboard;
 
             if (!ob.fixed) a += bpb;
         end
-        refmem.fixed_compare(size,bpb);
+        
+        if(ob.fixed) refmem.fixed_compare(size,bpb);
         peek_check_counters(ch);           // (6) peek live counter tai bien W
     endtask
 
