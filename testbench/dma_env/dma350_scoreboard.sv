@@ -789,7 +789,7 @@ class dma350_scoreboard extends uvm_scoreboard;
         int max_wr = gi.des_maxburstlen + 1;
         longint total_wr_bytes = 0;
 
-        if (gi.usestream && streamtype == 2'b00) return;   // stream path: du doan qua AXI-Stream, khong AXI-M
+        if (gi.usestream && gi.streamtype == 2'b00) return;   // stream path: du doan qua AXI-Stream, khong AXI-M
 
         if(sb == 0 && db == 0) axi_operation = NOTHING_OCCUR;
         if(sb == 0 && db != 0) axi_operation = READ_ONLY;
@@ -819,12 +819,12 @@ class dma350_scoreboard extends uvm_scoreboard;
                 longint wbytes = (p == passes-1) ? (db - longint'(passes-1)*sb) : sb; // total byte for last line
                 // doc: LUON du sb byte tu srcaddr (pass cuoi doc thua -> drain,
                 // gioi han boi dest_cap)
-                if(gi.usestream && !(streamtype == 2'b10)) begin  // using stream out for read data
+                if(gi.usestream && !(gi.streamtype == 2'b10)) begin  // using stream out for read data
                     predict_side(ch, gi.srcaddr, gi.src_xsize, gi.src_transize, 1'b0,
                              max_rd, gi.src_xaddrinc, 1'b1, dbase, dbase + wbytes);
                 end
                 // ghi: chi wbytes vao block dich nay
-                if(gi.usestream && !(streamtype == 2'b01)) begin  // using stream out for write data
+                if(gi.usestream && !(gi.streamtype == 2'b01)) begin  // using stream out for write data
                 `predict_side(ch, dbase, int'(wbytes) >> gi.des_transize,
                              gi.des_transize, 1'b0, max_wr, gi.des_xaddrinc, 1'b0);
                 end
@@ -838,12 +838,12 @@ class dma350_scoreboard extends uvm_scoreboard;
             // ---- CONTINUE / FILL (1 pass) : ghi = fill? db : min(sb,db) ----
             longint wbytes = gi.fill_en ? db : ((db < sb) ? db : sb);
             // if (!gi.fill_en)
-            if(gi.usestream && !(streamtype == 2'b10)) begin  // using stream out for read data
+            if(gi.usestream && !(gi.streamtype == 2'b10)) begin  // using stream out for read data
                 predict_side(ch, gi.srcaddr, gi.src_xsize, gi.src_transize, 1'b0,
                              max_rd, gi.src_xaddrinc, 1'b1,
                              gi.desaddr, gi.desaddr + wbytes);
             end
-            if(gi.usestream && !(streamtype == 2'b01)) begin  // using stream out for write data
+            if(gi.usestream && !(gi.streamtype == 2'b01)) begin  // using stream out for write data
                 predict_side(ch, gi.desaddr, int'(wbytes) >> gi.des_transize,
                          gi.des_transize, 1'b0, max_wr, gi.des_xaddrinc, 1'b0);
             end
