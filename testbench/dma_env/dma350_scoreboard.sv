@@ -246,7 +246,12 @@ class dma_ref_memory extends uvm_object;
     // so khop theo NOI DUNG tai dia chi (khong theo thu tu thoi gian)
     function void try_compare(longint a);
         if (exp_v[a] && act_v[a]) begin
-            if (exp[a] === act[a]) match++;
+            if (exp[a] === act[a]) begin
+                match++;
+                `uvm_info("SB_DATA",
+                    $sformatf("DATA MATCH @0x%0h : exp=0x%02h act=0x%02h",
+                              a, exp[a], act[a]),UVM_LOW)
+            end
             else begin
                 mismatches++;
                 `uvm_error("SB_DATA",
