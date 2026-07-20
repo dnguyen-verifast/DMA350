@@ -825,7 +825,7 @@ class dma350_scoreboard extends uvm_scoreboard;
                 end
                 // ghi: chi wbytes vao block dich nay
                 if(gi.usestream && !(gi.streamtype == 2'b01)) begin  // using stream out for write data
-                `predict_side(ch, dbase, int'(wbytes) >> gi.des_transize,
+                predict_side(ch, dbase, int'(wbytes) >> gi.des_transize,
                              gi.des_transize, 1'b0, max_wr, gi.des_xaddrinc, 1'b0);
                 end
                 total_wr_bytes += wbytes;
@@ -862,7 +862,7 @@ class dma350_scoreboard extends uvm_scoreboard;
                         refmem.set_expected(dst, ctx[ch].intent.fillval[8*(b%4) +: 8]);
                     ctx[ch].bytes_read++;
                 end
-                if (!(gi.des_xaddrinc == 0)) a += unit;
+                // if (!(gi.des_xaddrinc == 0)) a += unit;
             end
         end
 
