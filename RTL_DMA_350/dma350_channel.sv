@@ -418,8 +418,20 @@ module dma350_channel import dma350_pkg::*; #(
     // drain (discard) any straggler read beats while finishing a line/command
     // (e.g. SRCXSIZE > DESXSIZE) or aborting, so the shared R bus never blocks.
     wire rd_draining = abort_active | (ds == D_DRAIN) | (ds == D_NEXTLINE);
-    assign m_axi_rready = (rd_run & rf_room) | link_rd_active | rd_draining;
-    wire push_fire = r_fire & rd_active & ~link_rd_active & ~rd_draining;
+
+    // Surplus source: the destination is already fully accounted for while the
+    // source still owes bytes (DESXSIZE == 0, DESXSIZE < SRCXSIZE, or the last
+    // WRAP pass). SRCXSIZE must still be consumed off the bus, but the data is
+    // discarded - it needs no FIFO room, so reads never stall on a full FIFO.
+    wire rd_excess = (wr_rem == 32'd0);
+
+    assign m_axi_rready = (rd_run & (rf_room | rd_excess))
+                        | link_rd_active | rd_draining;
+    // rd_beat  = a source beat consumed (counts against SRCXSIZE / advances the
+    //            source address), whether it is kept or discarded.
+    // push_fire= only the beats actually needed by the destination enter the FIFO.
+    wire rd_beat   = r_fire & rd_active & ~link_rd_active & ~rd_draining;
+    wire push_fire = rd_beat & ~rd_excess;
 
     // compacted source bytes for this read beat -> read FIFO
     wire [DATA_WIDTH-1:0] compact = (m_axi_rdata >> ({3'd0,src_lane}*8)) & bmask(nbytes_s);
@@ -516,7 +528,7 @@ module dma350_channel import dma350_pkg::*; #(
     // the FINAL beat is the last one the FSM issues (the completion leaves
     // D_XFER in the same cycle), so publishing the pre-decrement value would
     // freeze CH_XSIZE at 1 unit with the transfer already fully done.
-    wire rd_step = push_fire;
+    wire rd_step = rd_beat;
     wire wr_step = w_fire & ~abort_active;
     wire [31:0] rd_rem_nxt = rd_step ? (rd_rem - {19'd0, nbytes_s}) : rd_rem;
     wire [31:0] wr_rem_nxt = wr_step ? (wr_rem - {19'd0, nbytes_d}) : wr_rem;
@@ -680,7 +692,9 @@ module dma350_channel import dma350_pkg::*; #(
             fifo_flush <= 1'b0;
 
             // ---- read-beat address / remaining ----
-            if (push_fire) begin
+            // rd_beat (not push_fire): a discarded surplus beat still consumes
+            // SRCXSIZE and advances the source address.
+            if (rd_beat) begin
                 rd_rem <= rd_rem - nbytes_s;
                 if (gen_s_q) begin
                     // single-element: this transfer done; step to next element
@@ -1065,8 +1079,13 @@ module dma350_channel import dma350_pkg::*; #(
                         live_src_xsize <= rd_rem_nxt >> axsize_s_q;
                         live_des_xsize <= wr_rem_nxt >> axsize_d_q;
 
-                        // line completion: all destination bytes written
-                        if (wr_rem == 0 || (w_fire && wr_rem == {19'd0,nbytes_d})) begin
+                        // Line completion: BOTH sides exhausted. Waiting only on
+                        // the destination would end the command before SRCXSIZE
+                        // has been consumed whenever the source outlives it
+                        // (DESXSIZE == 0 -> no read would ever be issued;
+                        // DESXSIZE < SRCXSIZE and the last WRAP pass -> the
+                        // surplus source is fetched and discarded, see rd_excess).
+                        if ((wr_rem_nxt == 32'd0) && (rd_rem_nxt == 32'd0)) begin
                             rd_active<=0; wr_active<=0;
                             // stream-in overrun: writes finished while the stream-in
                             // FIFO still holds (unconsumed) data (TRM ERRINFO).
