@@ -792,8 +792,8 @@ class dma350_scoreboard extends uvm_scoreboard;
         if (gi.usestream && gi.streamtype == 2'b00) return;   // stream path: du doan qua AXI-Stream, khong AXI-M
 
         if(sb == 0 && db == 0) axi_operation = NOTHING_OCCUR;
-        if(sb == 0 && db != 0) axi_operation = READ_ONLY;
-        if(sb != 0 && db == 0) axi_operation = WRITE_ONLY;
+        if(sb == 0 && db != 0) axi_operation = WRITE_ONLY;
+        if(sb != 0 && db == 0) axi_operation = READ_ONLY;
         if(sb != 0 && db != 0) axi_operation = WRITE_READ;
         // predict burst axi for 2D
         if (gi.ysize > 1) begin
