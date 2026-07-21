@@ -260,6 +260,18 @@ class dma350_env extends uvm_env;
         // key "ral_dma_model" TRUOC build cua scoreboard.
         dma350_scb_h.m_ral_dma_model = reg_env_h.m_ral_model;
 
+        // CUNG LY DO cho predictor: build_phase cua CAC COMPONENT ANH EM chay
+        // theo THU TU ALPHABET ten instance (m_children la mang ket hop theo
+        // string), KHONG phai thu tu create(). "predict_intent_h" < "reg_env_h"
+        // nen predictor build TRUOC reg_env -> uvm_config_db#(ral_dma350)::get
+        // trong build_phase cua no LUON that bai (m_ral = null).
+        // Hau qua: peek_or_mirror() roi ve reg_mirror; nhung thanh ghi ma test
+        // KHONG ghi qua APB (vd CH_SRCTRANSCFG / CH_DESTRANSCFG) se doc ra 0
+        // -> src/des_maxburstlen = 0 -> max_rd/max_wr = 1 thay vi 16.
+        // connect_phase chay sau MOI build_phase nen gan o day la an toan, va
+        // van truoc run_phase (noi predictor thuc su peek).
+        predict_intent_h.m_ral = reg_env_h.m_ral_model;
+
         //=====================================================================
         // VIRTUAL SEQUENCER : gan handle sequencer cua tung agent (chi khi
         // agent ACTIVE - passive khong tao sequencer, handle giu null).

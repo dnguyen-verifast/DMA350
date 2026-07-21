@@ -586,16 +586,16 @@ class dma350_scoreboard extends uvm_scoreboard;
     // MAC DINH KHONG DUNG NUA - viec chot intent da chuyen sang component
     // dma350_predict_intent, ket qua vao qua process_intent(). Neu goi ca hai
     // se chot intent 2 lan (predict burst 2 lan -> AR/AW "thua" gia).
-    task do_activation_snapshot(int ch);
-        settle_one_clock();
-        snapshot_intent(ch);
-        ctx[ch].state = CH_ST_ENABLED;
-        n_commands++;
-        `uvm_info("SB_CMD", $sformatf(
-          "CH%0d ACTIVATION (ch_enabled^) -> golden intent %s",
-          ch, ctx[ch].intent.convert2string()), UVM_MEDIUM)
-        build_predicted_bursts(ch);
-    endtask
+    // task do_activation_snapshot(int ch);
+    //     settle_one_clock();
+    //     snapshot_intent(ch);
+    //     ctx[ch].state = CH_ST_ENABLED;
+    //     n_commands++;
+    //     `uvm_info("SB_CMD", $sformatf(
+    //       "CH%0d ACTIVATION (ch_enabled^) -> golden intent %s",
+    //       ch, ctx[ch].intent.convert2string()), UVM_MEDIUM)
+    //     build_predicted_bursts(ch);
+    // endtask
 
     //=========================================================================
     // (0) NHAN INTENT tu dma350_predict_intent.
@@ -630,89 +630,89 @@ class dma350_scoreboard extends uvm_scoreboard;
     endtask
 
     // chot toan bo config channel thanh golden intent (doc BACKDOOR peek)
-    task snapshot_intent(int ch);
-        dma_golden_intent gi = dma_golden_intent::type_id::create("gi");
-        bit [31:0] ctrl, xsz, xszhi, xinc, ystr, sctc, dstc, scfg, dcfg, tocfg;
-        bit [31:0] sa_lo, sa_hi, da_lo, da_hi, fillv, ysz, la_lo, la_hi;
-        bit [31:0] stremintcofig;
-        peek_or_mirror(ch, CH_CTRL,         ctrl);
-        peek_or_mirror(ch, CH_XSIZE,        xsz);
-        peek_or_mirror(ch, CH_XSIZEHI,      xszhi);
-        peek_or_mirror(ch, CH_XADDRINC,     xinc);
-        peek_or_mirror(ch, CH_YADDRSTRIDE,  ystr);
-        peek_or_mirror(ch, CH_SRCTRANSCFG,  sctc);
-        peek_or_mirror(ch, CH_DESTRANSCFG,  dstc);
-        peek_or_mirror(ch, CH_SRCTRIGINCFG, scfg);
-        peek_or_mirror(ch, CH_DESTRIGINCFG, dcfg);
-        peek_or_mirror(ch, CH_TRIGOUTCFG,   tocfg);
-        peek_or_mirror(ch, CH_SRCADDR,      sa_lo);
-        peek_or_mirror(ch, CH_SRCADDRHI,    sa_hi);
-        peek_or_mirror(ch, CH_DESADDR,      da_lo);
-        peek_or_mirror(ch, CH_DESADDRHI,    da_hi);
-        peek_or_mirror(ch, CH_FILLVAL,      fillv);
-        peek_or_mirror(ch, CH_YSIZE,        ysz);
-        peek_or_mirror(ch, CH_LINKADDR,     la_lo);
-        peek_or_mirror(ch, CH_LINKADDRHI,   la_hi);
-        peek_or_mirror(ch, CH_STREAMINTCFG, stremintcofig);
+//     task snapshot_intent(int ch);
+//         dma_golden_intent gi = dma_golden_intent::type_id::create("gi");
+//         bit [31:0] ctrl, xsz, xszhi, xinc, ystr, sctc, dstc, scfg, dcfg, tocfg;
+//         bit [31:0] sa_lo, sa_hi, da_lo, da_hi, fillv, ysz, la_lo, la_hi;
+//         bit [31:0] stremintcofig;
+//         peek_or_mirror(ch, CH_CTRL,         ctrl);
+//         peek_or_mirror(ch, CH_XSIZE,        xsz);
+//         peek_or_mirror(ch, CH_XSIZEHI,      xszhi);
+//         peek_or_mirror(ch, CH_XADDRINC,     xinc);
+//         peek_or_mirror(ch, CH_YADDRSTRIDE,  ystr);
+//         peek_or_mirror(ch, CH_SRCTRANSCFG,  sctc);
+//         peek_or_mirror(ch, CH_DESTRANSCFG,  dstc);
+//         peek_or_mirror(ch, CH_SRCTRIGINCFG, scfg);
+//         peek_or_mirror(ch, CH_DESTRIGINCFG, dcfg);
+//         peek_or_mirror(ch, CH_TRIGOUTCFG,   tocfg);
+//         peek_or_mirror(ch, CH_SRCADDR,      sa_lo);
+//         peek_or_mirror(ch, CH_SRCADDRHI,    sa_hi);
+//         peek_or_mirror(ch, CH_DESADDR,      da_lo);
+//         peek_or_mirror(ch, CH_DESADDRHI,    da_hi);
+//         peek_or_mirror(ch, CH_FILLVAL,      fillv);
+//         peek_or_mirror(ch, CH_YSIZE,        ysz);
+//         peek_or_mirror(ch, CH_LINKADDR,     la_lo);
+//         peek_or_mirror(ch, CH_LINKADDRHI,   la_hi);
+//         peek_or_mirror(ch, CH_STREAMINTCFG, stremintcofig);
 
 
 
-        gi.srcaddr  = {sa_hi, sa_lo};
-        gi.desaddr  = {da_hi, da_lo};
-        gi.src_xsize = {xszhi[15:0],  xsz[15:0]};
-        gi.des_xsize = {xszhi[31:16], xsz[31:16]};
-        gi.src_transize = ctrl[2:0];
-        gi.des_transize = ctrl[2:0];
-        gi.chprio       = ctrl[7:4];
-        gi.xtype        = ctrl[11:9];
-        gi.ytype        = ctrl[14:12];
-        gi.wrap_en      = (ctrl[11:9]==3'b010);
-        gi.fill_en      = (ctrl[11:9]==3'b011);
-        gi.regreloadtype= ctrl[20:18];
-        gi.donetype     = ctrl[23:21];
-        gi.donepauseen  = ctrl[24];
-        gi.usestream    = ctrl[29];
-        gi.src_xaddrinc = $signed(xinc[15:0]);
-        gi.des_xaddrinc = $signed(xinc[31:16]);
-        gi.src_stride   = $signed(ystr[15:0]);
-        gi.des_stride   = $signed(ystr[31:16]);
-        gi.fillval      = rd_mirror(ch, CH_FILLVAL);
-        gi.ysize        = rd_mirror(ch, CH_YSIZE) & 32'hFFFF;
-        gi.src_maxburstlen = sctc[19:16];
-        gi.des_maxburstlen = dstc[19:16];
-        gi.src_cache  = sctc[7:4];  gi.src_inner=sctc[3:0]; gi.src_domain=sctc[9:8];
-        gi.src_prot   = {1'b0, sctc[10], sctc[11]};
-        gi.des_cache  = dstc[7:4];  gi.des_inner=dstc[3:0]; gi.des_domain=dstc[9:8];
-        gi.des_prot   = {1'b0, dstc[10], dstc[11]};
-        gi.use_srctrig= ctrl[25]; gi.use_destrig=ctrl[26]; gi.use_trigout=ctrl[27];
-        gi.srctrig_blksize = scfg[23:16]; gi.destrig_blksize = dcfg[23:16];
-        gi.srctrig_type=scfg[9:8]; gi.destrig_type=dcfg[9:8]; gi.trigout_type=tocfg[9:8];
-        gi.linkaddr    = {rd_mirror(ch,CH_LINKADDRHI), rd_mirror(ch,CH_LINKADDR)};
-        gi.linkaddren  = rd_mirror(ch,CH_LINKADDR) & 32'h1;
+//         gi.srcaddr  = {sa_hi, sa_lo};
+//         gi.desaddr  = {da_hi, da_lo};
+//         gi.src_xsize = {xszhi[15:0],  xsz[15:0]};
+//         gi.des_xsize = {xszhi[31:16], xsz[31:16]};
+//         gi.src_transize = ctrl[2:0];
+//         gi.des_transize = ctrl[2:0];
+//         gi.chprio       = ctrl[7:4];
+//         gi.xtype        = ctrl[11:9];
+//         gi.ytype        = ctrl[14:12];
+//         gi.wrap_en      = (ctrl[11:9]==3'b010);
+//         gi.fill_en      = (ctrl[11:9]==3'b011);
+//         gi.regreloadtype= ctrl[20:18];
+//         gi.donetype     = ctrl[23:21];
+//         gi.donepauseen  = ctrl[24];
+//         gi.usestream    = ctrl[29];
+//         gi.src_xaddrinc = $signed(xinc[15:0]);
+//         gi.des_xaddrinc = $signed(xinc[31:16]);
+//         gi.src_stride   = $signed(ystr[15:0]);
+//         gi.des_stride   = $signed(ystr[31:16]);
+//         gi.fillval      = rd_mirror(ch, CH_FILLVAL);
+//         gi.ysize        = rd_mirror(ch, CH_YSIZE) & 32'hFFFF;
+//         gi.src_maxburstlen = sctc[19:16];
+//         gi.des_maxburstlen = dstc[19:16];
+//         gi.src_cache  = sctc[7:4];  gi.src_inner=sctc[3:0]; gi.src_domain=sctc[9:8];
+//         gi.src_prot   = {1'b0, sctc[10], sctc[11]};
+//         gi.des_cache  = dstc[7:4];  gi.des_inner=dstc[3:0]; gi.des_domain=dstc[9:8];
+//         gi.des_prot   = {1'b0, dstc[10], dstc[11]};
+//         gi.use_srctrig= ctrl[25]; gi.use_destrig=ctrl[26]; gi.use_trigout=ctrl[27];
+//         gi.srctrig_blksize = scfg[23:16]; gi.destrig_blksize = dcfg[23:16];
+//         gi.srctrig_type=scfg[9:8]; gi.destrig_type=dcfg[9:8]; gi.trigout_type=tocfg[9:8];
+//         gi.linkaddr    = {rd_mirror(ch,CH_LINKADDRHI), rd_mirror(ch,CH_LINKADDR)};
+//         gi.linkaddren  = rd_mirror(ch,CH_LINKADDR) & 32'h1;
 
-        gi.streamtype = stremintcofig[10:9];
+//         gi.streamtype = stremintcofig[10:9];
 
-        ctx[ch].clear_command();
+//         ctx[ch].clear_command();
 
-//----------------fetch config into chanel index ch---------------------------//
-        ctx[ch].intent = gi;
+// //----------------fetch config into chanel index ch---------------------------//
+//         ctx[ch].intent = gi;
         
-        ctx[ch].exp_total_bytes = gi.total_src_bytes();
-        ctx[ch].des_fill_ptr    = gi.desaddr;
-        // luu snapshot RAW config (khong gom live-counter) cho RO-lock check
-        ctx[ch].cfg_snapshot.delete();
-        ctx[ch].cfg_snapshot[CH_CTRL]         = ctrl;
-        ctx[ch].cfg_snapshot[CH_XSIZEHI]      = xszhi;
-        ctx[ch].cfg_snapshot[CH_XADDRINC]     = xinc;
-        ctx[ch].cfg_snapshot[CH_YADDRSTRIDE]  = ystr;
-        ctx[ch].cfg_snapshot[CH_SRCTRANSCFG]  = sctc;
-        ctx[ch].cfg_snapshot[CH_DESTRANSCFG]  = dstc;
-        ctx[ch].cfg_snapshot[CH_SRCTRIGINCFG] = scfg;
-        ctx[ch].cfg_snapshot[CH_DESTRIGINCFG] = dcfg;
-        ctx[ch].cfg_snapshot[CH_TRIGOUTCFG]   = tocfg;
-        ctx[ch].cfg_snapshot[CH_FILLVAL]      = fillv;
-        ctx[ch].cfg_snapshot[CH_YSIZE]        = ysz;
-    endtask
+//         ctx[ch].exp_total_bytes = gi.total_src_bytes();
+//         ctx[ch].des_fill_ptr    = gi.desaddr;
+//         // luu snapshot RAW config (khong gom live-counter) cho RO-lock check
+//         ctx[ch].cfg_snapshot.delete();
+//         ctx[ch].cfg_snapshot[CH_CTRL]         = ctrl;
+//         ctx[ch].cfg_snapshot[CH_XSIZEHI]      = xszhi;
+//         ctx[ch].cfg_snapshot[CH_XADDRINC]     = xinc;
+//         ctx[ch].cfg_snapshot[CH_YADDRSTRIDE]  = ystr;
+//         ctx[ch].cfg_snapshot[CH_SRCTRANSCFG]  = sctc;
+//         ctx[ch].cfg_snapshot[CH_DESTRANSCFG]  = dstc;
+//         ctx[ch].cfg_snapshot[CH_SRCTRIGINCFG] = scfg;
+//         ctx[ch].cfg_snapshot[CH_DESTRIGINCFG] = dcfg;
+//         ctx[ch].cfg_snapshot[CH_TRIGOUTCFG]   = tocfg;
+//         ctx[ch].cfg_snapshot[CH_FILLVAL]      = fillv;
+//         ctx[ch].cfg_snapshot[CH_YSIZE]        = ysz;
+//     endtask
 
     function bit [31:0] rd_mirror(int ch, bit [7:0] off);
         if (ctx[ch].reg_mirror.exists(off)) return ctx[ch].reg_mirror[off];

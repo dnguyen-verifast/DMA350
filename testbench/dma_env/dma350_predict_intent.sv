@@ -156,6 +156,11 @@ class dma350_predict_intent extends uvm_component;
 
         if (!uvm_config_db#(int)::get(this, "", "num_channels", num_channels))
             num_channels = 1;
+        // Thu lay RAL qua config_db, NHUNG thuong that bai: build_phase cua cac
+        // component anh em chay theo THU TU ALPHABET ten instance, ma
+        // "predict_intent_h" < "reg_env_h" nen reg_env chua kip publish.
+        // => dma350_env.connect_phase gan truc tiep predict_intent_h.m_ral.
+        // Kiem tra lai o end_of_elaboration (sau khi connect da chay).
         void'(uvm_config_db#(ral_dma350)::get(this, "", "m_ral_model", m_ral));
         if (!uvm_config_db#(virtual dma350_sc_if)::get(this, "", "sc_vif", m_sc_vif))
             `uvm_info("PRED_CFG",
@@ -355,6 +360,21 @@ class dma350_predict_intent extends uvm_component;
         if (reg_mirror.exists(ch) && reg_mirror[ch].exists(off))
             val = reg_mirror[ch][off];
     endtask
+
+    //-------------------------------------------------------------------------
+    // Chay SAU connect_phase: luc nay m_ral phai da co. Neu van null thi moi
+    // peek se roi ve reg_mirror va cac thanh ghi test KHONG ghi qua APB (vd
+    // CH_SRCTRANSCFG/CH_DESTRANSCFG, von co gia tri reset 0x000F0400) se doc ra
+    // 0 -> maxburstlen=0 -> burst du doan sai. Bao ERROR thay vi de im lang.
+    //-------------------------------------------------------------------------
+    function void end_of_elaboration_phase(uvm_phase phase);
+        super.end_of_elaboration_phase(phase);
+        if (m_ral == null)
+            `uvm_error("PRED_CFG",
+              "m_ral = null : intent se lay tu reg_mirror, cac thanh ghi khong duoc SW ghi (CH_*TRANSCFG...) se doc ra 0 thay vi gia tri reset. Gan predict_intent_h.m_ral trong env.connect_phase.")
+        else
+            `uvm_info("PRED_CFG", "RAL san sang : intent chot bang BACKDOOR peek", UVM_LOW)
+    endfunction
 
     function void report_phase(uvm_phase phase);
         super.report_phase(phase);
