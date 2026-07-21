@@ -62,7 +62,7 @@
     typedef enum {
        NOTHING_OCCUR , READ_ONLY, WRITE_ONLY, WRITE_READ
     } axi_operation_e;
-    
+
 class dma_axi_burst extends uvm_object;
     bit [63:0] addr;
     int        beats;   // so beat
@@ -842,6 +842,7 @@ class dma350_scoreboard extends uvm_scoreboard;
         else begin
             // ---- CONTINUE / FILL (1 pass) : ghi = fill? db : min(sb,db) ----
             longint wbytes = gi.fill_en ? db : ((db < sb) ? db : sb);
+            `uvm_info("SB_PRED_BURST", $sformatf("longint wbytes = %d,gi.fill_en = %b",wbytes,gi.fill_en), UVM_LOW)
             // if (!gi.fill_en)
             if(!gi.usestream ||(gi.usestream && !(gi.streamtype == 2'b10))) begin  // using stream out for read data
                 predict_side(ch, gi.srcaddr, gi.src_xsize, gi.src_transize, 1'b0,
