@@ -758,7 +758,9 @@ class dma350_scoreboard extends uvm_scoreboard;
         `uvm_info("SB_PRED_SIDE", $sformatf("total_beats = %d ",rem),UVM_LOW)
         while (rem > 0) begin
             int nb = calc_beats(rem, cur, size, eff_fixed, max_beats);
-            `uvm_info("SB_PRED_SIDE", $sformatf("calc_beats(rem, cur, size, eff_fixed, max_beats) = %d ",nb),UVM_LOW)
+            `uvm_info("SB_PRED_SIDE", $sformatf("calc_beats(rem, cur, size, eff_fixed, max_beats = %d) = %d"
+                                                max_beats, nb),UVM_LOW)
+
             bd = dma_axi_burst::type_id::create("bd");
             bd.addr = cur; bd.beats = nb; bd.size = size; bd.fixed = eff_fixed;
             bd.dest_base = dptr; bd.dest_cap = dest_cap;
