@@ -56,13 +56,24 @@ package dma350_env_pkg;
   import dma_trig_common_pkg::*; // dma_trig_item, dma_trig_cfg, enum reqtype/acktype
   import dma_trig_in_pkg::*;     // dma_trig_in_agent, _sequencer, cac sequence
 
-  // ---- (1) scoreboard ----
+  // ---- (1) DINH NGHIA DUNG CHUNG + PREDICTOR ----
+  // Chua: localparam offset thanh ghi / bit STATUS / enum trang thai,
+  //       class dma_golden_intent, component dma350_predict_intent.
+  // PHAI include TRUOC cmd_trigger_checker va scoreboard: ca hai deu dung
+  // dma_golden_intent, rieng scoreboard con dung cac localparam/enum o day.
+  // (dma_axi_burst / dma_ch_ctx / dma_ref_memory nam trong dma350_scoreboard.sv)
+  `include "dma350_predict_intent.sv"
+
+  // ---- (2) checker lien-interface (dung dma_if + dma_golden_intent) ----
+  `include "cmd_trigger_checker.sv"
+
+  // ---- (3) scoreboard ----
   `include "dma350_scoreboard.sv"
 
-  // ---- (2) virtual sequencer (truoc env - env tham chieu no) ----
+  // ---- (4) virtual sequencer (truoc env - env tham chieu no) ----
   `include "dma350_virtual_sequencer.sv"
 
-  // ---- (3) env ----
+  // ---- (5) env ----
   `include "dma350_env.sv"
 
 endpackage : dma350_env_pkg

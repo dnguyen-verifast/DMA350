@@ -292,6 +292,270 @@ module dma350_tb_top;
   );
 
   //---------------------------------------------------------------------------
+  // dma_if : interface TONG HOP moi tin hieu bien DMA-350, cho cac checker
+  // lien-interface (cmd_trigger_checker). THU DONG: chi assign VAO, khong lai
+  // nguoc ve DUT -> khong the gay tranh chap driver.
+  //---------------------------------------------------------------------------
+  dma_if #(
+      .ADDR_WIDTH(ADDR_W), .DATA_WIDTH(DATA_W), .ID_WIDTH(ID_W),
+      .NUM_CHANNELS(NUM_CH), .NUM_TRIGGER_IN(NUM_TRIG),
+      .NUM_TRIGGER_OUT(NUM_TRIG), .GPO_WIDTH(GPO_W)
+  ) dma_if_i (.clk(tb_clk), .resetn(tb_resetn));
+
+  // ---- A-1/A-2/A-3 ----
+  assign dma_if_i.aclken_m0    = crlp_if_i.aclken_m0;
+  assign dma_if_i.aclken_m1    = crlp_if_i.aclken_m1;
+  assign dma_if_i.pclken       = crlp_if_i.pclken;
+  assign dma_if_i.clk_qreqn    = crlp_if_i.clk_qreqn;
+  assign dma_if_i.clk_qacceptn = crlp_if_i.clk_qacceptn;
+  assign dma_if_i.clk_qdeny    = crlp_if_i.clk_qdeny;
+  assign dma_if_i.clk_qactive  = crlp_if_i.clk_qactive;
+  assign dma_if_i.preq         = crlp_if_i.preq;
+  assign dma_if_i.pstate       = crlp_if_i.pstate;
+  assign dma_if_i.paccept      = crlp_if_i.paccept;
+  assign dma_if_i.pdeny        = crlp_if_i.pdeny;
+  // ---- A-4 APB4 ----
+  assign dma_if_i.psel    = apb_if_i.psel[0];
+  assign dma_if_i.penable = apb_if_i.penable;
+  assign dma_if_i.pprot   = apb_if_i.pprot;
+  assign dma_if_i.pwrite  = apb_if_i.pwrite;
+  assign dma_if_i.paddr   = apb_if_i.paddr[12:0];
+  assign dma_if_i.pwdata  = apb_if_i.pwdata;
+  assign dma_if_i.pstrb   = apb_if_i.pstrb;
+  assign dma_if_i.pready  = apb_if_i.pready;
+  assign dma_if_i.pslverr = apb_if_i.pslverr;
+  assign dma_if_i.prdata  = apb_if_i.prdata;
+  assign dma_if_i.pwakeup = apb_if_i.pwakeup;
+  assign dma_if_i.pdebug  = apb_if_i.pdebug;
+  // ---- A-5 AXI5 M0 ----
+  assign dma_if_i.awvalid_m0 = axi5_m0_if.awvalid;
+  assign dma_if_i.awready_m0 = axi5_m0_if.awready;
+  assign dma_if_i.awaddr_m0  = axi5_m0_if.awaddr;
+  assign dma_if_i.awid_m0    = axi5_m0_if.awid;
+  assign dma_if_i.awlen_m0   = awlen8_m0;
+  assign dma_if_i.awsize_m0  = axi5_m0_if.awsize;
+  assign dma_if_i.awburst_m0 = axi5_m0_if.awburst;
+  assign dma_if_i.awchid_m0      = {4'b0, axi5_m0_if.awchid};
+  assign dma_if_i.awchidvalid_m0 = axi5_m0_if.awchidvalid;
+  assign dma_if_i.arvalid_m0 = axi5_m0_if.arvalid;
+  assign dma_if_i.arready_m0 = axi5_m0_if.arready;
+  assign dma_if_i.araddr_m0  = axi5_m0_if.araddr;
+  assign dma_if_i.arid_m0    = axi5_m0_if.arid;
+  assign dma_if_i.arlen_m0   = arlen8_m0;
+  assign dma_if_i.arsize_m0  = axi5_m0_if.arsize;
+  assign dma_if_i.arburst_m0 = axi5_m0_if.arburst;
+  assign dma_if_i.arcmdlink_m0   = axi5_m0_if.arcmdlink;
+  assign dma_if_i.archid_m0      = {4'b0, axi5_m0_if.archid};
+  assign dma_if_i.archidvalid_m0 = axi5_m0_if.archidvalid;
+  assign dma_if_i.wvalid_m0 = axi5_m0_if.wvalid;
+  assign dma_if_i.wready_m0 = axi5_m0_if.wready;
+  assign dma_if_i.wlast_m0  = axi5_m0_if.wlast;
+  assign dma_if_i.wdata_m0  = axi5_m0_if.wdata;
+  assign dma_if_i.wstrb_m0  = axi5_m0_if.wstrb;
+  assign dma_if_i.rvalid_m0 = axi5_m0_if.rvalid;
+  assign dma_if_i.rready_m0 = axi5_m0_if.rready;
+  assign dma_if_i.rlast_m0  = axi5_m0_if.rlast;
+  assign dma_if_i.rdata_m0  = axi5_m0_if.rdata;
+  assign dma_if_i.rid_m0    = axi5_m0_if.rid;
+  assign dma_if_i.rresp_m0  = axi5_m0_if.rresp;
+  assign dma_if_i.bvalid_m0 = axi5_m0_if.bvalid;
+  assign dma_if_i.bready_m0 = axi5_m0_if.bready;
+  assign dma_if_i.bid_m0    = axi5_m0_if.bid;
+  assign dma_if_i.bresp_m0  = axi5_m0_if.bresp;
+  // ---- A-6 AXI5 M1 ----
+  assign dma_if_i.awvalid_m1 = axi5_m1_if.awvalid;
+  assign dma_if_i.awready_m1 = axi5_m1_if.awready;
+  assign dma_if_i.awaddr_m1  = axi5_m1_if.awaddr;
+  assign dma_if_i.awid_m1    = axi5_m1_if.awid;
+  assign dma_if_i.awlen_m1   = awlen8_m1;
+  assign dma_if_i.awsize_m1  = axi5_m1_if.awsize;
+  assign dma_if_i.awburst_m1 = axi5_m1_if.awburst;
+  assign dma_if_i.awchid_m1      = {4'b0, axi5_m1_if.awchid};
+  assign dma_if_i.awchidvalid_m1 = axi5_m1_if.awchidvalid;
+  assign dma_if_i.arvalid_m1 = axi5_m1_if.arvalid;
+  assign dma_if_i.arready_m1 = axi5_m1_if.arready;
+  assign dma_if_i.araddr_m1  = axi5_m1_if.araddr;
+  assign dma_if_i.arid_m1    = axi5_m1_if.arid;
+  assign dma_if_i.arlen_m1   = arlen8_m1;
+  assign dma_if_i.arsize_m1  = axi5_m1_if.arsize;
+  assign dma_if_i.arburst_m1 = axi5_m1_if.arburst;
+  assign dma_if_i.arcmdlink_m1   = axi5_m1_if.arcmdlink;
+  assign dma_if_i.archid_m1      = {4'b0, axi5_m1_if.archid};
+  assign dma_if_i.archidvalid_m1 = axi5_m1_if.archidvalid;
+  assign dma_if_i.wvalid_m1 = axi5_m1_if.wvalid;
+  assign dma_if_i.wready_m1 = axi5_m1_if.wready;
+  assign dma_if_i.wlast_m1  = axi5_m1_if.wlast;
+  assign dma_if_i.wdata_m1  = axi5_m1_if.wdata;
+  assign dma_if_i.wstrb_m1  = axi5_m1_if.wstrb;
+  assign dma_if_i.rvalid_m1 = axi5_m1_if.rvalid;
+  assign dma_if_i.rready_m1 = axi5_m1_if.rready;
+  assign dma_if_i.rlast_m1  = axi5_m1_if.rlast;
+  assign dma_if_i.rdata_m1  = axi5_m1_if.rdata;
+  assign dma_if_i.rid_m1    = axi5_m1_if.rid;
+  assign dma_if_i.rresp_m1  = axi5_m1_if.rresp;
+  assign dma_if_i.bvalid_m1 = axi5_m1_if.bvalid;
+  assign dma_if_i.bready_m1 = axi5_m1_if.bready;
+  assign dma_if_i.bid_m1    = axi5_m1_if.bid;
+  assign dma_if_i.bresp_m1  = axi5_m1_if.bresp;
+  // ---- A-7 Trigger (index theo CONG <TI>/<TO>) ----
+  assign dma_if_i.trig_in_req      = trig_in_req_w;
+  assign dma_if_i.trig_in_req_type = trig_in_req_type_w;
+  assign dma_if_i.trig_in_ack      = trig_in_ack_w;
+  assign dma_if_i.trig_in_ack_type = trig_in_ack_type_w;
+  assign dma_if_i.trig_out_req     = trig_out_req_w;
+  assign dma_if_i.trig_out_ack     = trig_out_ack_w;
+  // ---- A-8 IRQ ----
+  assign dma_if_i.irq_channel      = irq_if_i.irq_channel;
+  assign dma_if_i.irq_comb_nonsec  = irq_if_i.irq_comb_nonsec;
+  assign dma_if_i.irq_comb_sec     = irq_if_i.irq_comb_sec;
+  assign dma_if_i.irq_sec_viol_err = irq_if_i.irq_sec_viol_err;
+  // ---- A-9 Stream ----
+  assign dma_if_i.str_out_tvalid = str_out_tvalid_w;
+  assign dma_if_i.str_out_tready = {{(NUM_CH-1){1'b0}}, axis_out_if.TREADY};
+  assign dma_if_i.str_out_tdata  = str_out_tdata_w;
+  assign dma_if_i.str_out_tstrb  = str_out_tstrb_w;
+  assign dma_if_i.str_out_tlast  = str_out_tlast_w;
+  assign dma_if_i.str_in_tvalid  = {{(NUM_CH-1){1'b0}}, axis_in_if.TVALID};
+  assign dma_if_i.str_in_tready  = str_in_tready_w;
+  assign dma_if_i.str_in_tdata   = {{((NUM_CH-1)*DATA_W){1'b0}}, axis_in_if.TDATA};
+  assign dma_if_i.str_in_tstrb   = {{((NUM_CH-1)*STRB_W){1'b0}}, axis_in_if.TSTRB};
+  assign dma_if_i.str_in_tlast   = {{(NUM_CH-1){1'b0}}, axis_in_if.TLAST};
+  assign dma_if_i.str_in_flush   = str_in_flush_w;
+  // ---- A-10 Status/Control ----
+  assign dma_if_i.gpo_ch                 = gpo_flat_w;
+  assign dma_if_i.allch_stop_req_nonsec  = sc_if_i.allch_stop_req_nonsec;
+  assign dma_if_i.allch_stop_ack_nonsec  = sc_if_i.allch_stop_ack_nonsec;
+  assign dma_if_i.allch_pause_req_nonsec = sc_if_i.allch_pause_req_nonsec;
+  assign dma_if_i.allch_pause_ack_nonsec = sc_if_i.allch_pause_ack_nonsec;
+  assign dma_if_i.allch_stop_req_sec     = sc_if_i.allch_stop_req_sec;
+  assign dma_if_i.allch_stop_ack_sec     = sc_if_i.allch_stop_ack_sec;
+  assign dma_if_i.allch_pause_req_sec    = sc_if_i.allch_pause_req_sec;
+  assign dma_if_i.allch_pause_ack_sec    = sc_if_i.allch_pause_ack_sec;
+  assign dma_if_i.halt_req    = sc_if_i.halt_req;
+  assign dma_if_i.restart_req = sc_if_i.restart_req;
+  assign dma_if_i.halted      = sc_if_i.halted;
+  assign dma_if_i.ch_enabled  = sc_if_i.ch_enabled[NUM_CH-1:0];
+  assign dma_if_i.ch_err      = sc_if_i.ch_err[NUM_CH-1:0];
+  assign dma_if_i.ch_stopped  = sc_if_i.ch_stopped[NUM_CH-1:0];
+  assign dma_if_i.ch_paused   = sc_if_i.ch_paused[NUM_CH-1:0];
+  assign dma_if_i.ch_priv     = sc_if_i.ch_priv[NUM_CH-1:0];
+  assign dma_if_i.ch_nonsec   = sc_if_i.ch_nonsec[NUM_CH-1:0];
+  // ---- A-11 Config/boot ----
+  assign dma_if_i.boot_en        = boot_if_i.boot_en;
+  assign dma_if_i.boot_addr      = boot_if_i.boot_addr;
+  assign dma_if_i.boot_memattr   = boot_if_i.boot_memattr;
+  assign dma_if_i.boot_shareattr = boot_if_i.boot_shareattr;
+
+  //---------------------------------------------------------------------------
+  // CHECKER : dma350_assertion (port list giong DUT, moi port input - chi soi).
+  // Noi TU DUNG cac interface/wire ma DUT dung -> quan sat cung bien tin hieu.
+  //---------------------------------------------------------------------------
+//   dma350_assertion #(
+//       .ADDR_WIDTH(ADDR_W), .DATA_WIDTH(DATA_W), .ID_WIDTH(ID_W),
+//       .CHID_WIDTH(0), .POIS_WIDTH(1), .NUM_CHANNELS(NUM_CH),
+//       .AXI5_M1_PRESENT(1), .SECEXT_PRESENT(1),
+//       .NUM_TRIGGER_IN(NUM_TRIG), .NUM_TRIGGER_OUT(NUM_TRIG), .GPO_WIDTH(GPO_W)
+//   ) u_assert (
+//       .clk(tb_clk), .resetn(tb_resetn),
+//       .aclken_m0(crlp_if_i.aclken_m0), .aclken_m1(crlp_if_i.aclken_m1),
+//       .pclken(crlp_if_i.pclken),
+//       // A-2 Q / A-3 P
+//       .clk_qreqn(crlp_if_i.clk_qreqn), .clk_qacceptn(crlp_if_i.clk_qacceptn),
+//       .clk_qdeny(crlp_if_i.clk_qdeny), .clk_qactive(crlp_if_i.clk_qactive),
+//       .preq(crlp_if_i.preq), .pstate(crlp_if_i.pstate),
+//       .paccept(crlp_if_i.paccept), .pdeny(crlp_if_i.pdeny), .pactive(10'b0),
+//       // A-4 APB4
+//       .psel(apb_if_i.psel[0]), .penable(apb_if_i.penable),
+//       .pprot(apb_if_i.pprot), .pwrite(apb_if_i.pwrite),
+//       .paddr(apb_if_i.paddr[12:0]), .pwdata(apb_if_i.pwdata), .pstrb(apb_if_i.pstrb),
+//       .pready(apb_if_i.pready), .pslverr(apb_if_i.pslverr), .prdata(apb_if_i.prdata),
+//       .pwakeup(apb_if_i.pwakeup), .pdebug(apb_if_i.pdebug),
+//       // A-5 AXI5 M0 (dung wire da khop width nhu DUT)
+//       .awakeup_m0(axi5_m0_if.awakeup),
+//       .awvalid_m0(axi5_m0_if.awvalid), .awready_m0(axi5_m0_if.awready),
+//       .awaddr_m0(axi5_m0_if.awaddr), .awburst_m0(axi5_m0_if.awburst),
+//       .awid_m0(axi5_m0_if.awid), .awlen_m0(awlen8_m0),
+//       .awsize_m0(axi5_m0_if.awsize), .awqos_m0(axi5_m0_if.awqos),
+//       .awprot_m0(axi5_m0_if.awprot), .awcache_m0(awcache4_m0),
+//       .awdomain_m0(axi5_m0_if.awdomain), .awinner_m0(axi5_m0_if.awinner),
+//       .awchid_m0(awchid1_m0), .awchidvalid_m0(axi5_m0_if.awchidvalid),
+//       .arvalid_m0(axi5_m0_if.arvalid), .arready_m0(axi5_m0_if.arready),
+//       .araddr_m0(axi5_m0_if.araddr), .arburst_m0(axi5_m0_if.arburst),
+//       .arid_m0(axi5_m0_if.arid), .arlen_m0(arlen8_m0),
+//       .arsize_m0(axi5_m0_if.arsize), .arqos_m0(axi5_m0_if.arqos),
+//       .arprot_m0(axi5_m0_if.arprot), .arcache_m0(arcache4_m0),
+//       .ardomain_m0(axi5_m0_if.ardomain), .arinner_m0(axi5_m0_if.arinner),
+//       .archid_m0(archid1_m0), .archidvalid_m0(axi5_m0_if.archidvalid),
+//       .arcmdlink_m0(axi5_m0_if.arcmdlink),
+//       .wvalid_m0(axi5_m0_if.wvalid), .wready_m0(axi5_m0_if.wready),
+//       .wlast_m0(axi5_m0_if.wlast), .wstrb_m0(axi5_m0_if.wstrb), .wdata_m0(axi5_m0_if.wdata),
+//       .rvalid_m0(axi5_m0_if.rvalid), .rready_m0(axi5_m0_if.rready),
+//       .rid_m0(axi5_m0_if.rid), .rlast_m0(axi5_m0_if.rlast),
+//       .rdata_m0(axi5_m0_if.rdata), .rpoison_m0(axi5_m0_if.rpoison), .rresp_m0(axi5_m0_if.rresp),
+//       .bvalid_m0(axi5_m0_if.bvalid), .bready_m0(axi5_m0_if.bready),
+//       .bid_m0(axi5_m0_if.bid), .bresp_m0(axi5_m0_if.bresp),
+//       // A-6 AXI5 M1
+//       .awakeup_m1(axi5_m1_if.awakeup),
+//       .awvalid_m1(axi5_m1_if.awvalid), .awready_m1(axi5_m1_if.awready),
+//       .awaddr_m1(axi5_m1_if.awaddr), .awburst_m1(axi5_m1_if.awburst),
+//       .awid_m1(axi5_m1_if.awid), .awlen_m1(awlen8_m1),
+//       .awsize_m1(axi5_m1_if.awsize), .awqos_m1(axi5_m1_if.awqos),
+//       .awprot_m1(axi5_m1_if.awprot), .awcache_m1(awcache4_m1),
+//       .awdomain_m1(axi5_m1_if.awdomain), .awinner_m1(axi5_m1_if.awinner),
+//       .awchid_m1(awchid1_m1), .awchidvalid_m1(axi5_m1_if.awchidvalid),
+//       .arvalid_m1(axi5_m1_if.arvalid), .arready_m1(axi5_m1_if.arready),
+//       .araddr_m1(axi5_m1_if.araddr), .arburst_m1(axi5_m1_if.arburst),
+//       .arid_m1(axi5_m1_if.arid), .arlen_m1(arlen8_m1),
+//       .arsize_m1(axi5_m1_if.arsize), .arqos_m1(axi5_m1_if.arqos),
+//       .arprot_m1(axi5_m1_if.arprot), .arcache_m1(arcache4_m1),
+//       .ardomain_m1(axi5_m1_if.ardomain), .arinner_m1(axi5_m1_if.arinner),
+//       .archid_m1(archid1_m1), .archidvalid_m1(axi5_m1_if.archidvalid),
+//       .arcmdlink_m1(axi5_m1_if.arcmdlink),
+//       .wvalid_m1(axi5_m1_if.wvalid), .wready_m1(axi5_m1_if.wready),
+//       .wlast_m1(axi5_m1_if.wlast), .wstrb_m1(axi5_m1_if.wstrb), .wdata_m1(axi5_m1_if.wdata),
+//       .rvalid_m1(axi5_m1_if.rvalid), .rready_m1(axi5_m1_if.rready),
+//       .rid_m1(axi5_m1_if.rid), .rlast_m1(axi5_m1_if.rlast),
+//       .rdata_m1(axi5_m1_if.rdata), .rpoison_m1(axi5_m1_if.rpoison), .rresp_m1(axi5_m1_if.rresp),
+//       .bvalid_m1(axi5_m1_if.bvalid), .bready_m1(axi5_m1_if.bready),
+//       .bid_m1(axi5_m1_if.bid), .bresp_m1(axi5_m1_if.bresp),
+//       // A-7 Trigger (dung wire flatten nhu DUT)
+//       .trig_in_req(trig_in_req_w), .trig_in_req_type(trig_in_req_type_w),
+//       .trig_in_ack(trig_in_ack_w), .trig_in_ack_type(trig_in_ack_type_w),
+//       .trig_out_req(trig_out_req_w), .trig_out_ack(trig_out_ack_w),
+//       // A-8 IRQ
+//       .irq_channel(irq_if_i.irq_channel), .irq_comb_nonsec(irq_if_i.irq_comb_nonsec),
+//       .irq_comb_sec(irq_if_i.irq_comb_sec), .irq_sec_viol_err(irq_if_i.irq_sec_viol_err),
+//       // A-9 Stream
+//       .str_out_tvalid(str_out_tvalid_w),
+//       .str_out_tready({{(NUM_CH-1){1'b0}}, axis_out_if.TREADY}),
+//       .str_out_tdata(str_out_tdata_w), .str_out_tstrb(str_out_tstrb_w),
+//       .str_out_tlast(str_out_tlast_w),
+//       .str_in_tvalid({{(NUM_CH-1){1'b0}}, axis_in_if.TVALID}),
+//       .str_in_tready(str_in_tready_w),
+//       .str_in_tdata({{((NUM_CH-1)*DATA_W){1'b0}}, axis_in_if.TDATA}),
+//       .str_in_tstrb({{((NUM_CH-1)*STRB_W){1'b0}}, axis_in_if.TSTRB}),
+//       .str_in_tlast({{(NUM_CH-1){1'b0}}, axis_in_if.TLAST}),
+//       .str_in_flush(str_in_flush_w),
+//       // A-10 Status/Control
+//       .gpo_ch(gpo_flat_w),
+//       .allch_stop_req_nonsec(sc_if_i.allch_stop_req_nonsec),
+//       .allch_stop_ack_nonsec(sc_if_i.allch_stop_ack_nonsec),
+//       .allch_pause_req_nonsec(sc_if_i.allch_pause_req_nonsec),
+//       .allch_pause_ack_nonsec(sc_if_i.allch_pause_ack_nonsec),
+//       .allch_stop_req_sec(sc_if_i.allch_stop_req_sec),
+//       .allch_stop_ack_sec(sc_if_i.allch_stop_ack_sec),
+//       .allch_pause_req_sec(sc_if_i.allch_pause_req_sec),
+//       .allch_pause_ack_sec(sc_if_i.allch_pause_ack_sec),
+//       .halt_req(sc_if_i.halt_req), .restart_req(sc_if_i.restart_req), .halted(sc_if_i.halted),
+//       .ch_enabled(sc_if_i.ch_enabled[NUM_CH-1:0]), .ch_err(sc_if_i.ch_err[NUM_CH-1:0]),
+//       .ch_stopped(sc_if_i.ch_stopped[NUM_CH-1:0]), .ch_paused(sc_if_i.ch_paused[NUM_CH-1:0]),
+//       .ch_priv(sc_if_i.ch_priv[NUM_CH-1:0]), .ch_nonsec(sc_if_i.ch_nonsec[NUM_CH-1:0]),
+//       // A-11 Config/boot
+//       .boot_en(boot_if_i.boot_en), .boot_addr(boot_if_i.boot_addr),
+//       .boot_memattr(boot_if_i.boot_memattr), .boot_shareattr(boot_if_i.boot_shareattr)
+//   );
+
+  //---------------------------------------------------------------------------
   // AXI5 BFM (driver+monitor) cho M0 va M1 - instantiate truc tiep, KHONG qua
   // wrapper (wrapper set config key global se conflict giua 2 port).
   //---------------------------------------------------------------------------
@@ -419,6 +683,11 @@ module dma350_tb_top;
     uvm_config_db#(virtual dma_trig_if)::set(null, "*", "trig_vif_t1", trig_if_i[1]);
     uvm_config_db#(virtual dma_trig_if)::set(null, "*", "trig_vif_t2", trig_if_i[2]);
     uvm_config_db#(virtual dma_trig_if)::set(null, "*", "trig_vif_t3", trig_if_i[3]);
+
+    // ---- dma_if : interface tong hop cho cmd_trigger_checker ----
+    uvm_config_db#(virtual dma_if)::set(null, "*", "vif", dma_if_i);
+    // So cong trigger (checker dung de kiem SEL co hop le khong)
+    uvm_config_db#(int)::set(null, "*", "num_trigger_in", NUM_TRIG);
 
     // ---- AXI5 BFM: key SCOPE THEO AGENT (M0 -> slv0, M1 -> slv1) ----
     uvm_config_db#(virtual axi5_slave_driver_bfm)::set(null,

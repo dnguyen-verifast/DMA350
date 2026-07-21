@@ -81,6 +81,9 @@ AMBA_AXI5/src/hdl_top/axi5_interface/axi5_if.sv
 // Interface TONG cua 1 cap cong trigger (6 signal: trig-in + trig-out).
 // Thay cho dma_trig_in_if/dma_trig_out_if (chi dung boi tb standalone cua CTI).
 CTI/rtl/dma_trig_if.sv
+// Interface TONG HOP moi tin hieu bien DMA-350 - cho cac checker lien-interface
+// (vd cmd_trigger_checker). Thu dong: tb_top assign vao, khong lai nguoc DUT.
+testbench/dma_env/dma_if.sv
 
 // ----------------------------------------------------------------------------
 // (3) PACKAGE VIP con (thu tu phu thuoc)
@@ -132,4 +135,7 @@ RTL_DMA_350/dma350_top.sv
 // ----------------------------------------------------------------------------
 testbench/dma_env/dma350_env_pkg.sv
 testbench/test/dma350_test_pkg.sv
+// Checker module (port list giong dma350_top, chi soi). Compile TRUOC tb_top
+// vi tb_top instantiate no. Tat bang +define+DMA350_NO_ASSERT.
+// testbench/dma_env/dma350_assertion.sv
 dma350_tb_top.sv

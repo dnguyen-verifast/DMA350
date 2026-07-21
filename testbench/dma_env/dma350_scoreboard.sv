@@ -38,42 +38,21 @@
 // lon (package long nhau la bat hop le). Cac khai bao duoi day tro thanh thanh
 // vien cua package/scope bao ngoai, duoc guard boi dma350_scoreboard_INCLUDE_.
 //-----------------------------------------------------------------------------
-    // DMACH<n> register offset (byte offset trong 1 block channel)
-    localparam bit [7:0]
-        CH_CMD=8'h00, CH_STATUS=8'h04, CH_INTREN=8'h08, CH_CTRL=8'h0C,
-        CH_SRCADDR=8'h10, CH_SRCADDRHI=8'h14, CH_DESADDR=8'h18, CH_DESADDRHI=8'h1C,
-        CH_XSIZE=8'h20, CH_XSIZEHI=8'h24, CH_SRCTRANSCFG=8'h28, CH_DESTRANSCFG=8'h2C,
-        CH_XADDRINC=8'h30, CH_YADDRSTRIDE=8'h34, CH_FILLVAL=8'h38, CH_YSIZE=8'h3C,
-        CH_TMPLTCFG=8'h40, CH_SRCTMPLT=8'h44, CH_DESTMPLT=8'h48,
-        CH_SRCTRIGINCFG=8'h4C, CH_DESTRIGINCFG=8'h50, CH_TRIGOUTCFG=8'h54,
-        CH_GPOEN0=8'h58, CH_GPOVAL0=8'h60, CH_STREAMINTCFG=8'h68, CH_LINKATTR=8'h70,
-        CH_AUTOCFG=8'h74, CH_LINKADDR=8'h78, CH_LINKADDRHI=8'h7C,
-        CH_GPOREAD0=8'h80, CH_ERRINFO=8'h90;
+// PHAN CHIA FILE:
+//   dma350_predict_intent.sv  (include TRUOC file nay trong dma350_env_pkg.sv)
+//     - localparam offset thanh ghi / bit STATUS / enum trang thai
+//     - class dma_golden_intent   (y dinh lenh - do predictor chot va phat di)
+//     - component dma350_predict_intent
+//   file nay:
+//     - class dma_axi_burst / dma_ch_ctx / dma_ref_memory  (trang thai noi bo
+//       cua scoreboard, de ngay day cho de kiem soat)
+//     - class dma350_scoreboard
+// Dinh nghia lai bat ky thu gi cua file kia o day se gay "duplicate definition".
+//-----------------------------------------------------------------------------
 
-    // CH_CMD bit
-    localparam int CMD_ENABLECMD=0, CMD_CLEARCMD=1, CMD_DISABLECMD=2,
-                   CMD_STOPCMD=3, CMD_PAUSECMD=4, CMD_RESUMECMD=5;
-    // CH_STATUS bit
-    localparam int ST_STAT_DONE=16, ST_STAT_ERR=17, ST_STAT_STOPPED=18,
-                   ST_STAT_DISABLED=19, ST_STAT_PAUSED=20, ST_STAT_RESUMEWAIT=21,
-                   ST_STAT_SRCTRIGWAIT=24, ST_STAT_DESTRIGWAIT=25, ST_STAT_TRIGOUTWAIT=26;
-    // CH_INTREN bit
-    localparam int IE_DONE=0, IE_ERR=1, IE_DISABLED=2, IE_STOPPED=3;
-    // CH_ERRINFO type-flag bit
-    localparam int EI_BUSERR=0, EI_CFGERR=1, EI_SRCTRIGSELERR=2, EI_DESTRIGSELERR=3,
-                   EI_TRIGOUTSELERR=4, EI_STREAMERR=5,
-                   EI_AXIRDRESPERR=16, EI_AXIWRRESPERR=17;
-
-    // trigger ack encoding (TRM Table 5-5)
-    localparam bit [1:0] TRIGACK_OKAY=2'b00, TRIGACK_DENY=2'b01, TRIGACK_LASTOKAY=2'b10;
-
-    // AXI burst/resp
-    localparam bit [1:0] BURST_FIXED=2'b00, BURST_INCR=2'b01;
-    localparam bit [1:0] RESP_OKAY=2'b00, RESP_SLVERR=2'b10, RESP_DECERR=2'b11;
-
-    localparam int MAX_BYTES_PER_BURST = 1024;   // DMA-350 burst payload cap
-    localparam int MAX_CHANNELS        = 8;
-
+//=============================================================================
+// dma_axi_burst : mot mo ta burst AXI ky vong (predictor sinh ra)
+//=============================================================================
     typedef enum { CH_ST_DISABLED, CH_ST_ENABLED, CH_ST_PAUSED,
                    CH_ST_DONE, CH_ST_STOPPED, CH_ST_ERROR } ch_state_e;
     typedef enum {
@@ -83,11 +62,7 @@
     typedef enum {
        NOTHING_OCCUR , READ_ONLY, WRITE_ONLY, WRITE_READ
     } axi_operation_e;
-
-
-//=============================================================================
-// dma_axi_burst : mot mo ta burst AXI ky vong (predictor sinh ra)
-//=============================================================================
+    
 class dma_axi_burst extends uvm_object;
     bit [63:0] addr;
     int        beats;   // so beat
@@ -108,52 +83,6 @@ class dma_axi_burst extends uvm_object;
             addr, len(), size, (1<<size), fixed?"FIXED":"INCR");
     endfunction
 endclass
-
-
-//=============================================================================
-// dma_golden_intent : snapshot cau hinh 1 command tai thoi diem ENABLECMD.
-// Day la "y dinh" chot cung; predictor va ref-memory doc tu day.
-//=============================================================================
-class dma_golden_intent extends uvm_object;
-    // dia chi + kich thuoc
-    bit [63:0] srcaddr, desaddr;
-    int        src_xsize, des_xsize;      // so item nguon/dich
-
-    int        src_transize, des_transize; // log2 byte / item
-    int signed src_xaddrinc, des_xaddrinc; // buoc dia chi (element)
-    // kieu transfer
-    int        xtype, ytype;              // CH_CTRL.XTYPE/YTYPE
-    bit        wrap_en, fill_en;
-    int        ysize;                     // so dong 2D
-    int signed src_stride, des_stride;    // buoc dong 2D (byte)
-    bit [31:0] fillval;
-    // burst limit
-    int        src_maxburstlen, des_maxburstlen; // beats = value+1
-    // dieu khien / autorestart / link
-    int        chprio, donetype, regreloadtype;
-    bit        usestream, donepauseen;
-    bit [63:0] linkaddr; bit linkaddren;
-    // thuoc tinh AXI (tu TRANSCFG)
-    bit [2:0]  src_prot, des_prot;
-    bit [3:0]  src_cache, des_cache, src_inner, des_inner;
-    bit [1:0]  src_domain, des_domain;
-    // trigger cfg
-    bit        use_srctrig, use_destrig, use_trigout;
-    int        srctrig_blksize, destrig_blksize;
-    bit [1:0]  srctrig_type, destrig_type, trigout_type;
-
-    bit [1:0] streamtype;
-
-    `uvm_object_utils(dma_golden_intent)
-    function new(string name="dma_golden_intent"); super.new(name); endfunction
-
-    // tong so byte 1D (mot dong) va toan transfer (co 2D)
-    function int line_bytes(); return src_xsize << src_transize; endfunction
-    function int total_src_bytes();
-        return line_bytes() * ((ytype!=0 && ysize>0) ? ysize : 1);
-    endfunction
-endclass
-
 
 //=============================================================================
 // dma_ch_ctx : context per-channel. Giu golden intent hien hanh, FSM, hang doi
@@ -362,6 +291,14 @@ class dma350_scoreboard extends uvm_scoreboard;
 
     axi_operation_e axi_operation = WRITE_READ;
 
+    //---- INTENT tu dma350_predict_intent ------------------------------------
+    // Predictor chot config luc channel activate roi broadcast xuong day. Nho
+    // vay scoreboard KHONG con phai tu peek/dich config nua - no chi lo doi
+    // chieu. Dung analysis_fifo (khong phai imp) de xu ly trong run_phase,
+    // vi build_predicted_bursts() can chay tuan tu voi cac luong khac.
+    uvm_tlm_analysis_fifo #(dma_golden_intent) intent_analysis_fifo_h0;
+    dma_golden_intent                          intent_tx_h0;
+
     // thong ke tong
     int  err_addr_mismatch = 0;
     int  err_status_mismatch = 0;
@@ -389,6 +326,7 @@ class dma350_scoreboard extends uvm_scoreboard;
         apb_master_analysis_fifo_h0  = new("apb_master_analysis_fifo_h0",this);
         boot_analysis_fifo_h0        = new("boot_analysis_fifo_h0",this);
 
+        intent_analysis_fifo_h0      = new("intent_analysis_fifo_h0",this);
         dma_trig_analysis_fifo_h0    = new("dma_trig_analysis_fifo_h0",this);
         // dma_trig_analysis_fifo_h1    = new("dma_trig_analysis_fifo_h1",this);
         // dma_trig_analysis_fifo_h2    = new("dma_trig_analysis_fifo_h2",this);
@@ -454,6 +392,9 @@ class dma350_scoreboard extends uvm_scoreboard;
     task run_phase(uvm_phase phase);
         super.run_phase(phase);
         fork
+            // (0) INTENT tu dma350_predict_intent : chot config luc activate
+            forever begin intent_analysis_fifo_h0.get(intent_tx_h0);
+                          process_intent(intent_tx_h0); end
             // (1) APB : register write = golden intent ; register read = reconcile
             forever begin apb_master_analysis_fifo_h0.get(apb_master_tx_h0);
                           process_apb(apb_master_tx_h0); end
@@ -641,6 +582,10 @@ class dma350_scoreboard extends uvm_scoreboard;
 
     // activation : cho 1 clock -> peek config -> golden intent -> predict burst.
     // Goi khi ch_enabled len 1 (phu APB-ENABLE, command-link va autoboot).
+    // GIU LAI cho tuong thich nguoc / debug: chot intent NGAY TRONG scoreboard.
+    // MAC DINH KHONG DUNG NUA - viec chot intent da chuyen sang component
+    // dma350_predict_intent, ket qua vao qua process_intent(). Neu goi ca hai
+    // se chot intent 2 lan (predict burst 2 lan -> AR/AW "thua" gia).
     task do_activation_snapshot(int ch);
         settle_one_clock();
         snapshot_intent(ch);
@@ -649,6 +594,38 @@ class dma350_scoreboard extends uvm_scoreboard;
         `uvm_info("SB_CMD", $sformatf(
           "CH%0d ACTIVATION (ch_enabled^) -> golden intent %s",
           ch, ctx[ch].intent.convert2string()), UVM_MEDIUM)
+        build_predicted_bursts(ch);
+    endtask
+
+    //=========================================================================
+    // (0) NHAN INTENT tu dma350_predict_intent.
+    // Predictor da lo phan "dich config" (peek backdoor + giai ma truong), o
+    // day scoreboard chi nap intent vao context roi sinh chuoi burst du kien.
+    //   valid=1 : channel vua activate  -> nap intent + predict burst
+    //   valid=0 : channel vua ket thuc  -> danh dau DONE (khong xoa context de
+    //             cac byte/burst con lai van duoc doi chieu not)
+    //=========================================================================
+    task process_intent(dma_golden_intent t);
+        int ch = t.ch_id;
+        if (ch < 0 || ch >= num_channels) return;
+
+        if (!t.valid) begin
+            if (ctx[ch].state == CH_ST_ENABLED) ctx[ch].state = CH_ST_DONE;
+            `uvm_info("SB_INTENT", $sformatf("CH%0d intent het hieu luc", ch), UVM_HIGH)
+            return;
+        end
+
+        ctx[ch].clear_command();
+        ctx[ch].intent          = t;
+        ctx[ch].exp_total_bytes = t.total_src_bytes();
+        ctx[ch].des_fill_ptr    = t.desaddr;
+        ctx[ch].state           = CH_ST_ENABLED;
+        n_commands++;
+
+        `uvm_info("SB_INTENT", $sformatf(
+          "CH%0d nhan intent tu predictor: src=0x%0h des=0x%0h SRCXSIZE=%0d DESXSIZE=%0d xtype=%0b",
+          ch, t.srcaddr, t.desaddr, t.src_xsize, t.des_xsize, t.xtype), UVM_MEDIUM)
+
         build_predicted_bursts(ch);
     endtask
 
@@ -1343,9 +1320,13 @@ class dma350_scoreboard extends uvm_scoreboard;
             // (2)(ACTIVATION-DETECTOR) : ch_enabled canh LEN => chot golden intent.
             // Bao phu APB-ENABLE, command-link VA autoboot (khong chi APB ENABLE),
             // vi moi con duong deu ket thuc bang viec ch_enabled len 1.
+            // Canh LEN ch_enabled: viec CHOT INTENT da chuyen sang component
+            // dma350_predict_intent (intent ve qua process_intent). O day KHONG
+            // goi do_activation_snapshot nua - goi ca hai se chot intent 2 lan,
+            // build_predicted_bursts chay 2 lan va sinh AR/AW "thua" gia.
             if (en && !ctx[ch].prev_enabled) begin
-                `uvm_info("SB_FSM", $sformatf("do_activation_snapshot(ch%d)",ch),UVM_LOW)
-                do_activation_snapshot(ch);       // settle 1 clock roi peek config
+                `uvm_info("SB_FSM", $sformatf(
+                  "CH%0d ch_enabled^ (intent do dma350_predict_intent chot)", ch), UVM_HIGH)
             end
             // ch_enabled canh XUONG (khong con paused) => command ket thuc
             if (!en && ctx[ch].prev_enabled && ctx[ch].state == CH_ST_ENABLED)

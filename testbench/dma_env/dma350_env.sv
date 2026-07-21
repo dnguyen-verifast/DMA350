@@ -48,6 +48,16 @@ class dma350_env extends uvm_env;
     localparam int NUM_TRIG = 4;
     dma_trig_in_agent trig_agt_h[NUM_TRIG];
 
+    //-------------------------------------------------------------------------
+    // PREDICTOR + CHECKER lien-interface
+    //   dma350_predict_intent : chot config luc channel activate -> broadcast
+    //                           dma_golden_intent (scoreboard + checker cung dung)
+    //   cmd_trigger_checker   : soi "AR du lieu truoc handshake trigger" (can
+    //                           dma_if - interface tong hop cua DMA-350)
+    //-------------------------------------------------------------------------
+    dma350_predict_intent predict_intent_h;
+    cmd_trigger_checker   cmd_trig_chk_h;
+
     // Virtual sequencer: virtual sequence dieu khien toan testbench qua day
     dma350_virtual_sequencer v_seqr_h;
 
@@ -132,6 +142,9 @@ class dma350_env extends uvm_env;
             trig_agt_h[i] = dma_trig_in_agent::type_id::create(
                                 $sformatf("trig_agt_t%0d", i), this);
 
+        predict_intent_h = dma350_predict_intent::type_id::create("predict_intent_h",this);
+        cmd_trig_chk_h   = cmd_trigger_checker::type_id::create("cmd_trig_chk_h",this);
+
         v_seqr_h = dma350_virtual_sequencer::type_id::create("v_seqr_h",this);
 
         //---------------------------------------------------------------------
@@ -212,6 +225,18 @@ class dma350_env extends uvm_env;
         //=====================================================================
         foreach (trig_agt_h[i])
             trig_agt_h[i].ap.connect(dma350_scb_h.dma_trig_analysis_fifo_h0.analysis_export);
+
+        //=====================================================================
+        // PREDICTOR INTENT
+        //   vao : APB (mirror thanh ghi) + Status/Control (canh len ch_enabled)
+        //   ra  : dma_golden_intent -> scoreboard VA cmd_trigger_checker
+        // Analysis port fan-out duoc nen cung 1 nguon cap cho nhieu noi.
+        //=====================================================================
+        apb_agent_mst_h.mon_port_m.connect(predict_intent_h.apb_imp);
+        dma350_sc_agent_h.ap_status.connect(predict_intent_h.sc_imp);
+
+        predict_intent_h.intent_ap.connect(dma350_scb_h.intent_analysis_fifo_h0.analysis_export);
+        predict_intent_h.intent_ap.connect(cmd_trig_chk_h.gi_imp);
 
         //=====================================================================
         // RAL : frontdoor sequencer + auto-predict + handoff model cho backdoor
