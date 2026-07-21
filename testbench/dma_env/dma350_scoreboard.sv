@@ -796,7 +796,9 @@ class dma350_scoreboard extends uvm_scoreboard;
         int max_rd = gi.src_maxburstlen + 1;
         int max_wr = gi.des_maxburstlen + 1;
         longint total_wr_bytes = 0;
-
+         `uvm_info("SB_PRED_BURST", $sformatf(
+                "CH%0d WRAP: sb=%0d db=%0d unit=%0d max_wr=%0d, max_rd=%0d",
+                ch, sb, db, unit, max_wr,max_rd), UVM_LOW)
         if (gi.usestream && gi.streamtype == 2'b00) return;   // stream path: du doan qua AXI-Stream, khong AXI-M
 
         if(sb == 0 && db == 0) axi_operation = NOTHING_OCCUR;
