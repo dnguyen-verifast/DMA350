@@ -61,14 +61,14 @@ class dma350_vseq_trig_srccmd_desblock extends dma350_vseq_trig_base;
     // (2) SRC : 1 COMMAND trigger tren TI0 -> khoi dong lenh doc
     `uvm_info(get_type_name(),
       "SRC (COMMAND mode): gui 1 trigger khoi dong tren TI0", UVM_LOW)
-    send_hw_trig(RQ_SINGLE, 1, int'(trig_sel));
+    send_src_trig(RQ_SINGLE, 1);
 
     // (3) DES : chuoi BLOCK tren TI1, ket bang LAST_BLOCK
     `uvm_info(get_type_name(), $sformatf(
       "DES (FLOW CONTROL mode): gui %0d BLOCK roi LAST_BLOCK tren TI1 (block=%0d item)",
       n_des_block, des_blksize+1), UVM_LOW)
-    send_hw_trig(RQ_BLOCK,      n_des_block, int'(des_trig_sel));
-    send_hw_trig(RQ_LAST_BLOCK, 1,           int'(des_trig_sel));
+    send_des_trig(RQ_BLOCK,      n_des_block);
+    send_des_trig(RQ_LAST_BLOCK, 1);
 
     wait_ch_done(ch);
     clear_ch_status(ch);

@@ -58,9 +58,6 @@ class dma350_vseq_trig_bothcmd extends dma350_vseq_trig_base;
   endfunction
 
   virtual task body();
-    int first_port, second_port;
-    string first_name, second_name;
-
     super.body();
 
     cfg_trig_ch();
@@ -69,59 +66,35 @@ class dma350_vseq_trig_bothcmd extends dma350_vseq_trig_base;
 
     check_waiting_trigger("cho trigger (src command + des command)");
 
-    if (des_first) begin
-      first_port  = int'(des_trig_sel); first_name  = "DES";
-      second_port = int'(trig_sel);     second_name = "SRC";
-    end
-    else begin
-      first_port  = int'(trig_sel);     first_name  = "SRC";
-      second_port = int'(des_trig_sel); second_name = "DES";
-    end
-
-    // (2)(3)(4) hai phia ban SONG SONG: req thu nhat treo cho den khi req thu
-    // hai duoc phat, luc do DMAC moi ack ca hai.
-    fork
-      begin : first_req
-        `uvm_info(get_type_name(), $sformatf(
-          "%s (COMMAND mode): gui trigger tren TI%0d - KHONG duoc ack cho den khi %s den",
-          first_name, first_port, second_name), UVM_LOW)
-        send_hw_trig(RQ_SINGLE, 1, first_port);
-      end
-
-      begin : check_stalled
-        // Trong khi chi co MOT req: channel phai van dung yen.
-        #(second_delay / 2);
-        check_not_started($sformatf(
-          "chi moi co req %s tren TI%0d, thieu req %s -> lenh CHUA duoc phep chay",
-          first_name, first_port, second_name));
-      end
-
-      begin : second_req
-        #(second_delay);
-        `uvm_info(get_type_name(), $sformatf(
-          "%s (COMMAND mode): gui trigger tren TI%0d - du 2 req, DMAC ack ca hai",
-          second_name, second_port), UVM_LOW)
-        send_hw_trig(RQ_SINGLE, 1, second_port);
-      end
-    join
+    // Hai phia ban SONG SONG: req thu nhat treo cho den khi req thu hai duoc
+    // phat, luc do DMAC moi ack ca hai. Giua hai req, base goi during_pair_gap()
+    // (override ben duoi) de kiem tra channel van chua chay.
+    send_both_trig(.src_rt(RQ_SINGLE), .des_rt(RQ_SINGLE),
+                   .n_src(1), .n_des(1),
+                   .des_first(des_first), .skew(second_delay));
 
     wait_ch_done(ch);
     clear_ch_status(ch);
   endtask
 
   //---------------------------------------------------------------------------
-  // Channel da enable nhung PHAI chua chay: DONE = 0.
+  // Hook goi khi MOI CO MOT trong hai command trigger:
+  // channel da enable nhung PHAI chua chay -> DONE = 0.
   // (Viec "chua phat AR/AW" do cmd_trigger_checker soi nen.)
   //---------------------------------------------------------------------------
-  virtual task check_not_started(string why);
+  virtual task during_pair_gap(bit des_first);
     bit [31:0] st;
+    string     first_name  = des_first ? "DES" : "SRC";
+    string     second_name = des_first ? "SRC" : "DES";
+
     apb_read(ch_addr(ch,O_STATUS), st);
     `uvm_info(get_type_name(), $sformatf(
-      "CH%0d STATUS=0x%08h (DONE=%0b SRCTRIGWAIT=%0b DESTRIGWAIT=%0b) - %s",
-      ch, st, st[16], st[24], st[25], why), UVM_LOW)
+      "CH%0d STATUS=0x%08h (DONE=%0b SRCTRIGWAIT=%0b DESTRIGWAIT=%0b) - chi moi co req %s, thieu req %s -> lenh CHUA duoc phep chay",
+      ch, st, st[16], st[24], st[25], first_name, second_name), UVM_LOW)
     if (st[16])
       `uvm_error(get_type_name(), $sformatf(
-        "CH%0d DONE=1 khi moi co 1 trong 2 command trigger - vi pham TRM 5.4.1.1 (phai cho CA HAI req truoc khi bat dau lenh)", ch))
+        "CH%0d DONE=1 khi moi co req %s (thieu %s) - vi pham TRM 5.4.1.1 (phai cho CA HAI req truoc khi bat dau lenh)",
+        ch, first_name, second_name))
   endtask
 
 endclass : dma350_vseq_trig_bothcmd

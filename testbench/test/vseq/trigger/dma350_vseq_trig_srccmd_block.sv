@@ -33,7 +33,7 @@ class dma350_vseq_trig_srccmd_block extends dma350_vseq_trig_base;
     // (cmd_trigger_checker chay nen cung soi "AR du lieu truoc handshake")
     check_waiting_trigger("cho trigger dau tien");
 
-    send_hw_trig(RQ_BLOCK, 4);
+    send_src_trig(RQ_BLOCK, 4);
 
     wait_ch_done(ch);
     clear_ch_status(ch);

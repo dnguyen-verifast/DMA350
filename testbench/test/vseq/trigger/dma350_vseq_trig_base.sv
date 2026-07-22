@@ -130,33 +130,91 @@ class dma350_vseq_trig_base extends dma350_vseq_base;
     apb_write(ch_addr(ch,O_CTRL),   ctrl);
     apb_write(ch_addr(ch,O_INTREN), 32'h3);       // IE_DONE | IE_ERR
 
+    check_trig_ports();
+
     `uvm_info(get_type_name(), $sformatf(
       "CFG TRIG CH%0d: TYPE=%0b MODE=%0b SEL=%0d BLKSIZE=%0d (block=%0d) xsize=%0d",
       ch, trig_type, trig_mode, trig_sel, blksize, blksize+1, xsize), UVM_LOW)
   endtask
 
+  //===========================================================================
+  // DIEU PHOI CONG TRIGGER SRC / DES
   //---------------------------------------------------------------------------
-  // Trigger NGOAI (HW): ban n request kieu 'rt' tren cong trig_sel.
-  // Cong TI phai < so agent trigger (4) - neu khong khong co ai lai chan.
+  // Co N_TRIG_PORTS = 4 cong trigger vat ly (TI0..TI3), DUNG CHUNG cho ca hai
+  // phia: SRC chon cong bang CH_SRCTRIGINCFG.SEL (knob trig_sel), DES chon cong
+  // bang CH_DESTRIGINCFG.SEL (knob des_trig_sel khi separate_des_cfg = 1, nguoc
+  // lai DES dung chung cau hinh -> chung cong voi SRC).
+  //
+  // Dung src_port()/des_port() thay vi doc thang trig_sel/des_trig_sel de logic
+  // "des ke thua cau hinh src" chi nam o MOT cho.
+  //===========================================================================
+  localparam int N_TRIG_PORTS = 4;
+
+  // Cong TI thuc te ma moi phia dang dung.
+  // LUU Y: chi co y nghia "cong TI" khi TRIGTYPE = TT_HW. Voi TT_INTERNAL,
+  // truong SEL la SO CHANNEL nguon (xem vseq internal), con TT_SW thi SEL bi
+  // bo qua -> khong duoc dem hai gia tri nay di ban trigger ngoai.
+  function int src_port();
+    return int'(trig_sel);
+  endfunction
+
+  function int des_port();
+    return separate_des_cfg ? int'(des_trig_sel) : int'(trig_sel);
+  endfunction
+
+  // TRIGTYPE thuc te cua phia DES (ke thua SRC khi khong tach cau hinh)
+  function bit [1:0] des_type();
+    return separate_des_cfg ? des_trig_type : trig_type;
+  endfunction
+
+  // TRIGMODE thuc te cua phia DES
+  function bit [1:0] des_mode();
+    return separate_des_cfg ? des_trig_mode : trig_mode;
+  endfunction
+
+  // Kiem tra cong hop le + co agent active lai chan
+  function bit port_ok(int p, string who = "");
+    if (p < 0 || p >= N_TRIG_PORTS) begin
+      `uvm_error(get_type_name(), $sformatf(
+        "%s: cong TI%0d vuot so cong trigger (%0d) - khong co agent nao lai chan nay",
+        who, p, N_TRIG_PORTS))
+      return 0;
+    end
+    if (p_sequencer.trig_seqr_h[p] == null) begin
+      `uvm_error(get_type_name(), $sformatf(
+        "%s: trig_seqr_h[%0d] = null (agent trigger passive?)", who, p))
+      return 0;
+    end
+    return 1;
+  endfunction
+
+  //---------------------------------------------------------------------------
+  // Kiem tra cap cong src/des truoc khi chay (goi trong cfg_trig_ch).
+  // TRM 5.6.3: "The same trigger is selected for both source and destination
+  // sides" la mot nguyen nhan TRIGGER SELECTION ERROR -> neu ca hai phia cung
+  // bat va cung tro toi mot cong, DMAC se bao loi chu khong chay.
+  //---------------------------------------------------------------------------
+  function void check_trig_ports();
+    if (!use_srctrig || !use_destrig) return;
+    if (trig_type != TT_HW || des_type() != TT_HW) return;
+    if (src_port() == des_port())
+      `uvm_warning(get_type_name(), $sformatf(
+        "CH%0d: SRC va DES cung chon cong TI%0d - TRM 5.6.3 coi day la trigger selection error. Dat separate_des_cfg=1 va des_trig_sel khac trig_sel neu muon dung ca hai phia.",
+        ch, src_port()))
+  endfunction
+
+  //---------------------------------------------------------------------------
+  // Trigger NGOAI (HW): ban n request kieu 'rt' tren mot cong TI.
   //---------------------------------------------------------------------------
   // start_item(item, priority, sequencer) cho phep vseq ban item toi SEQUENCER
   // CON ma khong can tao sequence rieng - dung cho ca 4 reqtype (cac seq co san
   // cua VIP moi cai chi co dinh 1 kieu).
-  // port = -1 -> dung trig_sel (cong cua SOURCE). Test ket hop truyen cong
-  // rieng cho phia destination (vd src dung TI0, des dung TI1).
+  // port = -1 -> dung cong cua SOURCE (giu tuong thich voi cac vseq cu).
+  // Nen dung send_src_trig/send_des_trig thay vi truyen so cong bang tay.
   virtual task send_hw_trig(bit [1:0] rt, int unsigned n = 1, int port = -1);
     dma_trig_reqtype_e rq = dma_trig_reqtype_e'(rt);
-    int p = (port < 0) ? int'(trig_sel) : port;
-    if (p >= 4) begin
-      `uvm_error(get_type_name(), $sformatf(
-        "cong TI%0d vuot so cong trigger (4) - khong co agent nao lai chan nay", p))
-      return;
-    end
-    if (p_sequencer.trig_seqr_h[p] == null) begin
-      `uvm_error(get_type_name(), $sformatf(
-        "trig_seqr_h[%0d] = null (agent trigger passive?)", p))
-      return;
-    end
+    int p = (port < 0) ? src_port() : port;
+    if (!port_ok(p, "send_hw_trig")) return;
     for (int i = 0; i < n; i++) begin
       dma_trig_item it = dma_trig_item::type_id::create("trig_it");
       start_item(it, -1, p_sequencer.trig_seqr_h[p]);
@@ -169,6 +227,85 @@ class dma350_vseq_trig_base extends dma350_vseq_base;
         "gui trigger TI%0d reqtype=%s -> acktype=%s",
         p, it.reqtype.name(), it.observed_acktype.name()), UVM_MEDIUM)
     end
+  endtask
+
+  //---------------------------------------------------------------------------
+  // API theo PHIA - vseq con khong can biet so cong.
+  //---------------------------------------------------------------------------
+  virtual task send_src_trig(bit [1:0] rt, int unsigned n = 1);
+    if (!use_srctrig)
+      `uvm_warning(get_type_name(),
+        "send_src_trig() nhung use_srctrig=0 - CH_CTRL.USESRCTRIGIN khong bat")
+    if (trig_type != TT_HW)
+      `uvm_warning(get_type_name(), $sformatf(
+        "send_src_trig() nhung SRC TRIGTYPE=%0b (khong phai HW) - SEL=%0d khong phai cong TI. Dung send_sw_srctrig() cho SW, hoac internal trigger cho ch->ch.",
+        trig_type, trig_sel))
+    send_hw_trig(rt, n, src_port());
+  endtask
+
+  virtual task send_des_trig(bit [1:0] rt, int unsigned n = 1);
+    if (!use_destrig)
+      `uvm_warning(get_type_name(),
+        "send_des_trig() nhung use_destrig=0 - CH_CTRL.USEDESTRIGIN khong bat")
+    if (des_type() != TT_HW)
+      `uvm_warning(get_type_name(), $sformatf(
+        "send_des_trig() nhung DES TRIGTYPE=%0b (khong phai HW) - SEL=%0d khong phai cong TI. Dung send_sw_destrig() cho SW.",
+        des_type(), des_port()))
+    send_hw_trig(rt, n, des_port());
+  endtask
+
+  //---------------------------------------------------------------------------
+  // BAN TRIGGER CHO CA HAI PHIA - dung cho moi test ket hop src/des.
+  //
+  // VI SAO PHAI SONG SONG:
+  //   finish_item() chi tra ve SAU khi xong 4-phase handshake (req^ -> ack^ ->
+  //   req v -> ack v). O COMMAND mode, TRM 5.4.1.1 noi DMAC cho CA HAI req roi
+  //   moi ack -> neu ban tuan tu (src xong roi moi des) se TREO o req dau tien.
+  //   Vi vay hai phia luon chay trong fork...join.
+  //
+  //   des_first : 1 = phat req DES truoc (dung nhu TRM Figure 5-15), 0 = SRC truoc
+  //   skew      : khoang tre giua req thu nhat va req thu hai
+  //               (0 = phat gan nhu dong thoi)
+  //
+  //   Giua hai req co goi hook during_pair_gap() - vseq con override de kiem tra
+  //   trang thai channel trong luc MOI CO MOT req (vd: chua duoc phep chay).
+  //---------------------------------------------------------------------------
+  virtual task send_both_trig(bit [1:0]    src_rt,
+                              bit [1:0]    des_rt,
+                              int unsigned n_src    = 1,
+                              int unsigned n_des    = 1,
+                              bit          des_first = 1,
+                              time         skew      = 0ns);
+    `uvm_info(get_type_name(), $sformatf(
+      "TRIG PAIR: %s truoc, skew=%0t | SRC TI%0d x%0d reqtype=%0b | DES TI%0d x%0d reqtype=%0b",
+      des_first ? "DES" : "SRC", skew,
+      src_port(), n_src, src_rt, des_port(), n_des, des_rt), UVM_LOW)
+
+    fork
+      begin : src_branch
+        if (!des_first) send_src_trig(src_rt, n_src);
+        else begin
+          #(skew);
+          send_src_trig(src_rt, n_src);
+        end
+      end
+      begin : des_branch
+        if (des_first) send_des_trig(des_rt, n_des);
+        else begin
+          #(skew);
+          send_des_trig(des_rt, n_des);
+        end
+      end
+      begin : gap_branch
+        // Diem quan sat khi MOI CO req cua phia di truoc.
+        if (skew > 0ns) #(skew / 2);
+        during_pair_gap(des_first);
+      end
+    join
+  endtask
+
+  // Hook mac dinh rong. Override o vseq con neu can check giua hai req.
+  virtual task during_pair_gap(bit des_first);
   endtask
 
   // Ten mode cho log/ban ghi - de doc log biet ngay src/des dang o mode nao
@@ -186,10 +323,10 @@ class dma350_vseq_trig_base extends dma350_vseq_base;
     `uvm_info(get_type_name(), $sformatf(
       "CH%0d TRIGGER: SRC[%s]=%s cong TI%0d blk=%0d | DES[%s]=%s cong TI%0d blk=%0d",
       ch,
-      use_srctrig ? "on" : "off", mode_name(trig_mode), trig_sel, blksize+1,
+      use_srctrig ? "on" : "off", mode_name(trig_mode), src_port(), blksize+1,
       use_destrig ? "on" : "off",
-      mode_name(separate_des_cfg ? des_trig_mode : trig_mode),
-      separate_des_cfg ? des_trig_sel : trig_sel,
+      mode_name(des_mode()),
+      des_port(),
       (separate_des_cfg ? des_blksize : blksize) + 1), UVM_LOW)
   endfunction
 
