@@ -81,6 +81,32 @@ package dma350_test_pkg;
   `include "1d/dma350_vseq_1d_single_desinc0_wrap.sv"
   `include "1d/dma350_vseq_1d_single_desinc0_fill.sv"
 
+  //---------------------------------------------------------------------------
+  // ---- vseq TRIGGER (TRM 5.4) : gom trong vseq/trigger/ ----
+  //   base truoc, roi 4 reqtype x 2 mode + internal + 3 software trigger
+  //---------------------------------------------------------------------------
+  `include "trigger/dma350_vseq_trig_base.sv"
+  // SOURCE trigger = COMMAND mode, 4 request type (DES khong dung trigger)
+  `include "trigger/dma350_vseq_trig_srccmd_single.sv"
+  `include "trigger/dma350_vseq_trig_srccmd_last_single.sv"
+  `include "trigger/dma350_vseq_trig_srccmd_block.sv"
+  `include "trigger/dma350_vseq_trig_srccmd_last_block.sv"
+  // SOURCE trigger = FLOW CONTROL mode, 4 request type
+  `include "trigger/dma350_vseq_trig_srcflow_single.sv"
+  `include "trigger/dma350_vseq_trig_srcflow_last_single.sv"
+  `include "trigger/dma350_vseq_trig_srcflow_block.sv"
+  `include "trigger/dma350_vseq_trig_srcflow_last_block.sv"
+  // KET HOP hai phia src/des (TRM Fig 5-15 / 5-17 / 5-18)
+  `include "trigger/dma350_vseq_trig_bothcmd.sv"
+  `include "trigger/dma350_vseq_trig_srcflow_descmd.sv"
+  `include "trigger/dma350_vseq_trig_srccmd_desblock.sv"
+  // Internal trigger connection (channel -> channel)
+  `include "trigger/dma350_vseq_trig_internal.sv"
+  // Software triggers
+  `include "trigger/dma350_vseq_trig_sw_src.sv"
+  `include "trigger/dma350_vseq_trig_sw_des.sv"
+  `include "trigger/dma350_vseq_trig_sw_trigout_ack.sv"
+
   // ---- base test ----
   `include "dma350_base_test.sv"
 
@@ -123,6 +149,25 @@ package dma350_test_pkg;
   `include "1d/dma350_1d_single_desinc0_cont_test.sv"
   `include "1d/dma350_1d_single_desinc0_wrap_test.sv"
   `include "1d/dma350_1d_single_desinc0_fill_test.sv"
+
+  //---------------------------------------------------------------------------
+  // ---- 15 testcase TRIGGER (TRM 5.4) : gom trong testcases/trigger/ ----
+  //---------------------------------------------------------------------------
+  `include "trigger/dma350_trig_srccmd_single_test.sv"
+  `include "trigger/dma350_trig_srccmd_last_single_test.sv"
+  `include "trigger/dma350_trig_srccmd_block_test.sv"
+  `include "trigger/dma350_trig_srccmd_last_block_test.sv"
+  `include "trigger/dma350_trig_srcflow_single_test.sv"
+  `include "trigger/dma350_trig_srcflow_last_single_test.sv"
+  `include "trigger/dma350_trig_srcflow_block_test.sv"
+  `include "trigger/dma350_trig_srcflow_last_block_test.sv"
+  `include "trigger/dma350_trig_bothcmd_test.sv"
+  `include "trigger/dma350_trig_srcflow_descmd_test.sv"
+  `include "trigger/dma350_trig_srccmd_desblock_test.sv"
+  `include "trigger/dma350_trig_internal_test.sv"
+  `include "trigger/dma350_trig_sw_src_test.sv"
+  `include "trigger/dma350_trig_sw_des_test.sv"
+  `include "trigger/dma350_trig_sw_trigout_ack_test.sv"
 
 endpackage : dma350_test_pkg
 

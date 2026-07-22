@@ -40,6 +40,8 @@
 // them cho chac, de include bang ten tran cung tim thay.
 +incdir+testbench/test/vseq/1d
 +incdir+testbench/test/testcases/1d
++incdir+testbench/test/vseq/trigger
++incdir+testbench/test/testcases/trigger
 +incdir+AMBA_AXI5/src/globals
 +incdir+AMBA_AXI5/src/hvl_top/base_tx
 +incdir+AMBA_AXI5/src/hvl_top/slave

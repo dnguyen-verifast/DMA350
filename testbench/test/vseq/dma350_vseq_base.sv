@@ -31,12 +31,18 @@ class dma350_vseq_base extends uvm_sequence;
                        O_DESADDRHI=8'h1C, O_XSIZE=8'h20, O_XSIZEHI=8'h24,
                        O_SRCTRANSCFG=8'h28, O_DESTRANSCFG=8'h2C,
                        O_XADDRINC=8'h30, O_YADDRSTRIDE=8'h34, O_FILLVAL=8'h38,
-                       O_YSIZE=8'h3C, O_GPOEN0=8'h58, O_GPOVAL0=8'h60,
+                       O_YSIZE=8'h3C, O_TMPLTCFG=8'h40,
+                       O_SRCTRIGINCFG=8'h4C, O_DESTRIGINCFG=8'h50,
+                       O_TRIGOUTCFG=8'h54,
+                       O_GPOEN0=8'h58, O_GPOVAL0=8'h60,
                        O_AUTOCFG=8'h74, O_GPOREAD0=8'h80, O_ERRINFO=8'h90;
 
   // ---- bit CH_CMD / CH_STATUS ----
   localparam int B_ENABLE=0, B_CLEAR=1, B_DISABLE=2, B_STOP=3, B_PAUSE=4, B_RESUME=5;
   localparam int S_DONE=16, S_ERR=17, S_STOPPED=18, S_DISABLED=19, S_PAUSED=20;
+  // CH_STATUS bit cho biet channel dang CHO trigger (TRM 6.5.1.2)
+  localparam int S_RESUMEWAIT=21, S_SRCTRIGINWAIT=24, S_DESTRIGINWAIT=25,
+                 S_TRIGOUTACKWAIT=26;
 
   // timeout poll (so lan doc STATUS)
   int unsigned poll_limit = 2000;

@@ -24,3 +24,20 @@ dma350_1d_single_src_lt_des_fill_test
 dma350_1d_single_desinc0_cont_test
 dma350_1d_single_desinc0_wrap_test
 dma350_1d_single_desinc0_fill_test
+
+# --- Trigger (TRM 5.4): reqtype x mode + internal + software ---
+dma350_trig_srccmd_single_test
+dma350_trig_srccmd_last_single_test
+dma350_trig_srccmd_block_test
+dma350_trig_srccmd_last_block_test
+dma350_trig_srcflow_single_test
+dma350_trig_srcflow_last_single_test
+dma350_trig_srcflow_block_test
+dma350_trig_srcflow_last_block_test
+dma350_trig_bothcmd_test
+dma350_trig_srcflow_descmd_test
+dma350_trig_srccmd_desblock_test
+dma350_trig_internal_test
+dma350_trig_sw_src_test
+dma350_trig_sw_des_test
+dma350_trig_sw_trigout_ack_test
