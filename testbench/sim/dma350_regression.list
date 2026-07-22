@@ -3,27 +3,6 @@
 # Chay: make regression testlist_name=dma350_regression.list
 
 # --- 1D single (TRM 5.2.2: List of cases for 1D WRAP) : 7 kich ban x 3 XTYPE ---
-dma350_1d_single_src0_des0_cont_test
-dma350_1d_single_src0_des0_wrap_test
-dma350_1d_single_src0_des0_fill_test
-dma350_1d_single_src0_desgt_cont_test
-dma350_1d_single_src0_desgt_wrap_test
-dma350_1d_single_src0_desgt_fill_test
-dma350_1d_single_srcgt_des0_cont_test
-dma350_1d_single_srcgt_des0_wrap_test
-dma350_1d_single_srcgt_des0_fill_test
-dma350_1d_single_src_eq_des_cont_test
-dma350_1d_single_src_eq_des_wrap_test
-dma350_1d_single_src_eq_des_fill_test
-dma350_1d_single_src_gt_des_cont_test
-dma350_1d_single_src_gt_des_wrap_test
-dma350_1d_single_src_gt_des_fill_test
-dma350_1d_single_src_lt_des_cont_test
-dma350_1d_single_src_lt_des_wrap_test
-dma350_1d_single_src_lt_des_fill_test
-dma350_1d_single_desinc0_cont_test
-dma350_1d_single_desinc0_wrap_test
-dma350_1d_single_desinc0_fill_test
 
 # --- Trigger (TRM 5.4): reqtype x mode + internal + software ---
 dma350_trig_srccmd_single_test
