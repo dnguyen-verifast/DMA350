@@ -904,6 +904,20 @@ module dma350_channel import dma350_pkg::*; #(
                         fifo_flush<=1'b1;
                         w_left<=0; awq_cnt<=0; awq_head<=0; awq_tail<=0;
                         outstanding_b<=0; rd_out_ch<=0; err_pending<=0;
+                        // Initialise the credit gates from the TRIGINMODE up front:
+                        // a flow-controlled side must start credit-gated (unlimited=0)
+                        // so it waits for its trigger's block credit REGARDLESS of
+                        // when the D_XFER transition happens. Otherwise, if the line
+                        // enters D_XFER before that side's trigger arrives (e.g. the
+                        // source gates entry, or the other side has no trigger), the
+                        // side would run unlimited, never arm its deferred ACK, and
+                        // never hand back a trigger acknowledge.
+                        rd_unlimited <= ~flowctrl_s;
+                        wr_unlimited <= ~flowctrl_d;
+                        rd_credit    <= 17'd0;
+                        wr_credit    <= 17'd0;
+                        src_ack_pend <= 1'b0;
+                        des_ack_pend <= 1'b0;
                         empty_q    <= emp;
                         // latch gen-mode (template / strided single-element) config
                         gen_s_q<=gens; gen_d_q<=gend;
