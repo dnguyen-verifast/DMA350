@@ -33,6 +33,9 @@ class dma350_vseq_trig_srccmd_last_block extends dma350_vseq_trig_base;
     // (cmd_trigger_checker chay nen cung soi "AR du lieu truoc handshake")
     check_waiting_trigger("cho trigger dau tien");
 
+    // COMMAND mode: 1 trigger = ca lenh. reqtype LAST_BLOCK chi doi encoding
+    // tren chan (mong doi DMAC ack LAST_OKAY), khong doi so item.
+    // => 1 la DUNG, khong phai thieu.
     send_src_trig(RQ_LAST_BLOCK, 1);
 
     wait_ch_done(ch);

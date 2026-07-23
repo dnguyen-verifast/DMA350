@@ -33,7 +33,10 @@ class dma350_vseq_trig_srcflow_single extends dma350_vseq_trig_base;
     // (cmd_trigger_checker chay nen cung soi "AR du lieu truoc handshake")
     check_waiting_trigger("cho trigger dau tien");
 
-    send_src_trig(RQ_SINGLE, 16);
+    // FLOW CONTROL: moi SINGLE = 1 credit = 1 item. Cap du xsize credit thi
+    // lenh tu ket thuc khi truyen het xsize item -> KHONG can request LAST.
+    // (LAST chi dung khi muon dong lenh SOM - xem test srcflow_last_single.)
+    send_src_trig(RQ_SINGLE, xsize);
 
     wait_ch_done(ch);
     clear_ch_status(ch);

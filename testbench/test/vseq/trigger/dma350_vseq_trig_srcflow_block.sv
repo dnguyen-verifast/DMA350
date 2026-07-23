@@ -33,7 +33,10 @@ class dma350_vseq_trig_srcflow_block extends dma350_vseq_trig_base;
     // (cmd_trigger_checker chay nen cung soi "AR du lieu truoc handshake")
     check_waiting_trigger("cho trigger dau tien");
 
-    send_src_trig(RQ_BLOCK, 4);
+    // FLOW CONTROL: moi BLOCK = (BLKSIZE+1) credit. Cap du xsize/(BLKSIZE+1)
+    // block thi lenh tu ket thuc -> KHONG can request LAST.
+    // xsize=16, block=4 -> 4 trigger BLOCK.
+    send_src_trig(RQ_BLOCK, xsize / (blksize + 1));
 
     wait_ch_done(ch);
     clear_ch_status(ch);

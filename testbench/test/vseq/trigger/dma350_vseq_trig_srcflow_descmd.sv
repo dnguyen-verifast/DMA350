@@ -24,7 +24,10 @@
 class dma350_vseq_trig_srcflow_descmd extends dma350_vseq_trig_base;
   `uvm_object_utils(dma350_vseq_trig_srcflow_descmd)
 
-  int unsigned n_src_single = 8;   // so SINGLE truoc LAST_SINGLE tren SRC
+  // So SINGLE truoc LAST_SINGLE tren SRC. LAST_SINGLE cung mang 1 credit, nen
+  // tong credit = n_src_single + 1 PHAI bang xsize. Dat trong body() theo xsize
+  // de khong lech khi doi xsize (xem gan cuoi new()).
+  int unsigned n_src_single;
 
   function new(string name = "dma350_vseq_trig_srcflow_descmd");
     super.new(name);
@@ -47,6 +50,11 @@ class dma350_vseq_trig_srcflow_descmd extends dma350_vseq_trig_base;
     des_trig_mode    = TM_CMD;     // <-- command cho DESTINATION
     des_trig_sel     = 1;          // cong TI1
     des_blksize      = 3;
+
+    // SRC flow-control: tong credit phai DUNG bang xsize.
+    // xsize=8 -> 7 SINGLE + 1 LAST_SINGLE = 8 credit.
+    // (truoc day dat cung 8 -> thanh 9 credit, trigger cuoi khong ai tieu thu)
+    n_src_single = xsize - 1;
   endfunction
 
   virtual task body();

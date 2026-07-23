@@ -33,7 +33,11 @@ class dma350_vseq_trig_srccmd_single extends dma350_vseq_trig_base;
     // (cmd_trigger_checker chay nen cung soi "AR du lieu truoc handshake")
     check_waiting_trigger("cho trigger dau tien");
 
-    send_src_trig(RQ_SINGLE, 16);
+    // COMMAND mode: MOT trigger giai phong CA LENH (RTL dma350_channel.sv:
+    // "Command mode (and internal triggers) releases the whole command";
+    // flowctrl_s=0 nen khong co credit gating theo tung item).
+    // => chi gui 1 trigger. Gui them se khong co gi tieu thu -> treo cho ack.
+    send_src_trig(RQ_SINGLE, 1);
 
     wait_ch_done(ch);
     clear_ch_status(ch);

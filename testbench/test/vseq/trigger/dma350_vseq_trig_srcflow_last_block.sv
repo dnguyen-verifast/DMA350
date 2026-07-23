@@ -33,6 +33,12 @@ class dma350_vseq_trig_srcflow_last_block extends dma350_vseq_trig_base;
     // (cmd_trigger_checker chay nen cung soi "AR du lieu truoc handshake")
     check_waiting_trigger("cho trigger dau tien");
 
+    // FLOW CONTROL: moi BLOCK trigger = (BLKSIZE+1) credit; request LAST con
+    // DONG LENH ngay sau block cua no.
+    // => chi ban 1 LAST_BLOCK thi lenh dong sau 4 item trong khi xsize=16
+    //    -> moi truyen 4/16, scoreboard bao thieu byte (loi OAN).
+    // Dung: 3 BLOCK (3x4=12 item) roi 1 LAST_BLOCK (4 item) = dung 16.
+    send_src_trig(RQ_BLOCK,      (xsize / (blksize + 1)) - 1);
     send_src_trig(RQ_LAST_BLOCK, 1);
 
     wait_ch_done(ch);
