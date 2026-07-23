@@ -71,6 +71,7 @@ class dma350_vseq_trig_srcflow_descmd extends dma350_vseq_trig_base;
       begin : T1
         `uvm_info(get_type_name(),
           "DES (COMMAND mode): gui 1 trigger khoi dong tren TI1", UVM_LOW)
+        #50;
         send_des_trig(RQ_SINGLE, 1);
       end
       begin : T2
