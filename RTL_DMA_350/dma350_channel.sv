@@ -331,12 +331,34 @@ module dma350_channel import dma350_pkg::*; #(
     reg  [ADDR_WIDTH-1:0] rb_addr_in, wb_addr_in;
     reg  [23:0]           rb_beats_in, wb_beats_in;
 
+    // Trigger flow-control mode + per-block credit size (used both here to cap
+    // the burst length and below in the credit accounting).
+    wire                 flowctrl_s = srctrigin_en & srctrigin_mode[1];
+    wire                 flowctrl_d = destrigin_en & destrigin_mode[1];
+    wire [16:0]          blkcred_s  = {9'd0, src_trigin_blksize} + 17'd1;
+    wire [16:0]          blkcred_d  = {9'd0, des_trigin_blksize} + 17'd1;
+
+    // In a flow-control TRIGINMODE each trigger grants ONE block (BLKSIZE+1
+    // transfers) of credit. A burst may not exceed the credit a single grant
+    // provides, otherwise the whole-burst credit check (wr_cred_bok /
+    // rd_cred_bok) could never be satisfied and the side would deadlock. So cap
+    // the burst length to the block size when flow-controlled, in addition to
+    // the normal *MAXBURSTLEN+1 limit.
+    wire [8:0] src_max_beats = flowctrl_s
+        ? (({5'd0, src_maxburstlen} + 9'd1) < blkcred_s[8:0]
+             ? ({5'd0, src_maxburstlen} + 9'd1) : blkcred_s[8:0])
+        : ({5'd0, src_maxburstlen} + 9'd1);
+    wire [8:0] des_max_beats = flowctrl_d
+        ? (({5'd0, des_maxburstlen} + 9'd1) < blkcred_d[8:0]
+             ? ({5'd0, des_maxburstlen} + 9'd1) : blkcred_d[8:0])
+        : ({5'd0, des_maxburstlen} + 9'd1);
+
     dma350_burst #(.C_ADDR_WIDTH(ADDR_WIDTH), .C_BEATS_WIDTH(24), .MAX_BYTES(MAX_BYTES))
     u_rburst (
         .aclk(aclk), .aresetn(aresetn),
         .start(rb_start), .addr_in(rb_addr_in), .beats_in(rb_beats_in),
         .size(axsize_s_q), .fixed(sfixed_q),
-        .max_beats({5'd0, src_maxburstlen} + 9'd1),   // SRCMAXBURSTLEN + 1
+        .max_beats(src_max_beats),                    // SRCMAXBURSTLEN+1, capped to block
         .burst_valid(rb_valid), .burst_addr(rb_addr), .burst_len(rb_len),
         .burst_beats(rb_beats), .burst_type(rb_type),
         .burst_ready(m_axi_arvalid & m_axi_arready & ~link_rd_active),
@@ -347,7 +369,7 @@ module dma350_channel import dma350_pkg::*; #(
         .aclk(aclk), .aresetn(aresetn),
         .start(wb_start), .addr_in(wb_addr_in), .beats_in(wb_beats_in),
         .size(axsize_d_q), .fixed(dfixed_q),
-        .max_beats({5'd0, des_maxburstlen} + 9'd1),   // DESMAXBURSTLEN + 1
+        .max_beats(des_max_beats),                    // DESMAXBURSTLEN+1, capped to block
         .burst_valid(wb_valid), .burst_addr(wb_addr), .burst_len(wb_len),
         .burst_beats(wb_beats), .burst_type(wb_type),
         .burst_ready(m_axi_awvalid & m_axi_awready),
@@ -369,10 +391,6 @@ module dma350_channel import dma350_pkg::*; #(
     reg                  src_ack_pend, des_ack_pend;    // block awaiting completion ACK
     reg                  src_ack_last, des_ack_last;    // that grant was a LAST request
     reg [31:0]           src_ack_tgt,  des_ack_tgt;     // rem value marking block done
-    wire                 flowctrl_s = srctrigin_en & srctrigin_mode[1];
-    wire                 flowctrl_d = destrigin_en & destrigin_mode[1];
-    wire [16:0]          blkcred_s  = {9'd0, src_trigin_blksize} + 17'd1;
-    wire [16:0]          blkcred_d  = {9'd0, des_trigin_blksize} + 17'd1;
 
     // per-element / whole-burst credit checks
     wire rd_cred_ok  = ~flowctrl_s | rd_unlimited | (rd_credit != 17'd0);
