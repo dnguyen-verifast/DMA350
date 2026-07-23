@@ -393,6 +393,12 @@ module dma350_channel import dma350_pkg::*; #(
     reg                  src_ack_pend, des_ack_pend;    // block awaiting completion ACK
     reg                  src_ack_last, des_ack_last;    // that grant was a LAST request
     reg [31:0]           src_ack_tgt,  des_ack_tgt;     // rem value marking block done
+    // after a flow-control ACK the trigger request stays asserted for a couple of
+    // cycles (the trig-in 4-phase handshake drains). *_ack_wait blocks a new grant
+    // during that window so the JUST-ACKED trigger cannot be mistaken for a fresh
+    // one and issue an extra (un-triggered) access. Cleared once *_trig_pending
+    // deasserts, i.e. the handshake has completed and any next request is genuine.
+    reg                  src_ack_wait, des_ack_wait;
 
     // per-element / whole-burst credit checks
     wire rd_cred_ok  = ~flowctrl_s | rd_unlimited | (rd_credit != 17'd0);
@@ -411,10 +417,10 @@ module dma350_channel import dma350_pkg::*; #(
     // mid-transfer grants: HW pending request, or SW trigger request as backup
     wire [1:0] fc_type_s = src_trig_pending ? src_trig_type : swtrigin_srctype;
     wire [1:0] fc_type_d = des_trig_pending ? des_trig_type : swtrigin_destype;
-    wire fc_take_mid   = (ds==D_XFER) & fc_need   & src_trig_pending & ~src_ack_pend;
+    wire fc_take_mid   = (ds==D_XFER) & fc_need   & src_trig_pending & ~src_ack_pend & ~src_ack_wait;
     wire fc_sw_mid     = (ds==D_XFER) & fc_need   & ~src_trig_pending & swtrigin_src;
     wire fc_grant_s    = fc_take_mid | fc_sw_mid;
-    wire fc_take_mid_d = (ds==D_XFER) & fc_need_d & des_trig_pending & ~des_ack_pend;
+    wire fc_take_mid_d = (ds==D_XFER) & fc_need_d & des_trig_pending & ~des_ack_pend & ~des_ack_wait;
     wire fc_sw_mid_d   = (ds==D_XFER) & fc_need_d & ~des_trig_pending & swtrigin_des;
     wire fc_grant_d    = fc_take_mid_d | fc_sw_mid_d;
     wire [16:0] fc_cred_s  = fc_type_s[1] ? blkcred_s : 17'd1;   // BLOCK vs SINGLE
@@ -657,6 +663,7 @@ module dma350_channel import dma350_pkg::*; #(
             src_ack_pend<=0; des_ack_pend<=0;
             src_ack_last<=0; des_ack_last<=0;
             src_ack_tgt<=0;  des_ack_tgt<=0;
+            src_ack_wait<=0; des_ack_wait<=0;
             empty_q<=0; disable_req<=0;
         end else begin
             fsm_done<=0; fsm_stopped<=0; fsm_disabled<=0; fsm_error<=0;
@@ -789,6 +796,7 @@ module dma350_channel import dma350_pkg::*; #(
                 src_trig_take      <= 1'b1;
                 src_trig_take_last <= src_ack_last;
                 src_ack_pend       <= 1'b0;
+                src_ack_wait       <= 1'b1;   // hold off re-grant until req deasserts
             end
             if (des_ack_pend && (wr_rem <= des_ack_tgt) &&
                 outstanding_b==0 && w_left==9'd0 && awq_cnt==0 &&
@@ -796,7 +804,12 @@ module dma350_channel import dma350_pkg::*; #(
                 des_trig_take      <= 1'b1;
                 des_trig_take_last <= des_ack_last;
                 des_ack_pend       <= 1'b0;
+                des_ack_wait       <= 1'b1;   // hold off re-grant until req deasserts
             end
+            // release the hold-off once the just-acked trigger request has dropped
+            // (4-phase handshake complete); the next asserted pending is a NEW req.
+            if (src_ack_wait && !src_trig_pending) src_ack_wait <= 1'b0;
+            if (des_ack_wait && !des_trig_pending) des_ack_wait <= 1'b0;
 
             // ---- write-burst beat-count FIFO: load head / count down / push --
             begin : awq_update
@@ -920,6 +933,8 @@ module dma350_channel import dma350_pkg::*; #(
                         wr_credit    <= 17'd0;
                         src_ack_pend <= 1'b0;
                         des_ack_pend <= 1'b0;
+                        src_ack_wait <= 1'b0;
+                        des_ack_wait <= 1'b0;
                         empty_q    <= emp;
                         // latch gen-mode (template / strided single-element) config
                         gen_s_q<=gens; gen_d_q<=gend;
@@ -999,7 +1014,7 @@ module dma350_channel import dma350_pkg::*; #(
                         //                    ACK to the completion detector, which
                         //                    fires after that block's AW+W+B (or
                         //                    AR+R) fully complete.
-                        if (src_ok & (line_src_bytes != 0) & ~src_ack_pend) begin
+                        if (src_ok & (line_src_bytes != 0) & ~src_ack_pend & ~src_ack_wait) begin
                             if (flowctrl_s) begin
                                 src_ack_pend <= srctrigin_en & src_trig_pending;
                                 src_ack_last <= t_s[0] | (line_src_bytes <= bb_s);
@@ -1016,7 +1031,7 @@ module dma350_channel import dma350_pkg::*; #(
                                 rd_unlimited <= 1'b1;
                             end
                         end
-                        if (des_ok & (line_des_bytes != 0) & ~des_ack_pend) begin
+                        if (des_ok & (line_des_bytes != 0) & ~des_ack_pend & ~des_ack_wait) begin
                             if (flowctrl_d) begin
                                 des_ack_pend <= destrigin_en & des_trig_pending;
                                 des_ack_last <= t_d[0] | (line_des_bytes <= bb_d);
