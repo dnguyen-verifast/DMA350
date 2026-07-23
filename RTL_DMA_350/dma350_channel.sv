@@ -949,7 +949,7 @@ module dma350_channel import dma350_pkg::*; #(
                         if (src_ok & (line_src_bytes != 0)) begin
                             if (srctrigin_en & src_trig_pending)
                                 src_trig_take <= 1'b1;
-                            src_last_pend <= flowctrl_s & (t_s[0] | (line_src_bytes <= bb_s));
+                            src_last_pend <= t_s[0] | (line_src_bytes <= bb_s);
                             if (flowctrl_s) begin
                                 rd_credit <= cr_s;
                                 rd_unlimited <= 1'b0;
@@ -958,7 +958,7 @@ module dma350_channel import dma350_pkg::*; #(
                         if (des_ok & (line_des_bytes != 0)) begin
                             if (destrigin_en & des_trig_pending)
                                 des_trig_take <= 1'b1;
-                            des_last_pend <= flowctrl_d & (t_d[0] | (line_des_bytes <= bb_d));
+                            des_last_pend <= t_d[0] | (line_des_bytes <= bb_d);
                             if (flowctrl_d) begin
                                 wr_credit <= cr_d;
                                 wr_unlimited <= 1'b0;
