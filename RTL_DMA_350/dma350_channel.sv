@@ -775,13 +775,13 @@ module dma350_channel import dma350_pkg::*; #(
                 wr_credit <= c;
             end
 
-            // ---- deferred trigger ACK (TRM 5.4.1) --------------------------
-            // Emit the handshake ACK (take + take_last TOGETHER, as the trig-in
-            // FSM samples take_last only in the cycle take is high) only when the
-            // granted block's data has fully moved (rem reached its post-block
-            // target) AND every outstanding AXI response has returned. This is
-            // what makes the ACK rise *after* the write burst completes, not at
-            // grant time. take_last selects LAST_OKAY for the final block/command.
+            // ---- deferred trigger ACK for FLOW-CONTROL mode (TRM Fig 5-18) --
+            // In flow-control TRIGINMODE the ACK for a block rises only after that
+            // block's ENTIRE transfer on the AXI channel completes: for the write
+            // side all three phases AW + W + B (outstanding_b back to 0), for the
+            // read side AR + R with RLAST (rd_out_ch back to 0). We emit take +
+            // take_last TOGETHER (the trig-in FSM latches take_last only in the
+            // cycle take is high); take_last selects LAST_OKAY for the final block.
             if (src_ack_pend && (rd_rem <= src_ack_tgt) &&
                 rd_out_ch==0 && !m_axi_arvalid) begin
                 src_trig_take      <= 1'b1;
@@ -975,35 +975,46 @@ module dma350_channel import dma350_pkg::*; #(
                         bb_d = {15'd0, cr_d} << axsize_d_q;
                         // Independent src/des trigger paths (TRM 5.4.1): the
                         // SOURCE trigger grants reads, the DESTINATION trigger
-                        // grants writes, each independently. Seed each side's flow
-                        // credit ONCE when its trigger is first accepted (~*_ack_pend
-                        // guards against re-seeding while a block is still in flight,
-                        // since the trigger request stays pending until we ACK it).
-                        // The handshake ACK itself is deferred to the completion
-                        // detector above (fires after the block's data + responses).
+                        // grants writes, each independently. The ACK timing depends
+                        // on the TRIGINMODE (TRM Fig 5-18):
+                        //   COMMAND mode  -> ACK immediately at grant ("DMA start");
+                        //                    the single trigger just launches the cmd.
+                        //   FLOW-CONTROL  -> seed one block of credit and DEFER the
+                        //                    ACK to the completion detector, which
+                        //                    fires after that block's AW+W+B (or
+                        //                    AR+R) fully complete.
                         if (src_ok & (line_src_bytes != 0) & ~src_ack_pend) begin
-                            src_ack_pend <= srctrigin_en & src_trig_pending;
-                            src_ack_last <= t_s[0] | (line_src_bytes <= bb_s);
-                            src_ack_tgt  <= flowctrl_s
-                                ? (t_s[0] ? 32'd0
-                                   : ((line_src_bytes > bb_s) ? (line_src_bytes - bb_s) : 32'd0))
-                                : 32'd0;
                             if (flowctrl_s) begin
-                                rd_credit <= cr_s;
+                                src_ack_pend <= srctrigin_en & src_trig_pending;
+                                src_ack_last <= t_s[0] | (line_src_bytes <= bb_s);
+                                src_ack_tgt  <= t_s[0] ? 32'd0
+                                    : ((line_src_bytes > bb_s) ? (line_src_bytes - bb_s) : 32'd0);
+                                rd_credit    <= cr_s;
                                 rd_unlimited <= 1'b0;
-                            end else rd_unlimited <= 1'b1;
+                            end else begin
+                                // command mode: acknowledge the launch immediately
+                                if (srctrigin_en & src_trig_pending) begin
+                                    src_trig_take      <= 1'b1;
+                                    src_trig_take_last <= t_s[0];
+                                end
+                                rd_unlimited <= 1'b1;
+                            end
                         end
                         if (des_ok & (line_des_bytes != 0) & ~des_ack_pend) begin
-                            des_ack_pend <= destrigin_en & des_trig_pending;
-                            des_ack_last <= t_d[0] | (line_des_bytes <= bb_d);
-                            des_ack_tgt  <= flowctrl_d
-                                ? (t_d[0] ? 32'd0
-                                   : ((line_des_bytes > bb_d) ? (line_des_bytes - bb_d) : 32'd0))
-                                : 32'd0;
                             if (flowctrl_d) begin
-                                wr_credit <= cr_d;
+                                des_ack_pend <= destrigin_en & des_trig_pending;
+                                des_ack_last <= t_d[0] | (line_des_bytes <= bb_d);
+                                des_ack_tgt  <= t_d[0] ? 32'd0
+                                    : ((line_des_bytes > bb_d) ? (line_des_bytes - bb_d) : 32'd0);
+                                wr_credit    <= cr_d;
                                 wr_unlimited <= 1'b0;
-                            end else wr_unlimited <= 1'b1;
+                            end else begin
+                                if (destrigin_en & des_trig_pending) begin
+                                    des_trig_take      <= 1'b1;
+                                    des_trig_take_last <= t_d[0];
+                                end
+                                wr_unlimited <= 1'b1;
+                            end
                         end
                         // Enter D_XFER once the READ side can start: reads are
                         // gated by the SOURCE trigger (a destination trigger alone
