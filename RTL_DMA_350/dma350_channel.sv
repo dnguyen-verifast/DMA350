@@ -343,19 +343,20 @@ module dma350_channel import dma350_pkg::*; #(
     reg [16:0]           rd_credit, wr_credit;
     reg                  rd_unlimited, wr_unlimited;
 
-    // In a flow-control TRIGINMODE a burst may not span more transfers than the
-    // credit currently released, otherwise the whole-burst credit check
-    // (rd_cred_bok / wr_cred_bok) can never be satisfied and the side deadlocks.
-    // A SINGLE trigger releases 1 credit, a BLOCK trigger BLKSIZE+1. So cap the
-    // burst length to the CURRENT credit (min with *MAXBURSTLEN+1). This makes a
-    // SINGLE grant issue a 1-beat access and a BLOCK grant a whole-block burst,
-    // and lets fc_need re-request once the credit is spent (credit == 0).
+    // Stable per-transfer burst cap for flow control. A burst may not span more
+    // transfers than a single trigger grants (SINGLE = 1, BLOCK = BLKSIZE+1),
+    // else the whole-burst credit check (rd_cred_bok / wr_cred_bok) can never be
+    // met and the side deadlocks. This cap must be STABLE, NOT tied to the live
+    // credit: dma350_burst registers burst_len/burst_beats, so a credit that
+    // toggles 0 -> grant would leave the registered length one cycle stale and
+    // emit a wrong (e.g. len=0) AR. fc_unit_* is latched once per grant to the
+    // grant unit (identical for every trigger of a transfer), so max_beats holds
+    // steady across the credit==0 wait between blocks and the AR length is correct.
+    reg [8:0]            fc_unit_s, fc_unit_d;
     wire [8:0] mb_s = {5'd0, src_maxburstlen} + 9'd1;   // SRCMAXBURSTLEN + 1
     wire [8:0] mb_d = {5'd0, des_maxburstlen} + 9'd1;   // DESMAXBURSTLEN + 1
-    wire [8:0] src_max_beats = ~flowctrl_s ? mb_s
-                             : (rd_credit >= {8'd0, mb_s}) ? mb_s : rd_credit[8:0];
-    wire [8:0] des_max_beats = ~flowctrl_d ? mb_d
-                             : (wr_credit >= {8'd0, mb_d}) ? mb_d : wr_credit[8:0];
+    wire [8:0] src_max_beats = flowctrl_s ? fc_unit_s : mb_s;
+    wire [8:0] des_max_beats = flowctrl_d ? fc_unit_d : mb_d;
 
     dma350_burst #(.C_ADDR_WIDTH(ADDR_WIDTH), .C_BEATS_WIDTH(24), .MAX_BYTES(MAX_BYTES))
     u_rburst (
@@ -664,6 +665,7 @@ module dma350_channel import dma350_pkg::*; #(
             src_ack_last<=0; des_ack_last<=0;
             src_ack_tgt<=0;  des_ack_tgt<=0;
             src_ack_wait<=0; des_ack_wait<=0;
+            fc_unit_s<=9'd1; fc_unit_d<=9'd1;
             empty_q<=0; disable_req<=0;
         end else begin
             fsm_done<=0; fsm_stopped<=0; fsm_disabled<=0; fsm_error<=0;
@@ -935,6 +937,8 @@ module dma350_channel import dma350_pkg::*; #(
                         des_ack_pend <= 1'b0;
                         src_ack_wait <= 1'b0;
                         des_ack_wait <= 1'b0;
+                        fc_unit_s    <= mb_s;
+                        fc_unit_d    <= mb_d;
                         empty_q    <= emp;
                         // latch gen-mode (template / strided single-element) config
                         gen_s_q<=gens; gen_d_q<=gend;
@@ -1021,6 +1025,7 @@ module dma350_channel import dma350_pkg::*; #(
                                 src_ack_tgt  <= t_s[0] ? 32'd0
                                     : ((line_src_bytes > bb_s) ? (line_src_bytes - bb_s) : 32'd0);
                                 rd_credit    <= cr_s;
+                                fc_unit_s    <= (cr_s < {8'd0, mb_s}) ? cr_s[8:0] : mb_s;
                                 rd_unlimited <= 1'b0;
                             end else begin
                                 // command mode: acknowledge the launch immediately
@@ -1038,6 +1043,7 @@ module dma350_channel import dma350_pkg::*; #(
                                 des_ack_tgt  <= t_d[0] ? 32'd0
                                     : ((line_des_bytes > bb_d) ? (line_des_bytes - bb_d) : 32'd0);
                                 wr_credit    <= cr_d;
+                                fc_unit_d    <= (cr_d < {8'd0, mb_d}) ? cr_d[8:0] : mb_d;
                                 wr_unlimited <= 1'b0;
                             end else begin
                                 if (destrigin_en & des_trig_pending) begin
@@ -1103,12 +1109,14 @@ module dma350_channel import dma350_pkg::*; #(
                             src_ack_last <= fc_type_s[0] | (rd_rem <= fc_bytes_s);
                             src_ack_tgt  <= fc_type_s[0] ? 32'd0
                                           : ((rd_rem > fc_bytes_s) ? (rd_rem - fc_bytes_s) : 32'd0);
+                            fc_unit_s    <= (fc_cred_s < {8'd0, mb_s}) ? fc_cred_s[8:0] : mb_s;
                         end
                         if (fc_take_mid_d) begin
                             des_ack_pend <= 1'b1;
                             des_ack_last <= fc_type_d[0] | (wr_rem <= fc_bytes_d);
                             des_ack_tgt  <= fc_type_d[0] ? 32'd0
                                           : ((wr_rem > fc_bytes_d) ? (wr_rem - fc_bytes_d) : 32'd0);
+                            fc_unit_d    <= (fc_cred_d < {8'd0, mb_d}) ? fc_cred_d[8:0] : mb_d;
                         end
                         // LAST request: this is the final block - truncate the
                         // command to the granted volume (TRM Table 5-4).
