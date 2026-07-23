@@ -67,15 +67,20 @@ class dma350_vseq_trig_srcflow_descmd extends dma350_vseq_trig_base;
     check_waiting_trigger("cho trigger (src flow-control + des command)");
 
     // (2) DES : 1 COMMAND trigger tren TI1 -> khoi dong phia ghi
-    `uvm_info(get_type_name(),
-      "DES (COMMAND mode): gui 1 trigger khoi dong tren TI1", UVM_LOW)
-    send_des_trig(RQ_SINGLE, 1);
-
-    // (3) SRC : chuoi FLOW-CONTROL trigger tren TI0
-    `uvm_info(get_type_name(),
-      "SRC (FLOW CONTROL mode): gui chuoi SINGLE roi LAST_SINGLE tren TI0", UVM_LOW)
-    send_src_trig(RQ_SINGLE,      n_src_single);
-    send_src_trig(RQ_LAST_SINGLE, 1);
+    fork
+      begin : T1
+        `uvm_info(get_type_name(),
+          "DES (COMMAND mode): gui 1 trigger khoi dong tren TI1", UVM_LOW)
+        send_des_trig(RQ_SINGLE, 1);
+      end
+      begin : T2
+        // (3) SRC : chuoi FLOW-CONTROL trigger tren TI0
+        `uvm_info(get_type_name(),
+          "SRC (FLOW CONTROL mode): gui chuoi SINGLE roi LAST_SINGLE tren TI0", UVM_LOW)
+        send_src_trig(RQ_SINGLE,      n_src_single);
+        send_src_trig(RQ_LAST_SINGLE, 1);
+      end
+    join
 
     wait_ch_done(ch);
     clear_ch_status(ch);
