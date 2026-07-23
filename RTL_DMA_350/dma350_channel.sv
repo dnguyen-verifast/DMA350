@@ -363,6 +363,7 @@ module dma350_channel import dma350_pkg::*; #(
     // =====================================================================
     reg [16:0]           rd_credit, wr_credit;
     reg                  rd_unlimited, wr_unlimited;
+    reg                  src_last_pend, des_last_pend;  // deferred LAST-OKAY ack
     wire                 flowctrl_s = srctrigin_en & srctrigin_mode[1];
     wire                 flowctrl_d = destrigin_en & destrigin_mode[1];
     wire [16:0]          blkcred_s  = {9'd0, src_trigin_blksize} + 17'd1;
@@ -628,6 +629,7 @@ module dma350_channel import dma350_pkg::*; #(
             s_axis_in_flush<=0;
             rd_credit<=0; rd_unlimited<=1'b1;
             wr_credit<=0; wr_unlimited<=1'b1;
+            src_last_pend<=0; des_last_pend<=0;
             empty_q<=0; disable_req<=0;
         end else begin
             fsm_done<=0; fsm_stopped<=0; fsm_disabled<=0; fsm_error<=0;
@@ -746,6 +748,21 @@ module dma350_channel import dma350_pkg::*; #(
                     c   = (c > dec) ? (c - dec) : 17'd0;
                 end
                 wr_credit <= c;
+            end
+
+            // ---- deferred trigger LAST-OKAY ack: assert only when the granted
+            // block's data transfer completes (rd_rem==0 / wr_rem==0) AND all
+            // outstanding responses have returned (rd_out_ch==0 / outstanding_b==0).
+            // This implements TRM 5.4.1 spec: ACK held until block transfer done
+            // and last response (RLAST / BRESP) received. ----
+            if (src_last_pend && rd_rem==0 && rd_out_ch==0) begin
+                src_trig_take_last <= 1'b1;
+                src_last_pend      <= 1'b0;
+            end
+            if (des_last_pend && wr_rem==0 && outstanding_b==0 &&
+                w_left==9'd0 && awq_cnt==0) begin
+                des_trig_take_last <= 1'b1;
+                des_last_pend      <= 1'b0;
             end
 
             // ---- write-burst beat-count FIFO: load head / count down / push --
@@ -925,38 +942,41 @@ module dma350_channel import dma350_pkg::*; #(
                         cr_d = t_d[1] ? blkcred_d : 17'd1;
                         bb_s = {15'd0, cr_s} << axsize_s_q;     // granted bytes
                         bb_d = {15'd0, cr_d} << axsize_d_q;
-                        if (src_ok && des_ok) begin
-                            // LAST request closes the command after its block
-                            // (TRM Table 5-4): truncate to the granted volume.
+                        // Independent src/des trigger paths (TRM 5.4.1):
+                        // source can grant a read independent of destination.
+                        // Take each trigger when its side is allowed and needed.
+                        // Defer ACK (take_last) to D_XFER until transfer + response complete.
+                        if (src_ok & (line_src_bytes != 0)) begin
+                            if (srctrigin_en & src_trig_pending)
+                                src_trig_take <= 1'b1;
+                            src_last_pend <= flowctrl_s & (t_s[0] | (line_src_bytes <= bb_s));
+                            if (flowctrl_s) begin
+                                rd_credit <= cr_s;
+                                rd_unlimited <= 1'b0;
+                            end else rd_unlimited <= 1'b1;
+                        end
+                        if (des_ok & (line_des_bytes != 0)) begin
+                            if (destrigin_en & des_trig_pending)
+                                des_trig_take <= 1'b1;
+                            des_last_pend <= flowctrl_d & (t_d[0] | (line_des_bytes <= bb_d));
+                            if (flowctrl_d) begin
+                                wr_credit <= cr_d;
+                                wr_unlimited <= 1'b0;
+                            end else wr_unlimited <= 1'b1;
+                        end
+                        // Truncate to granted volume and enter D_XFER once at
+                        // least one side has its trigger accepted (if flow-controlled).
+                        if ((src_ok & (line_src_bytes != 0)) |
+                            (des_ok & (line_des_bytes != 0))) begin
                             eff_src = line_src_bytes;
                             eff_des = line_des_bytes;
-                            if (flowctrl_s & t_s[0] & (eff_src > bb_s)) begin
+                            if (src_ok & flowctrl_s & t_s[0] & (eff_src > bb_s)) begin
                                 eff_des = (eff_des > (eff_src - bb_s))
                                           ? (eff_des - (eff_src - bb_s)) : 32'd0;
                                 eff_src = bb_s;
                             end
-                            if (flowctrl_d & t_d[0] & (eff_des > bb_d))
+                            if (des_ok & flowctrl_d & t_d[0] & (eff_des > bb_d))
                                 eff_des = bb_d;
-                            if (srctrigin_en & src_trig_pending) begin
-                                src_trig_take <= 1'b1;
-                                // LAST OKAY when this grant completes the command
-                                // (DMA-driven flow control, TRM Table 5-5)
-                                src_trig_take_last <=
-                                    flowctrl_s & (t_s[0] | (line_src_bytes <= bb_s));
-                            end
-                            if (destrigin_en & des_trig_pending) begin
-                                des_trig_take <= 1'b1;
-                                des_trig_take_last <=
-                                    flowctrl_d & (t_d[0] | (line_des_bytes <= bb_d));
-                            end
-                            // credit seeding: flow-control modes get one block;
-                            // command mode (and internal triggers) run unlimited.
-                            if (flowctrl_s) begin
-                                rd_credit <= cr_s; rd_unlimited <= 1'b0;
-                            end else rd_unlimited <= 1'b1;
-                            if (flowctrl_d) begin
-                                wr_credit <= cr_d; wr_unlimited <= 1'b0;
-                            end else wr_unlimited <= 1'b1;
                             line_src_bytes <= eff_src;
                             line_des_bytes <= eff_des;
                             rd_rem <= eff_src;
@@ -992,13 +1012,11 @@ module dma350_channel import dma350_pkg::*; #(
                         fsm_destrigwait <= fc_need_d;
                         if (fc_take_mid) begin
                             src_trig_take <= 1'b1;
-                            src_trig_take_last <=
-                                fc_type_s[0] | (rd_rem <= fc_bytes_s);
+                            src_last_pend <= fc_type_s[0] | (rd_rem <= fc_bytes_s);
                         end
                         if (fc_take_mid_d) begin
                             des_trig_take <= 1'b1;
-                            des_trig_take_last <=
-                                fc_type_d[0] | (wr_rem <= fc_bytes_d);
+                            des_last_pend <= fc_type_d[0] | (wr_rem <= fc_bytes_d);
                         end
                         // LAST request: this is the final block - truncate the
                         // command to the granted volume (TRM Table 5-4).
