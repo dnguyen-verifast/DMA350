@@ -363,7 +363,12 @@ module dma350_channel import dma350_pkg::*; #(
     // =====================================================================
     reg [16:0]           rd_credit, wr_credit;
     reg                  rd_unlimited, wr_unlimited;
-    reg                  src_last_pend, des_last_pend;  // deferred LAST-OKAY ack
+    // deferred trigger ACK: a granted block is written/read first, then the
+    // handshake ACK (take + take_last together) is emitted only once the block's
+    // data has actually moved and all its AXI responses have returned (TRM 5.4.1).
+    reg                  src_ack_pend, des_ack_pend;    // block awaiting completion ACK
+    reg                  src_ack_last, des_ack_last;    // that grant was a LAST request
+    reg [31:0]           src_ack_tgt,  des_ack_tgt;     // rem value marking block done
     wire                 flowctrl_s = srctrigin_en & srctrigin_mode[1];
     wire                 flowctrl_d = destrigin_en & destrigin_mode[1];
     wire [16:0]          blkcred_s  = {9'd0, src_trigin_blksize} + 17'd1;
@@ -386,10 +391,10 @@ module dma350_channel import dma350_pkg::*; #(
     // mid-transfer grants: HW pending request, or SW trigger request as backup
     wire [1:0] fc_type_s = src_trig_pending ? src_trig_type : swtrigin_srctype;
     wire [1:0] fc_type_d = des_trig_pending ? des_trig_type : swtrigin_destype;
-    wire fc_take_mid   = (ds==D_XFER) & fc_need   & src_trig_pending & ~src_trig_take;
+    wire fc_take_mid   = (ds==D_XFER) & fc_need   & src_trig_pending & ~src_ack_pend;
     wire fc_sw_mid     = (ds==D_XFER) & fc_need   & ~src_trig_pending & swtrigin_src;
     wire fc_grant_s    = fc_take_mid | fc_sw_mid;
-    wire fc_take_mid_d = (ds==D_XFER) & fc_need_d & des_trig_pending & ~des_trig_take;
+    wire fc_take_mid_d = (ds==D_XFER) & fc_need_d & des_trig_pending & ~des_ack_pend;
     wire fc_sw_mid_d   = (ds==D_XFER) & fc_need_d & ~des_trig_pending & swtrigin_des;
     wire fc_grant_d    = fc_take_mid_d | fc_sw_mid_d;
     wire [16:0] fc_cred_s  = fc_type_s[1] ? blkcred_s : 17'd1;   // BLOCK vs SINGLE
@@ -629,7 +634,9 @@ module dma350_channel import dma350_pkg::*; #(
             s_axis_in_flush<=0;
             rd_credit<=0; rd_unlimited<=1'b1;
             wr_credit<=0; wr_unlimited<=1'b1;
-            src_last_pend<=0; des_last_pend<=0;
+            src_ack_pend<=0; des_ack_pend<=0;
+            src_ack_last<=0; des_ack_last<=0;
+            src_ack_tgt<=0;  des_ack_tgt<=0;
             empty_q<=0; disable_req<=0;
         end else begin
             fsm_done<=0; fsm_stopped<=0; fsm_disabled<=0; fsm_error<=0;
@@ -750,20 +757,25 @@ module dma350_channel import dma350_pkg::*; #(
                 wr_credit <= c;
             end
 
-            // ---- deferred trigger LAST-OKAY ack: assert only when the granted
-            // block's data transfer completes (rd_rem==0 / wr_rem==0) AND all
-            // outstanding responses have returned (rd_out_ch==0 / outstanding_b==0).
-            // This implements TRM 5.4.1 spec: ACK held until block transfer done
-            // and last response (RLAST / BRESP) received. ----
-            if (src_last_pend && rd_rem==0 && rd_out_ch==0) begin
-                src_trig_take_last <= 1'b1;
-                src_last_pend      <= 1'b0;
+            // ---- deferred trigger ACK (TRM 5.4.1) --------------------------
+            // Emit the handshake ACK (take + take_last TOGETHER, as the trig-in
+            // FSM samples take_last only in the cycle take is high) only when the
+            // granted block's data has fully moved (rem reached its post-block
+            // target) AND every outstanding AXI response has returned. This is
+            // what makes the ACK rise *after* the write burst completes, not at
+            // grant time. take_last selects LAST_OKAY for the final block/command.
+            if (src_ack_pend && (rd_rem <= src_ack_tgt) &&
+                rd_out_ch==0 && !m_axi_arvalid) begin
+                src_trig_take      <= 1'b1;
+                src_trig_take_last <= src_ack_last;
+                src_ack_pend       <= 1'b0;
             end
-            // For now, simplified: just check last_pend and wr_rem==0.
-            // (Will add response checks later if needed)
-            if (des_last_pend && wr_rem==0) begin
-                des_trig_take_last <= 1'b1;
-                des_last_pend      <= 1'b0;
+            if (des_ack_pend && (wr_rem <= des_ack_tgt) &&
+                outstanding_b==0 && w_left==9'd0 && awq_cnt==0 &&
+                !m_axi_awvalid) begin
+                des_trig_take      <= 1'b1;
+                des_trig_take_last <= des_ack_last;
+                des_ack_pend       <= 1'b0;
             end
 
             // ---- write-burst beat-count FIFO: load head / count down / push --
@@ -943,32 +955,43 @@ module dma350_channel import dma350_pkg::*; #(
                         cr_d = t_d[1] ? blkcred_d : 17'd1;
                         bb_s = {15'd0, cr_s} << axsize_s_q;     // granted bytes
                         bb_d = {15'd0, cr_d} << axsize_d_q;
-                        // Independent src/des trigger paths (TRM 5.4.1):
-                        // source can grant a read independent of destination.
-                        // Take each trigger when its side is allowed and needed.
-                        // Defer ACK (take_last) to D_XFER until transfer + response complete.
-                        if (src_ok & (line_src_bytes != 0)) begin
-                            if (srctrigin_en & src_trig_pending)
-                                src_trig_take <= 1'b1;
-                            src_last_pend <= t_s[0] | (line_src_bytes <= bb_s);
+                        // Independent src/des trigger paths (TRM 5.4.1): the
+                        // SOURCE trigger grants reads, the DESTINATION trigger
+                        // grants writes, each independently. Seed each side's flow
+                        // credit ONCE when its trigger is first accepted (~*_ack_pend
+                        // guards against re-seeding while a block is still in flight,
+                        // since the trigger request stays pending until we ACK it).
+                        // The handshake ACK itself is deferred to the completion
+                        // detector above (fires after the block's data + responses).
+                        if (src_ok & (line_src_bytes != 0) & ~src_ack_pend) begin
+                            src_ack_pend <= srctrigin_en & src_trig_pending;
+                            src_ack_last <= t_s[0] | (line_src_bytes <= bb_s);
+                            src_ack_tgt  <= flowctrl_s
+                                ? (t_s[0] ? 32'd0
+                                   : ((line_src_bytes > bb_s) ? (line_src_bytes - bb_s) : 32'd0))
+                                : 32'd0;
                             if (flowctrl_s) begin
                                 rd_credit <= cr_s;
                                 rd_unlimited <= 1'b0;
                             end else rd_unlimited <= 1'b1;
                         end
-                        if (des_ok & (line_des_bytes != 0)) begin
-                            if (destrigin_en & des_trig_pending)
-                                des_trig_take <= 1'b1;
-                            des_last_pend <= t_d[0] | (line_des_bytes <= bb_d);
+                        if (des_ok & (line_des_bytes != 0) & ~des_ack_pend) begin
+                            des_ack_pend <= destrigin_en & des_trig_pending;
+                            des_ack_last <= t_d[0] | (line_des_bytes <= bb_d);
+                            des_ack_tgt  <= flowctrl_d
+                                ? (t_d[0] ? 32'd0
+                                   : ((line_des_bytes > bb_d) ? (line_des_bytes - bb_d) : 32'd0))
+                                : 32'd0;
                             if (flowctrl_d) begin
                                 wr_credit <= cr_d;
                                 wr_unlimited <= 1'b0;
                             end else wr_unlimited <= 1'b1;
                         end
-                        // Truncate to granted volume and enter D_XFER once at
-                        // least one side has its trigger accepted (if flow-controlled).
-                        if ((src_ok & (line_src_bytes != 0)) |
-                            (des_ok & (line_des_bytes != 0))) begin
+                        // Enter D_XFER once the READ side can start: reads are
+                        // gated by the SOURCE trigger (a destination trigger alone
+                        // must not start reads). For a write-only line (fill, no
+                        // reads) the destination trigger gates entry instead.
+                        if ((line_src_bytes != 0) ? src_ok : des_ok) begin
                             eff_src = line_src_bytes;
                             eff_des = line_des_bytes;
                             if (src_ok & flowctrl_s & t_s[0] & (eff_src > bb_s)) begin
@@ -1007,25 +1030,25 @@ module dma350_channel import dma350_pkg::*; #(
                     end else begin
                         if (err_pending) ds <= D_ERR;
 
-                        // mid-transfer flow control: when a block credit is
-                        // spent, stall that side and wait for / take a trigger.
+                        // mid-transfer flow control: when a block credit is spent,
+                        // stall that side and grant the next pending trigger. The
+                        // grant only seeds credit + arms the deferred-ACK tracking;
+                        // the ACK fires later (completion detector) once the block's
+                        // data has moved and its responses returned. *_ack_pend
+                        // serialises: no new block is granted until the prior one ACKs.
                         fsm_srctrigwait <= fc_need;
                         fsm_destrigwait <= fc_need_d;
                         if (fc_take_mid) begin
-                            src_trig_take <= 1'b1;
-                            src_last_pend <= fc_type_s[0] | (rd_rem <= fc_bytes_s);
+                            src_ack_pend <= 1'b1;
+                            src_ack_last <= fc_type_s[0] | (rd_rem <= fc_bytes_s);
+                            src_ack_tgt  <= fc_type_s[0] ? 32'd0
+                                          : ((rd_rem > fc_bytes_s) ? (rd_rem - fc_bytes_s) : 32'd0);
                         end
                         if (fc_take_mid_d) begin
-                            des_trig_take <= 1'b1;
-                            des_last_pend <= fc_type_d[0] | (wr_rem <= fc_bytes_d);
-                        end else if ((ds==D_XFER) & des_trig_pending & destrigin_en & ~des_trig_take) begin
-                            // destination trigger arrived in D_XFER but fc_need_d didn't fire
-                            // (credit was sufficient, or non-flow-control mode). still need to
-                            // track that this is a grant to later assert LAST_OKAY ACK.
-                            logic [16:0] tmp_cred; logic [31:0] tmp_bytes;
-                            tmp_cred = fc_type_d[1] ? blkcred_d : 17'd1;
-                            tmp_bytes = {15'd0, tmp_cred} << axsize_d_q;
-                            des_last_pend <= fc_type_d[0] | (wr_rem <= tmp_bytes);
+                            des_ack_pend <= 1'b1;
+                            des_ack_last <= fc_type_d[0] | (wr_rem <= fc_bytes_d);
+                            des_ack_tgt  <= fc_type_d[0] ? 32'd0
+                                          : ((wr_rem > fc_bytes_d) ? (wr_rem - fc_bytes_d) : 32'd0);
                         end
                         // LAST request: this is the final block - truncate the
                         // command to the granted volume (TRM Table 5-4).
