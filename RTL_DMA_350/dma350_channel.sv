@@ -1023,9 +1023,9 @@ module dma350_channel import dma350_pkg::*; #(
                             // (credit was sufficient, or non-flow-control mode). still need to
                             // track that this is a grant to later assert LAST_OKAY ACK.
                             logic [16:0] tmp_cred; logic [31:0] tmp_bytes;
-                            tmp_cred = t_d[1] ? blkcred_d : 17'd1;
+                            tmp_cred = fc_type_d[1] ? blkcred_d : 17'd1;
                             tmp_bytes = {15'd0, tmp_cred} << axsize_d_q;
-                            des_last_pend <= t_d[0] | (wr_rem <= tmp_bytes);
+                            des_last_pend <= fc_type_d[0] | (wr_rem <= tmp_bytes);
                         end
                         // LAST request: this is the final block - truncate the
                         // command to the granted volume (TRM Table 5-4).
