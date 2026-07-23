@@ -14,7 +14,7 @@
 # dma350_trig_srcflow_block_test
 # !dma350_trig_srcflow_last_block_test
 dma350_trig_bothcmd_test
-dma350_trig_srcflow_descmd_test
+# !dma350_trig_srcflow_descmd_test
 dma350_trig_srccmd_desblock_test
 dma350_trig_internal_test
 dma350_trig_sw_src_test

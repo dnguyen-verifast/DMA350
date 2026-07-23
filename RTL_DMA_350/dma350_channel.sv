@@ -338,20 +338,24 @@ module dma350_channel import dma350_pkg::*; #(
     wire [16:0]          blkcred_s  = {9'd0, src_trigin_blksize} + 17'd1;
     wire [16:0]          blkcred_d  = {9'd0, des_trigin_blksize} + 17'd1;
 
-    // In a flow-control TRIGINMODE each trigger grants ONE block (BLKSIZE+1
-    // transfers) of credit. A burst may not exceed the credit a single grant
-    // provides, otherwise the whole-burst credit check (wr_cred_bok /
-    // rd_cred_bok) could never be satisfied and the side would deadlock. So cap
-    // the burst length to the block size when flow-controlled, in addition to
-    // the normal *MAXBURSTLEN+1 limit.
-    wire [8:0] src_max_beats = flowctrl_s
-        ? (({5'd0, src_maxburstlen} + 9'd1) < blkcred_s[8:0]
-             ? ({5'd0, src_maxburstlen} + 9'd1) : blkcred_s[8:0])
-        : ({5'd0, src_maxburstlen} + 9'd1);
-    wire [8:0] des_max_beats = flowctrl_d
-        ? (({5'd0, des_maxburstlen} + 9'd1) < blkcred_d[8:0]
-             ? ({5'd0, des_maxburstlen} + 9'd1) : blkcred_d[8:0])
-        : ({5'd0, des_maxburstlen} + 9'd1);
+    // per-side trigger credit: how many transfers the accepted trigger(s) have
+    // released but not yet issued. Reads consume src credit, writes des credit.
+    reg [16:0]           rd_credit, wr_credit;
+    reg                  rd_unlimited, wr_unlimited;
+
+    // In a flow-control TRIGINMODE a burst may not span more transfers than the
+    // credit currently released, otherwise the whole-burst credit check
+    // (rd_cred_bok / wr_cred_bok) can never be satisfied and the side deadlocks.
+    // A SINGLE trigger releases 1 credit, a BLOCK trigger BLKSIZE+1. So cap the
+    // burst length to the CURRENT credit (min with *MAXBURSTLEN+1). This makes a
+    // SINGLE grant issue a 1-beat access and a BLOCK grant a whole-block burst,
+    // and lets fc_need re-request once the credit is spent (credit == 0).
+    wire [8:0] mb_s = {5'd0, src_maxburstlen} + 9'd1;   // SRCMAXBURSTLEN + 1
+    wire [8:0] mb_d = {5'd0, des_maxburstlen} + 9'd1;   // DESMAXBURSTLEN + 1
+    wire [8:0] src_max_beats = ~flowctrl_s ? mb_s
+                             : (rd_credit >= {8'd0, mb_s}) ? mb_s : rd_credit[8:0];
+    wire [8:0] des_max_beats = ~flowctrl_d ? mb_d
+                             : (wr_credit >= {8'd0, mb_d}) ? mb_d : wr_credit[8:0];
 
     dma350_burst #(.C_ADDR_WIDTH(ADDR_WIDTH), .C_BEATS_WIDTH(24), .MAX_BYTES(MAX_BYTES))
     u_rburst (
@@ -383,8 +387,6 @@ module dma350_channel import dma350_pkg::*; #(
     // Source credits gate reads, destination credits gate writes. Software
     // trigger requests (CH_CMD) can substitute for hardware requests.
     // =====================================================================
-    reg [16:0]           rd_credit, wr_credit;
-    reg                  rd_unlimited, wr_unlimited;
     // deferred trigger ACK: a granted block is written/read first, then the
     // handshake ACK (take + take_last together) is emitted only once the block's
     // data has actually moved and all its AXI responses have returned (TRM 5.4.1).
@@ -398,13 +400,13 @@ module dma350_channel import dma350_pkg::*; #(
     wire wr_cred_ok  = ~flowctrl_d | wr_unlimited | (wr_credit != 17'd0);
     wire wr_cred_bok = ~flowctrl_d | wr_unlimited | (wr_credit >= {8'd0, wb_beats});
 
-    // a new trigger grant is needed when credit cannot cover the next access
-    wire fc_need   = flowctrl_s & ~rd_unlimited & (rd_rem != 0) &
-                     ( (gen_s_q  & (rd_credit == 17'd0))
-                     | (~gen_s_q & rb_valid & (rd_credit < {8'd0, rb_beats})) );
-    wire fc_need_d = flowctrl_d & ~wr_unlimited & (wr_rem != 0) &
-                     ( (gen_d_q  & (wr_credit == 17'd0))
-                     | (~gen_d_q & wb_valid & (wr_credit < {8'd0, wb_beats})) );
+    // A new trigger grant is needed once the released credit is fully spent and
+    // there are still transfers left on that side. Because the burst length is
+    // capped to the current credit (see src/des_max_beats), "credit == 0" is the
+    // exact point where the side has consumed its last granted transfer and must
+    // wait for / take the next trigger before issuing more.
+    wire fc_need   = flowctrl_s & ~rd_unlimited & (rd_rem != 0) & (rd_credit == 17'd0);
+    wire fc_need_d = flowctrl_d & ~wr_unlimited & (wr_rem != 0) & (wr_credit == 17'd0);
 
     // mid-transfer grants: HW pending request, or SW trigger request as backup
     wire [1:0] fc_type_s = src_trig_pending ? src_trig_type : swtrigin_srctype;
