@@ -67,6 +67,10 @@ class dma350_vseq_cmdlink_base extends dma350_vseq_base;
   int unsigned xsize  = 16;
   bit [2:0]  transize = 3'd2;              // word (4B)
 
+  function new(string name="dma350_vseq_cmdlink_base");
+    super.new(name);
+  endfunction
+  
   function bit [31:0] cmd_addr(int idx);
     return DESC_BASE + idx*CMD_STRIDE;
   endfunction
