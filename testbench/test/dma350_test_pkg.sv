@@ -33,6 +33,10 @@ package dma350_test_pkg;
 
   // Env (scoreboard + virtual sequencer + dma350_env + dma_trig_item stub)
   import dma350_env_pkg::*;
+  // Command-link: HDR_* / dia chi / anh vi du + bo nho descriptor nap tay.
+  // vseq cmdlink NAP vao cmdlink_mem; hook trong axi5_slave_driver_proxy (guard
+  // +define+DMA350_CMDLINK_HOOK) doc ra khi DUT fetch descriptor (arcmdlink=1).
+  import dma350_cmdlink_mem_pkg::*;
 
   // ---- sequence cho agent (directed APB) : moi class 1 file ----
   `include "dma350_apb_write_seq.sv"
@@ -107,6 +111,24 @@ package dma350_test_pkg;
   `include "trigger/dma350_vseq_trig_sw_des.sv"
   `include "trigger/dma350_vseq_trig_sw_trigout_ack.sv"
 
+  //---------------------------------------------------------------------------
+  // ---- vseq COMMAND LINKING (TRM 5.7) : gom trong vseq/cmdlink/ ----
+  //   base truoc; hai luong: APB-then-link va autoboot-then-link.
+  //   Moi vseq mot bo HEADER descriptor khac nhau.
+  //---------------------------------------------------------------------------
+  `include "cmdlink/dma350_vseq_cmdlink_base.sv"
+  `include "cmdlink/dma350_vseq_cmdlink_apb_2cmd.sv"
+  `include "cmdlink/dma350_vseq_cmdlink_apb_3cmd.sv"
+  `include "cmdlink/dma350_vseq_cmdlink_apb_regclear.sv"
+  `include "cmdlink/dma350_vseq_cmdlink_apb_noregclear.sv"
+  `include "cmdlink/dma350_vseq_cmdlink_apb_ctrl_only.sv"
+  `include "cmdlink/dma350_vseq_cmdlink_apb_addr_size.sv"
+  `include "cmdlink/dma350_vseq_cmdlink_apb_transcfg.sv"
+  `include "cmdlink/dma350_vseq_cmdlink_apb_xaddrinc.sv"
+  `include "cmdlink/dma350_vseq_cmdlink_boot_single.sv"
+  `include "cmdlink/dma350_vseq_cmdlink_boot_chain.sv"
+  `include "cmdlink/dma350_vseq_cmdlink_apb_example.sv"
+
   // ---- base test ----
   `include "dma350_base_test.sv"
 
@@ -168,6 +190,21 @@ package dma350_test_pkg;
   `include "trigger/dma350_trig_sw_src_test.sv"
   `include "trigger/dma350_trig_sw_des_test.sv"
   `include "trigger/dma350_trig_sw_trigout_ack_test.sv"
+
+  //---------------------------------------------------------------------------
+  // ---- 10 testcase COMMAND LINKING (TRM 5.7) : gom trong testcases/cmdlink/ ----
+  //---------------------------------------------------------------------------
+  `include "cmdlink/dma350_cmdlink_apb_2cmd_test.sv"
+  `include "cmdlink/dma350_cmdlink_apb_3cmd_test.sv"
+  `include "cmdlink/dma350_cmdlink_apb_regclear_test.sv"
+  `include "cmdlink/dma350_cmdlink_apb_noregclear_test.sv"
+  `include "cmdlink/dma350_cmdlink_apb_ctrl_only_test.sv"
+  `include "cmdlink/dma350_cmdlink_apb_addr_size_test.sv"
+  `include "cmdlink/dma350_cmdlink_apb_transcfg_test.sv"
+  `include "cmdlink/dma350_cmdlink_apb_xaddrinc_test.sv"
+  `include "cmdlink/dma350_cmdlink_boot_single_test.sv"
+  `include "cmdlink/dma350_cmdlink_boot_chain_test.sv"
+  `include "cmdlink/dma350_cmdlink_apb_example_test.sv"
 
 endpackage : dma350_test_pkg
 

@@ -42,6 +42,8 @@
 +incdir+testbench/test/testcases/1d
 +incdir+testbench/test/vseq/trigger
 +incdir+testbench/test/testcases/trigger
++incdir+testbench/test/vseq/cmdlink
++incdir+testbench/test/testcases/cmdlink
 +incdir+AMBA_AXI5/src/globals
 +incdir+AMBA_AXI5/src/hvl_top/base_tx
 +incdir+AMBA_AXI5/src/hvl_top/slave
@@ -66,9 +68,21 @@
 +incdir+CTI/trig_in
 
 // ----------------------------------------------------------------------------
+// DINH NGHIA: bat hook nap descriptor command-link/autoboot cho AXI5 slave.
+// Khi co define nay, axi5_slave_driver_proxy tra ve du lieu descriptor da nap
+// (dma350_cmdlink_mem_pkg) cho cac dia chi da nap. KHONG co define -> VIP goc.
+// ----------------------------------------------------------------------------
++define+DMA350_CMDLINK_HOOK
+
+// ----------------------------------------------------------------------------
 // (1) GLOBALS package (axi5_if import axi5_globals_pkg -> phai compile truoc)
 // ----------------------------------------------------------------------------
 AMBA_AXI5/src/globals/axi5_globals_pkg.sv
+
+// Command-link memory: HDR_* / dia chi / anh vi du + BO NHO descriptor nap tay
+// (cmdlink_mem_*). KHONG phu thuoc VIP/DUT -> compile ngay sau globals, TRUOC
+// axi5_slave_pkg (proxy tham chieu no khi +define+DMA350_CMDLINK_HOOK).
+testbench/dma_env/dma350_cmdlink_mem.sv
 
 // ----------------------------------------------------------------------------
 // (2) INTERFACES (compile o top-level, truoc cac package/BFM tham chieu chung)

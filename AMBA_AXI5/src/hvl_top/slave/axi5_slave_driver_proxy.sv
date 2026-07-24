@@ -554,6 +554,30 @@ task axi5_slave_driver_proxy::axi5_read_task();
         end
         
         `uvm_info("DEBUG_SLAVE_RDATA_PROXY", $sformatf("BEFORE :: READ CHANNEL PACKET \n %p",struct_read_packet), UVM_NONE);
+`ifdef DMA350_CMDLINK_HOOK
+        // --------------------------------------------------------------------
+        // DESCRIPTOR / AUTOBOOT fetch hook (chi khi +define+DMA350_CMDLINK_HOOK).
+        // Neu dia chi AR da duoc nap trong dma350_cmdlink_mem_pkg -> tra ve BYTE
+        // da nap thay cho du lieu ngau nhien, de DUT nap dung header command-link
+        // / boot. Guard = cmdlink_mem_has(araddr): rong voi moi test khong dung
+        // command-link nen KHONG anh huong (1d/trigger...).
+        // --------------------------------------------------------------------
+        if (dma350_cmdlink_mem_pkg::cmdlink_mem_has(local_slave_addr_chk_tx.araddr)) begin
+          int unsigned nb_desc  = local_slave_addr_chk_tx.arlen + 1;
+          int unsigned bpb_desc = (1 << local_slave_addr_chk_tx.arsize);
+          for (int di = 0; di < nb_desc; di++) begin
+            struct_read_packet.rdata[di] = '0;
+            for (int db = 0; db < bpb_desc; db++)
+              struct_read_packet.rdata[di][8*db +: 8] =
+                dma350_cmdlink_mem_pkg::cmdlink_mem_get(local_slave_addr_chk_tx.araddr + di*bpb_desc + db);
+            struct_read_packet.rresp[di] = READ_OKAY;
+          end
+          `uvm_info("DMA350_CMDLINK",$sformatf(
+            "descriptor fetch @0x%0h len=%0d size=%0d -> tra du lieu da nap",
+            local_slave_addr_chk_tx.araddr, local_slave_addr_chk_tx.arlen,
+            local_slave_addr_chk_tx.arsize), UVM_MEDIUM)
+        end
+`endif
         //read data task
         axi5_slave_drv_bfm_h.axi5_read_data_phase(struct_read_packet,struct_cfg,axi5_slave_agent_cfg_h.slave_response_mode);
         `uvm_info("DEBUG_SLAVE_RDATA_PROXY", $sformatf("AFTER :: READ CHANNEL PACKET \n %p",struct_read_packet), UVM_NONE);

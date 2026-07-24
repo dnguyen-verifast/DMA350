@@ -20,3 +20,16 @@ dma350_trig_internal_test
 dma350_trig_sw_src_test
 dma350_trig_sw_des_test
 dma350_trig_sw_trigout_ack_test
+
+# --- Command linking (TRM 5.7): APB-then-link (8) + autoboot-then-link (2) ---
+dma350_cmdlink_apb_2cmd_test
+dma350_cmdlink_apb_3cmd_test
+dma350_cmdlink_apb_regclear_test
+dma350_cmdlink_apb_noregclear_test
+dma350_cmdlink_apb_ctrl_only_test
+dma350_cmdlink_apb_addr_size_test
+dma350_cmdlink_apb_transcfg_test
+dma350_cmdlink_apb_xaddrinc_test
+dma350_cmdlink_boot_single_test
+dma350_cmdlink_boot_chain_test
+dma350_cmdlink_apb_example_test

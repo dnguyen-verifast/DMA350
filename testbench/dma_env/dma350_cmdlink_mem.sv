@@ -184,6 +184,51 @@ package dma350_cmdlink_mem_pkg;
     return CMD0_ADDR | LINKADDREN;
   endfunction
 
+  //==========================================================================
+  // BO NHO DESCRIPTOR NAP TAY (dong) - dung cho command-link / autoboot
+  //--------------------------------------------------------------------------
+  // Khac voi anh CONST cmdlink_image (co dinh 3 lenh, dung lam vi du), bo nho
+  // nay la associative-array BYTE dia-chi-hoa TUYET DOI, cho phep tung vseq nap
+  // descriptor RIENG (header khac nhau) truoc khi chay.
+  //
+  // Bien package -> static, dung chung toan sim: vseq NAP (cmdlink_mem_write_*),
+  // hook trong axi5_slave_driver_proxy DOC (cmdlink_mem_has/cmdlink_mem_get) khi
+  // DUT fetch descriptor (arcmdlink=1). Guard theo dia chi da nap -> khong anh
+  // huong cac test khong dung command-link.
+  //==========================================================================
+  bit [7:0] cmdlink_mem [longint unsigned];
+
+  // Xoa toan bo (goi dau moi test de tranh ron descriptor cu).
+  function automatic void cmdlink_mem_clear();
+    cmdlink_mem.delete();
+  endfunction
+
+  // Nap 1 byte / 1 word 32-bit (little endian) vao dia chi TUYET DOI.
+  function automatic void cmdlink_mem_write_byte(longint unsigned addr, bit [7:0] data);
+    cmdlink_mem[addr] = data;
+  endfunction
+
+  function automatic void cmdlink_mem_write_word(longint unsigned addr, bit [31:0] data);
+    for (int b = 0; b < 4; b++)
+      cmdlink_mem[addr + b] = data[8*b +: 8];
+  endfunction
+
+  // Dia chi da nap chua? / lay byte (0x00 neu chua nap).
+  function automatic bit cmdlink_mem_has(longint unsigned addr);
+    return cmdlink_mem.exists(addr);
+  endfunction
+
+  function automatic bit [7:0] cmdlink_mem_get(longint unsigned addr);
+    return cmdlink_mem.exists(addr) ? cmdlink_mem[addr] : 8'h00;
+  endfunction
+
+  // Nap SAN anh vi du 3-lenh (cmdlink_image) vao bo nho dong tai CMDLINK_BASE.
+  // Dung cho test muon xai truc tiep vi du co san + cmdlink_start_linkaddr().
+  function automatic void cmdlink_mem_load_example();
+    for (int i = 0; i < CMDLINK_IMAGE_SIZE; i++)
+      cmdlink_mem_write_word(CMDLINK_BASE[31:0] + i*4, cmdlink_image[i]);
+  endfunction
+
 endpackage : dma350_cmdlink_mem_pkg
 
 `endif // DMA350_CMDLINK_MEM_SV
