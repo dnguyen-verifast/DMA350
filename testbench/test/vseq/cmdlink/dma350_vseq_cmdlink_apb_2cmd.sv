@@ -34,9 +34,7 @@ class dma350_vseq_cmdlink_apb_2cmd extends dma350_vseq_cmdlink_base;
     cmd_emit();
   endfunction
 
-  virtual task body();
-    super.body();
-  endtask
+  body();
 
 endclass : dma350_vseq_cmdlink_apb_2cmd
 
