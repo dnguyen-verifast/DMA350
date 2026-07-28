@@ -63,24 +63,97 @@
        NOTHING_OCCUR , READ_ONLY, WRITE_ONLY, WRITE_READ
     } axi_operation_e;
 
+//-----------------------------------------------------------------------------
+// dma_axi_burst : BAN GHI DU DOAN THUOC TINH AXI CHO CA MOT COMMAND.
+//
+// KHONG con du doan "burst thu k dai bao nhieu beat, dia chi nao". Voi moi
+// command scoreboard chi chot DUNG MOT ban ghi cho moi phia:
+//     ctx.exp_rd    - MOI AR du lieu cua lenh phai thoa ban ghi nay
+//     ctx.exp_wr    - MOI AW cua lenh phai thoa ban ghi nay
+//     ctx.exp_link  - AR command-link fetch (doc descriptor) KE TIEP
+//
+// MUC TIEU kiem tra chi gom 3 nhom - KHONG di doan cach RTL toi uu giao dich:
+//   (a) TOAN VEN DU LIEU : byte doc -> byte ghi dung dia chi (qua ref-memory)
+//   (b) THUOC TINH TRUY CAP BO NHO : AxCACHE / AxPROT / AxDOMAIN / AxID / CHID
+//   (c) HINH HOC CHE DO LENH : 1D continue / 2D / wrap / fill - AxADDR phai nam
+//       trong cua so cua che do do va tong byte chuyen phai dung
+//
+// Kiem tra la kiem RANG BUOC, khong so bang tuyet doi:
+//   * AxADDR nam trong cua so [addr_lo, addr_hi] cua lenh (INCR) hoac == addr
+//     khi FIXED
+//   * AxBURST / AxCACHE / AxPROT / AxDOMAIN / AxID / CHID dung cau hinh
+//   * AxLEN+1 <= MAXBURSTLEN+1 ; so BYTE cua burst <= FIFO/2 ; khong vat qua
+//     breakpoint 1KB ; <= 256 beat (INCR) / 16 beat (FIXED)
+//
+// CO Y KHONG KIEM: AxSIZE (beat size).
+//   RTL duoc phep TOI UU beat size (gop len ca do rong bus khi template tat,
+//   addrinc == 1, dia chi aligned...) va cach gop con phu thuoc FIFO / trigger /
+//   arbitration. Doan xem no co toi uu hay khong chi sinh bao dong GIA ma khong
+//   them gia tri: toan ven du lieu da duoc kiem truc tiep tren ref-memory bang
+//   AxSIZE THUC TE cua giao dich. O day chi giu luat AXI: AxSIZE khong duoc
+//   lon hon do rong bus. Cung ly do do, gioi han do dai burst duoc kiem theo
+//   BYTE (FIFO/2, 1KB) chu khong theo so beat suy ra tu beat size da doan.
+//
+// Ban ghi nay con duoc dung lam ban ghi QUAN SAT (out_rd/out_wr) de ghep
+// AR->R / AW->W: khi do chi cac truong addr/beats/size/fixed/is_cmdlink co y
+// nghia.
+//-----------------------------------------------------------------------------
 class dma_axi_burst extends uvm_object;
-    bit [63:0] addr;
-    int        beats;   // so beat
-    int        size;    // log2 bytes/beat (AxSIZE)
-    bit        fixed;    // 1 = FIXED, 0 = INCR
-    bit        is_cmdlink; // 1 = fetch descriptor command-link (loai khoi data path)
-    // anh xa du lieu (chi read-burst): byte thu k cua burst nay du kien duoc
-    // ghi toi dest_base+k; byte vuot dest_cap la phan doc-thua bi drain (vd
-    // wrap pass cuoi doc du sb nhung chi ghi phan du, continue des<src).
-    longint    dest_base;
-    longint    dest_cap;   // dia chi dich MOT-QUA-CUOI (exclusive)
+    bit        valid;          // 1 = da co du doan cho phia nay
+    bit        is_cmdlink;     // 1 = ban ghi cho command-link / autoboot fetch
+    bit        is_boot;        // 1 = fetch descriptor dau tien do autoboot
+    bit        is_read;
+
+    // ---- pham vi dia chi & khoi luong CUA CA LENH ----
+    bit [63:0] addr;           // dia chi bat dau
+    longint    addr_lo, addr_hi;   // cua so dia chi hop le cho moi AxADDR
+    longint    total_bytes;    // tong byte phia nay chuyen trong ca lenh
+
+    // ---- beat size : chi de THAM KHAO / log, KHONG dung de so sanh ----------
+    // = TRANSIZE cua lenh clamp theo do rong bus. RTL co the dung beat lon hon
+    // (toi uu) - do la hop le, nen khong doi chieu truong nay.
+    int        size;
+
+    // ---- gioi han do dai burst ---------------------------------------------
+    int        max_beats;      // gioi han so BEAT: min(MAXBURSTLEN+1, 256|16)
+    int        maxburst_beats; // MAXBURSTLEN + 1
+    longint    fifo_max_bytes; // FIFO/2 : gioi han so BYTE cua mot burst
+
+    // ---- kieu burst & thuoc tinh AXI ----
+    bit        fixed;          // 1 = FIXED (XADDRINC == 0), 0 = INCR
+    bit     [1:0]          burst;   // gia tri AxBURST ky vong
+    bit     [3:0]          cache;   // MEMATTRHI -> AxCACHE
+    bit     [3:0]          inner;   // MEMATTRLO -> inner cache attr
+    bit     [2:0]          prot;    // {instruction, non-secure, privileged}
+    bit     [3:0]          qos;     // CHPRIO -> AxQOS
+    bit     [3:0]          region;
+    bit                    wakeup;  // Pending AXI5 activity indicator
+    bit     [1:0]          domain;  // SHAREATTR -> AxDOMAIN
+    bit  [CHID_WIDTH-1:0]  chid;    // SW configurable channel ID indication
+    bit     [7:0]          id;      // AxID = so channel
+
+    // ---- ban ghi QUAN SAT (out_rd/out_wr) : mo ta burst THUC TE tren bus ----
+    int        beats;
+
+    // ---- thong ke da thay tren bus cho phia nay ----
+    longint    seen_bytes;
+    int        seen_bursts;
+
     `uvm_object_utils(dma_axi_burst)
     function new(string name="dma_axi_burst"); super.new(name); endfunction
-    function int len();      return beats-1;           endfunction   // AxLEN
-    function int bytes();    return beats << size;      endfunction
+
+    function int  len();        return beats-1;      endfunction   // AxLEN
+    function int  beat_bytes(); return (1 << size);  endfunction
+    function longint end_addr();return addr_lo + total_bytes; endfunction
+
     function string convert2string();
-        return $sformatf("addr=0x%0h len=%0d size=%0d(%0dB) burst=%s",
-            addr, len(), size, (1<<size), fixed?"FIXED":"INCR");
+        return $sformatf(
+          "%s addr=0x%0h win=[0x%0h,0x%0h) bytes=%0d maxbeats=%0d(MAXBURSTLEN+1=%0d) fifo/2=%0dB %s cache=0x%0h inner=0x%0h prot=0b%03b domain=%0b id=%0d chid=%0d (beatsize lenh=%0dB, khong doi chieu)",
+          is_cmdlink ? (is_boot ? "BOOT-LINK" : "CMD-LINK") : (is_read ? "RD" : "WR"),
+          addr, addr_lo, addr_hi, total_bytes,
+          max_beats, maxburst_beats, fifo_max_bytes,
+          fixed ? "FIXED" : "INCR",
+          cache, inner, prot, domain, id, chid, (1<<size));
     endfunction
 endclass
 
@@ -94,17 +167,34 @@ class dma_ch_ctx extends uvm_object;
     dma_operation_mode_e mode_operation = SW_CONTROL_MODE;
     dma_golden_intent intent;             // command dang chay (null neu idle)
 
-    // predictor: chuoi burst AR/AW ky vong (pop khi thay tren bus)
-    dma_axi_burst    exp_rd[$];
-    dma_axi_burst    exp_wr[$];
+    // predictor: MOT ban ghi thuoc tinh cho moi phia (khong con hang doi burst)
+    dma_axi_burst    exp_rd;              // rang buoc cho moi AR du lieu
+    dma_axi_burst    exp_wr;              // rang buoc cho moi AW
+    dma_axi_burst    exp_link;            // rang buoc cho AR command-link ke tiep
+    bit              link_armed;          // dang cho mot lan fetch descriptor
 
-    // outstanding: pairing AR->R va AW->W de dat byte vao/ra ref-memory
+    // outstanding: pairing AR->R va AW->W de dat byte vao/ra ref-memory.
+    // Day KHONG phai du doan - la ban ghi giao dich THUC TE dang bay.
     dma_axi_burst    out_rd[$];           // AR da phat, cho R data
     dma_axi_burst    out_wr[$];           // AW da phat, cho W data
 
     // stream byte nguon (theo thu tu doc) -> nap vao ref-memory dich
     bit [7:0]        src_stream[$];
     longint          des_fill_ptr;         // con tro byte dich ke tiep can nap ky vong
+
+    //---- anh xa byte NGUON -> dia chi DICH ky vong ---------------------------
+    // Thay cho dest_base/dest_cap gan vao tung burst du doan (khong con nua):
+    // mot con tro chay theo dong/pass. Byte thu k doc duoc do vao des_ptr roi
+    // tien len; het dong thi nhay sang dong ke tiep theo DES stride.
+    bit              des_fixed;            // DESXADDRINC == 0 -> so sanh qua FIFO
+    longint          des_ptr;              // dia chi dich cho byte nguon ke tiep
+    longint          des_left;             // byte con nhan duoc cua dong dich
+    longint          src_left;             // byte nguon con lai cua dong hien tai
+    longint          des_line_base;        // dia chi goc cua dong dich hien tai
+    longint          des_line_bytes;       // so byte dich moi dong
+    longint          src_line_bytes;       // so byte nguon moi dong
+    longint          des_line_stride;      // buoc dia chi giua 2 dong dich
+    int              line_idx, line_count; // dong hien tai / tong so dong
 
     // bookkeeping
     longint          bytes_read  = 0;
@@ -119,6 +209,7 @@ class dma_ch_ctx extends uvm_object;
 
     // trang thai quan sat tu status/control bus
     bit              obs_enabled, obs_err, obs_stopped, obs_paused;
+    bit              obs_priv, obs_nonsec; // ch_priv / ch_nonsec -> AxPROT[1:0]
     bit              prev_enabled;         // activation-detector (rising edge ch_enabled)
 
     // peek counter gan nhat (kiem tra don dieu + bounds tai bien bus-event)
@@ -132,13 +223,20 @@ class dma_ch_ctx extends uvm_object;
     `uvm_object_utils(dma_ch_ctx)
     function new(string name="dma_ch_ctx"); super.new(name); endfunction
 
+    // Xoa command hien tai. exp_link/link_armed KHONG bi xoa: mot lenh co
+    // command-link da du doan truoc lan fetch descriptor ke tiep, ma lan fetch
+    // do xay ra SAU khi lenh nay ket thuc.
     function void clear_command();
         intent = null;
-        exp_rd.delete(); exp_wr.delete();
+        exp_rd = null; exp_wr = null;
         out_rd.delete(); out_wr.delete();
         src_stream.delete();
         des_fill_ptr = 0;
         bytes_read = 0; bytes_written = 0; exp_total_bytes = 0;
+        des_ptr = 0; des_left = 0; src_left = 0;
+        des_line_base = 0; des_line_bytes = 0; src_line_bytes = 0;
+        des_line_stride = 0; line_idx = 0; line_count = 0;
+        des_fixed = 0;
     endfunction
 endclass
 
@@ -289,6 +387,21 @@ class dma350_scoreboard extends uvm_scoreboard;
     dma_ref_memory refmem;                    // reference-memory dung chung
     int            num_channels = 1;          // lay tu config (mac dinh 1)
 
+    // ---- tham so build cua DUT can cho viec du doan thuoc tinh AXI ----------
+    // FIFO_DEPTH (so WORD bus) cua dma350_channel : FIFO/2 gioi han so byte mot
+    // burst duoc mang. Lay qua config_db de khop voi tham so RTL cua test.
+    int            fifo_depth_words = 16;
+    // So beat toi da cua mot lan fetch descriptor command-link:
+    // 1 header + 32 word thanh ghi (RTL doc suy doan het co, phan thua bi bo).
+    int            cmdlink_max_beats = 33;
+
+    // ---- autoboot : boot_en=1 thi lan doc command-link DAU TIEN cua Ch0 la
+    //      fetch descriptor tai boot_addr voi boot_memattr/boot_shareattr ------
+    bit            boot_en_seen = 0;
+    longint        boot_fetch_addr = 0;
+    bit [7:0]      boot_memattr = 0;
+    bit [1:0]      boot_shareattr = 0;
+
     axi_operation_e axi_operation = WRITE_READ;
 
     //---- INTENT tu dma350_predict_intent ------------------------------------
@@ -343,6 +456,9 @@ class dma350_scoreboard extends uvm_scoreboard;
         super.build_phase(phase);
         if (!uvm_config_db#(int)::get(this, "", "num_channels", num_channels))
             num_channels = 1;
+        // FIFO_DEPTH cua RTL (word bus). Mac dinh 16 nhu dma350_channel.
+        if (!uvm_config_db#(int)::get(this, "", "fifo_depth_words", fifo_depth_words))
+            fifo_depth_words = 16;
         void'(uvm_config_db#(ral_dma350)::get(this, "", "ral_dma_model", m_ral_dma_model));
         // vif status/control : nguon clock cho ky luat dinh thoi truoc peek
         if (!uvm_config_db#(virtual dma350_sc_if)::get(this, "", "sc_vif", m_sc_vif))
@@ -545,6 +661,14 @@ class dma350_scoreboard extends uvm_scoreboard;
             CH_GPOVAL0:     return m_ral_dma_model.dmach[ch].ch_gpoval0;
             CH_LINKADDR:    return m_ral_dma_model.dmach[ch].ch_linkaddr;
             CH_LINKADDRHI:  return m_ral_dma_model.dmach[ch].ch_linkaddrhi;
+            // command-link : thuoc tinh bo nho cua giao dich doc descriptor
+            CH_LINKATTR:    return m_ral_dma_model.dmach[ch].ch_linkattr;
+            CH_AUTOCFG:     return m_ral_dma_model.dmach[ch].ch_autocfg;
+            // template : quyet dinh beat size co duoc toi uu hay khong
+            CH_TMPLTCFG:    return m_ral_dma_model.dmach[ch].ch_tmpltcfg;
+            CH_SRCTMPLT:    return m_ral_dma_model.dmach[ch].ch_srctmplt;
+            CH_DESTMPLT:    return m_ral_dma_model.dmach[ch].ch_destmplt;
+            CH_STREAMINTCFG:return m_ral_dma_model.dmach[ch].ch_streamintcfg;
             CH_ERRINFO:     return m_ral_dma_model.dmach[ch].ch_errinfo;
             CH_GPOREAD0:    return m_ral_dma_model.dmach[ch].ch_gporead0;
             default:        return null;
@@ -720,175 +844,417 @@ class dma350_scoreboard extends uvm_scoreboard;
     endfunction
 
     //=========================================================================
-    // (3)(4) PREDICTOR : phan ra golden intent thanh chuoi burst AR/AW ky vong
-    // Port thuat toan calc_beats tu dma350_burst.sv (1KB breakpoint, MAX_BYTES,
-    // AxLEN<=256, MAXBURSTLEN, FIXED<=16).
+    // (3)(4) PREDICTOR : chot THUOC TINH AXI cho CA MOT COMMAND
+    //-------------------------------------------------------------------------
+    // Mot lenh = MOT ban ghi rang buoc cho AR + MOT cho AW (+ MOT cho lan fetch
+    // command-link ke tiep). Khong con phan ra thanh chuoi burst nen scoreboard
+    // KHONG phu thuoc vao viec RTL chia burst ra sao (FIFO, trigger, arbitration
+    // deu lam thay doi cach chia) - chi kiem cai ma kien truc BAT BUOC phai dung.
     //=========================================================================
-    function int calc_beats(int rem, longint cur_addr, int size,
-                            bit fixed, int max_beats);
-        int m = rem;
-        int b1k, bmax;
-        if (fixed) begin
-            if (m > 16) m = 16;
-        end else begin
-            b1k  = (1024 - (cur_addr & 32'h3FF)) >> size;     // beats toi bien 1KB
-            bmax = MAX_BYTES_PER_BURST >> size;               // cap payload
-            if (b1k  < m) m = b1k;
-            if (bmax < m) m = bmax;
-            if (m > 256)  m = 256;
-        end
-        if (max_beats < m) m = max_beats;
-        if (m <= 0) m = 1;
-        return m;
-    endfunction
 
-    // Phan ra 1 phia (read/write) cua MOT line thanh chuoi burst.
-    //   dest_base/dest_cap (chi read-side): byte dau cua line nay se duoc ghi
-    //   toi dest_base; byte vuot dest_cap la doc-thua (drain, khong vao ref-mem).
-    function void predict_side(int ch, longint start_addr, int total_beats,
-                               int size, bit fixed, int max_beats,
-                               int signed elem_inc, bit is_read,
-                               longint dest_base = 0, longint dest_cap = 0);
-        longint    cur = start_addr;
-        longint    dptr = dest_base;
-        int        rem = total_beats;
-        dma_axi_burst bd;
-        // neu increment=0 -> FIXED (dia chi khong tang)
-        bit        eff_fixed = fixed || (elem_inc == 0);
-        `uvm_info("SB_PRED_SIDE", $sformatf("total_beats = %d ",rem),UVM_LOW)
-        while (rem > 0) begin
-            int nb = calc_beats(rem, cur, size, eff_fixed, max_beats);
+    // do rong bus (byte / log2 byte)
+    function int bus_bytes(); return DATA_WIDTH/8;           endfunction
+    function int bus_log2();  return $clog2(DATA_WIDTH/8);   endfunction
+    // FIFO/2 : gioi han so byte mot burst duoc mang
+    function int fifo_half_bytes(); return (fifo_depth_words * bus_bytes()) / 2; endfunction
 
-            `uvm_info("SB_PRED_SIDE", $sformatf("calc_beats= %d: rem, cur, size, eff_fixed, max_beats = %d", max_beats, nb),UVM_LOW)
+    function longint min_l(longint a, longint b); return (a < b) ? a : b; endfunction
+    function longint max_l(longint a, longint b); return (a > b) ? a : b; endfunction
 
-            bd = dma_axi_burst::type_id::create("bd");
-            bd.addr = cur; bd.beats = nb; bd.size = size; bd.fixed = eff_fixed;
-            bd.dest_base = dptr; bd.dest_cap = dest_cap;
-            if (is_read) begin
-                ctx[ch].exp_rd.push_back(bd);
-                `uvm_info("SB_PRED_SIDE", $sformatf("exp_rd push %s -> dest 0x%0h..0x%0h",
-                          bd.convert2string(), dptr, dest_cap), UVM_LOW)
-            end
-            else begin
-                ctx[ch].exp_wr.push_back(bd);
-                `uvm_info("SB_PRED_SIDE", $sformatf("exp_wr push %s", bd.convert2string()), UVM_LOW)
-            end
-            if (!eff_fixed) cur += (nb << size);
-            dptr += (nb << size);          // dich luon tien theo byte da doc
-            rem -= nb;
-        end
-    endfunction
-
-    // Phan ra golden intent theo DUNG hinh hoc cua RTL (dma350_channel D_IDLE):
-    //   sb = src_xsize*unit ; db = des_xsize*unit
-    //   * 2D   (ysize>1)                : moi line doc sb / ghi db, base += stride
-    //   * WRAP (wrap_en && db>sb && sb>0): passes = ceil(db/sb); moi pass DOC LAI
-    //         du sb byte tu srcaddr (stride nguon = 0), GHI sb byte vao block
-    //         dich ke tiep (stride dich = sb); pass cuoi chi ghi db-(passes-1)*sb
-    //         (van doc du sb - phan thua bi FIFO-flush drain)
-    //   * CONTINUE                      : 1 pass, ghi min(sb,db)
-    //   * FILL                          : khong doc nguon, ghi du db
-    function void build_predicted_bursts(int ch);
+    //-------------------------------------------------------------------------
+    // HINH HOC mot phia cua lenh (theo dung dma350_channel D_IDLE):
+    //   sb = src_xsize*unit_s ; db = des_xsize*unit_d
+    //   * 2D   (ysize>1) : line_count = ysize, moi line doc sb / ghi db,
+    //                      dia chi goc moi line += stride
+    //   * WRAP (db>sb>0) : passes = ceil(db/sb), MOI pass doc lai du sb byte tu
+    //                      srcaddr -> tong doc = passes*sb, cua so dia chi doc
+    //                      van chi la [srcaddr, srcaddr+sb); ghi lien tuc db byte
+    //   * CONTINUE       : doc sb, ghi min(sb,db)
+    //   * FILL           : doc sb (nguon van duoc doc), ghi db (phan thieu = FILLVAL)
+    //-------------------------------------------------------------------------
+    function void side_geometry(int ch, bit is_read,
+                                output longint base, output longint line_bytes,
+                                output longint stride, output int lines,
+                                output longint total);
         dma_golden_intent gi = ctx[ch].intent;
-        int unit   = 1 << gi.src_transize;
-        longint sb = longint'(gi.src_xsize) * unit;   // tong byte nguon (1 line)
-        longint db = longint'(gi.des_xsize) * unit;   // tong byte dich
-        int max_rd = gi.src_maxburstlen + 1;
-        int max_wr = gi.des_maxburstlen + 1;
-        longint total_wr_bytes = 0;
-         `uvm_info("SB_PRED_BURST", $sformatf(
-                "CH%0d WRAP: sb=%0d db=%0d unit=%0d max_wr=%0d, max_rd=%0d",
-                ch, sb, db, unit, max_wr,max_rd), UVM_LOW)
-        if (gi.usestream && gi.streamtype == 2'b00) return;   // stream path: du doan qua AXI-Stream, khong AXI-M
+        longint sb = longint'(gi.src_xsize) << gi.src_transize;
+        longint db = longint'(gi.des_xsize) << gi.des_transize;
+        int     passes;
+        base = is_read ? gi.srcaddr : gi.desaddr;
+        lines = 1; stride = 0;
+        if (gi.ysize > 1) begin
+            lines      = gi.ysize;
+            line_bytes = is_read ? sb : db;
+            stride     = is_read ? gi.src_stride : gi.des_stride;
+            total      = line_bytes * lines;
+        end
+        else if (gi.wrap_en && (db > sb) && (sb > 0) && !gi.fill_en) begin
+            passes     = int'((db + sb - 1) / sb);
+            line_bytes = is_read ? sb : db;   // cua so dia chi cua mot pass
+            total      = is_read ? (sb * passes) : db;
+        end
+        else begin
+            line_bytes = is_read ? sb : (gi.fill_en ? db : min_l(sb, db));
+            total      = line_bytes;
+        end
+    endfunction
+
+    //-------------------------------------------------------------------------
+    // predict_side : DU DOAN THUOC TINH AXI CHO CA MOT PHIA CUA LENH.
+    // Khong con vong while phan ra tung burst - tra ve MOT ban ghi mo ta rang
+    // buoc ma MOI AR (is_read=1) / MOI AW (is_read=0) cua lenh phai thoa.
+    // KHONG du doan beat size / cach chia burst (xem ghi chu o dma_axi_burst).
+    //-------------------------------------------------------------------------
+    function dma_axi_burst predict_side(int ch, bit is_read);
+        dma_golden_intent gi = ctx[ch].intent;
+        dma_axi_burst     bd = dma_axi_burst::type_id::create(is_read?"exp_rd":"exp_wr");
+        int signed inc  = is_read ? gi.src_xaddrinc   : gi.des_xaddrinc;
+        int  chsize     = is_read ? gi.src_transize   : gi.des_transize;
+        int  mbl        = (is_read ? gi.src_maxburstlen : gi.des_maxburstlen) + 1;
+        longint base, line_bytes, stride, total;
+        longint last_base;
+        int  lines;
+
+        side_geometry(ch, is_read, base, line_bytes, stride, lines, total);
+
+        bd.valid       = 1;
+        bd.is_read     = is_read;
+        bd.is_cmdlink  = 0;
+        bd.addr        = base;
+        bd.total_bytes = total;
+
+        // ---- (c) cua so dia chi cua CHE DO lenh (1D / 2D / wrap / fill) ------
+        // 2D  : tu line dau den line cuoi, stride co the AM (lui) -> min/max
+        // wrap: doc lai cung mot vung nguon -> cua so chi bang mot pass
+        last_base   = base + stride * (lines - 1);
+        bd.addr_lo  = min_l(base, last_base);
+        bd.addr_hi  = max_l(base, last_base) + line_bytes;
+
+        // ---- kieu burst ------------------------------------------------------
+        bd.fixed = (inc == 0);
+        bd.burst = bd.fixed ? BURST_FIXED : BURST_INCR;
+
+        // ---- beat size cua lenh : CHI de log, KHONG dung de so sanh ---------
+        // RTL duoc phep gop beat len den do rong bus (toi uu) -> khong doi chieu.
+        bd.size = (chsize > bus_log2()) ? bus_log2() : chsize;
+
+        // ---- gioi han do dai burst -------------------------------------------
+        // Cac gioi han duoi KHONG phu thuoc beat size ma RTL chon:
+        //   * so BEAT <= MAXBURSTLEN+1, va <= 256 (INCR) / 16 (FIXED)
+        //   * so BYTE <= FIFO/2 va khong vat qua breakpoint 1KB (kiem o
+        //     check_axi_attr voi so byte THUC TE cua burst)
+        bd.maxburst_beats = mbl;                       // MAXBURSTLEN + 1
+        bd.fifo_max_bytes = fifo_half_bytes();         // FIFO/2 (byte)
+        bd.max_beats      = mbl;
+        if (bd.max_beats > 256)   bd.max_beats = 256;
+        if (bd.fixed && bd.max_beats > 16) bd.max_beats = 16;  // FIXED toi da 16
+        if (bd.max_beats < 1)     bd.max_beats = 1;
+
+        // ---- thuoc tinh AXI tu CH_*TRANSCFG + trang thai security channel ----
+        //   MEMATTRHI -> AxCACHE, MEMATTRLO -> inner, SHAREATTR -> AxDOMAIN
+        //   AxPROT[1] = NONSECATTR | ch_nonsec ; AxPROT[0] = PRIVATTR & ch_priv
+        //   AxPROT[2] = 0 (data access; chi command-link moi la instruction)
+        bd.cache  = is_read ? gi.src_cache  : gi.des_cache;
+        bd.inner  = is_read ? gi.src_inner  : gi.des_inner;
+        bd.domain = is_read ? gi.src_domain : gi.des_domain;
+        bd.prot   = {1'b0,
+                     (is_read ? gi.src_prot[1] : gi.des_prot[1]) | ctx[ch].obs_nonsec,
+                     (is_read ? gi.src_prot[0] : gi.des_prot[0]) & ctx[ch].obs_priv};
+        bd.qos    = gi.chprio;         // CHPRIO -> AxQOS (cat xuong 4 bit)
+        bd.id     = ch;                // AxID = so channel (TRM 4.3.2)
+        bd.chid   = ch;                // CHID mac dinh = chi so channel
+        bd.wakeup = 1'b1;      // co giao dich dang cho -> AWAKEUP phai len
+
+        `uvm_info("SB_PRED_SIDE", $sformatf("CH%0d %s", ch, bd.convert2string()), UVM_LOW)
+        return bd;
+    endfunction
+
+    //-------------------------------------------------------------------------
+    // predict_cmdlink : DU DOAN AR CUA MOT LAN FETCH DESCRIPTOR.
+    //   is_boot=1 : autoboot - dia chi = boot_addr, thuoc tinh = boot_memattr/
+    //               boot_shareattr (cung encoding voi LINKMEMATTR*/LINKSHAREATTR
+    //               vi autoboot chinh la mot command-link fetch), channel 0
+    //               Secure -> AxPROT[1] = 0.
+    //   is_boot=0 : command-link - dia chi = CH_LINKADDR (bo 2 bit thap, word
+    //               aligned), thuoc tinh = CH_LINKATTR.
+    // Chung cho ca hai:
+    //   arcmdlink = 1, AxPROT[2] = 1 (instruction access), AxBURST = INCR,
+    //   AxSIZE = do rong bus (TRANSIZE full bus cho command-link),
+    //   AxLEN+1 <= cmdlink_max_beats va khong vuot breakpoint 1KB.
+    //   Security/privilege lay theo TRANG THAI CHANNEL, khong theo transfer
+    //   property cua lenh.
+    //-------------------------------------------------------------------------
+    function dma_axi_burst predict_cmdlink(int ch, bit is_boot, longint faddr,
+                                           bit [3:0] memattr_hi, bit [3:0] memattr_lo,
+                                           bit [1:0] shareattr);
+        dma_axi_burst bd = dma_axi_burst::type_id::create("exp_link");
+        bd.valid      = 1;
+        bd.is_cmdlink = 1;
+        bd.is_boot    = is_boot;
+        bd.is_read    = 1;
+        bd.addr       = faddr & ~64'h3;     // descriptor word-aligned
+        bd.addr_lo    = bd.addr;
+        bd.fixed      = 0;
+        bd.burst      = BURST_INCR;
+        bd.size       = bus_log2();         // full bus width (chi de log)
+        // descriptor dai toi da 1 header + 32 word; neu no vat qua breakpoint
+        // 1KB thi RTL fetch tiep burst nua -> cua so dia chi bao het vung do.
+        bd.total_bytes= longint'(cmdlink_max_beats) << bd.size;
+        bd.addr_hi    = bd.addr_lo + bd.total_bytes;
+        bd.maxburst_beats = cmdlink_max_beats;   // command-link dung do dai max
+        bd.fifo_max_bytes = MAX_BYTES_PER_BURST; // khong di qua FIFO du lieu
+        bd.max_beats      = cmdlink_max_beats;
+        // thuoc tinh bo nho cua giao dich doc descriptor
+        bd.cache      = memattr_hi;
+        bd.inner      = memattr_lo;
+        bd.domain     = shareattr;
+        // AxPROT: [2]=1 instruction (command-link), [1]=non-secure cua channel,
+        // [0]=privileged cua channel. Autoboot Ch0 chay Secure -> [1]=0.
+        bd.prot       = {1'b1,
+                         is_boot ? 1'b0 : ctx[ch].obs_nonsec,
+                         ctx[ch].obs_priv};
+        bd.qos        = 4'h0;
+        bd.id         = ch;            // AxID = so channel dang fetch descriptor
+        bd.chid       = ch;
+        bd.wakeup     = 1'b1;
+        return bd;
+    endfunction
+
+    //-------------------------------------------------------------------------
+    // arm_cmdlink_from_regs : lenh HIEN TAI co command-link khong?
+    // CH_LINKADDR[0] = LINKADDREN. Neu bat thi lan doc co arcmdlink=1 KE TIEP
+    // chinh la fetch descriptor cua lenh nay -> chot san du doan de doi.
+    //-------------------------------------------------------------------------
+    task arm_cmdlink_from_regs(int ch);
+        bit [31:0] la_lo, la_hi, lattr;
+        longint    faddr;
+        peek_or_mirror(ch, CH_LINKADDR,   la_lo);
+        peek_or_mirror(ch, CH_LINKADDRHI, la_hi);
+        peek_or_mirror(ch, CH_LINKATTR,   lattr);
+        if (!la_lo[0]) begin           // LINKADDREN = 0 -> lenh cuoi cua chuoi
+            `uvm_info("SB_PRED_LINK", $sformatf(
+              "CH%0d LINKADDREN=0 : khong co lenh ke tiep", ch), UVM_HIGH)
+            return;
+        end
+        faddr = {la_hi, la_lo} & ~64'h3;
+        // CH_LINKATTR : [3:0] LINKMEMATTRLO, [7:4] LINKMEMATTRHI, [9:8] LINKSHAREATTR
+        ctx[ch].exp_link   = predict_cmdlink(ch, 1'b0, faddr,
+                                             lattr[7:4], lattr[3:0], lattr[9:8]);
+        ctx[ch].link_armed = 1;
+        `uvm_info("SB_PRED_LINK", $sformatf(
+          "CH%0d lenh hien tai CO command-link -> du doan fetch ke tiep: %s",
+          ch, ctx[ch].exp_link.convert2string()), UVM_LOW)
+    endtask
+
+    //-------------------------------------------------------------------------
+    // Anh xa byte NGUON -> dia chi DICH ky vong (thay dest_base/dest_cap cu).
+    // init_data_mapping() chot hinh hoc dong/pass mot lan luc activation, sau do
+    // moi byte R goi map_src_byte().
+    //-------------------------------------------------------------------------
+    function void init_data_mapping(int ch);
+        dma_golden_intent gi = ctx[ch].intent;
+        longint sbase, sline, sstride, stotal;
+        longint dbase, dline, dstride, dtotal;
+        int     slines, dlines;
+        side_geometry(ch, 1'b1, sbase, sline, sstride, slines, stotal);
+        side_geometry(ch, 1'b0, dbase, dline, dstride, dlines, dtotal);
+        ctx[ch].des_fixed       = (gi.des_xaddrinc == 0);
+        ctx[ch].line_count      = dlines;
+        ctx[ch].line_idx        = 0;
+        ctx[ch].des_line_base   = dbase;
+        ctx[ch].des_line_bytes  = dline;
+        ctx[ch].des_line_stride = dstride;
+        // so byte NGUON tuong ung mot dong dich (wrap: ca chuoi pass la 1 dong)
+        ctx[ch].src_line_bytes  = (dlines > 1) ? sline : stotal;
+        ctx[ch].des_ptr         = dbase;
+        ctx[ch].des_left        = dline;
+        ctx[ch].src_left        = ctx[ch].src_line_bytes;
+        ctx[ch].des_fill_ptr    = dbase;
+    endfunction
+
+    // dat 1 byte du kien tai vi tri dich hien tai (INCR: theo dia chi, FIXED:
+    // theo thu tu qua FIFO so sanh).
+    function void put_expected_byte(int ch, bit [7:0] d);
+        if (ctx[ch].des_fixed) refmem.exp_fifo.push_back(d);
+        else                   refmem.set_expected(ctx[ch].des_ptr, d);
+        ctx[ch].des_ptr++;
+        ctx[ch].des_left--;
+        ctx[ch].bytes_read++;
+    endfunction
+
+    // FILL: phan dich con thieu cua dong hien tai duoc bu bang FILLVAL theo lane
+    function void pad_fill_line(int ch);
+        if (ctx[ch].intent == null || !ctx[ch].intent.fill_en) return;
+        while (ctx[ch].des_left > 0)
+            put_expected_byte(ch, ctx[ch].intent.fillval[8*(ctx[ch].des_ptr % 4) +: 8]);
+    endfunction
+
+    // sang dong 2D / pass ke tiep
+    function void next_dest_line(int ch);
+        pad_fill_line(ch);
+        ctx[ch].line_idx++;
+        if (ctx[ch].line_idx < ctx[ch].line_count) begin
+            ctx[ch].des_line_base += ctx[ch].des_line_stride;
+            ctx[ch].des_ptr        = ctx[ch].des_line_base;
+            ctx[ch].des_left       = ctx[ch].des_line_bytes;
+            ctx[ch].src_left       = ctx[ch].src_line_bytes;
+        end
+        else begin
+            ctx[ch].des_left = 0; ctx[ch].src_left = 0;
+        end
+    endfunction
+
+    // mot byte nguon vua doc duoc: do vao dich neu dich con cho, con lai la
+    // byte doc-thua (SRCXSIZE > DESXSIZE, pass wrap cuoi) -> drain.
+    function void map_src_byte(int ch, bit [7:0] d);
+        if (ctx[ch].src_left <= 0) return;             // ngoai pham vi lenh
+        if (ctx[ch].des_left > 0) put_expected_byte(ch, d);
+        ctx[ch].src_left--;
+        if (ctx[ch].src_left == 0) next_dest_line(ch);
+    endfunction
+
+    //=========================================================================
+    // build_predicted_bursts : chot du doan cho CA LENH (goi 1 lan luc activate)
+    //   1) thuoc tinh AR / AW cua lenh
+    //   2) anh xa du lieu nguon -> dich
+    //   3) neu lenh co command-link : chot san du doan cho lan fetch ke tiep
+    //=========================================================================
+    task build_predicted_bursts(int ch);
+        dma_golden_intent gi = ctx[ch].intent;
+        longint sb = longint'(gi.src_xsize) << gi.src_transize;
+        longint db = longint'(gi.des_xsize) << gi.des_transize;
+        longint rd_total, wr_total;
+        longint dummy_base, dummy_line, dummy_stride;
+        int     dummy_lines;
 
         if(sb == 0 && db == 0) axi_operation = NOTHING_OCCUR;
         if(sb == 0 && db != 0) axi_operation = WRITE_ONLY;
         if(sb != 0 && db == 0) axi_operation = READ_ONLY;
         if(sb != 0 && db != 0) axi_operation = WRITE_READ;
-        // predict burst axi for 2D
-        if (gi.ysize > 1) begin
-            // ---- 2D that: passes = ysize, doc sb / ghi db moi line ----
-            longint sa = gi.srcaddr, da = gi.desaddr;
-            for (int y = 0; y < gi.ysize; y++) begin
-                // if (!gi.fill_en)
-                predict_side(ch, sa, gi.src_xsize, gi.src_transize, 1'b0,
-                                 max_rd, gi.src_xaddrinc, 1'b1, da, da + db);
-                predict_side(ch, da, gi.des_xsize, gi.des_transize, 1'b0,
-                             max_wr, gi.des_xaddrinc, 1'b0);
-                total_wr_bytes += db;
-                sa += gi.src_stride;
-                da += gi.des_stride;
-            end
-        end
-        // predict burst axi for 1D
-        else if (gi.wrap_en && (db > sb) && (sb > 0) && !gi.fill_en) begin
-            // ---- 1D WRAP: lap doc-lai nguon, dich tien tung block sb ----
-            int passes = (db + sb - 1) / sb;
-            for (int p = 0; p < passes; p++) begin
-                longint dbase = gi.desaddr + longint'(p) * sb; // address first line
-                longint wbytes = (p == passes-1) ? (db - longint'(passes-1)*sb) : sb; // total byte for last line
-                // doc: LUON du sb byte tu srcaddr (pass cuoi doc thua -> drain,
-                // gioi han boi dest_cap)
-                if(!gi.usestream || (gi.usestream && !(gi.streamtype == 2'b10))) begin  // using stream out for read data
-                    predict_side(ch, gi.srcaddr, gi.src_xsize, gi.src_transize, 1'b0,
-                             max_rd, gi.src_xaddrinc, 1'b1, dbase, dbase + wbytes);
-                end
-                // ghi: chi wbytes vao block dich nay
-                if(!gi.usestream ||(gi.usestream && !(gi.streamtype == 2'b01))) begin  // using stream out for write data
-                predict_side(ch, dbase, int'(wbytes) >> gi.des_transize,
-                             gi.des_transize, 1'b0, max_wr, gi.des_xaddrinc, 1'b0);
-                end
-                total_wr_bytes += wbytes;
-            end
-            `uvm_info("SB_PRED_BURST", $sformatf(
-                "CH%0d WRAP: sb=%0d db=%0d passes=%0d last=%0d",
-                ch, sb, db, passes, db - longint'(passes-1)*sb), UVM_LOW)
-        end
-        else begin
-            // ---- CONTINUE / FILL (1 pass) : ghi = fill? db : min(sb,db) ----
-            longint wbytes = gi.fill_en ? db : ((db < sb) ? db : sb);
-            `uvm_info("SB_PRED_BURST", $sformatf("longint wbytes = %d,gi.fill_en = %b",wbytes,gi.fill_en), UVM_LOW)
-            // if (!gi.fill_en)
-            if(!gi.usestream ||(gi.usestream && !(gi.streamtype == 2'b10))) begin  // using stream out for read data
-                predict_side(ch, gi.srcaddr, gi.src_xsize, gi.src_transize, 1'b0,
-                             max_rd, gi.src_xaddrinc, 1'b1,
-                             gi.desaddr, gi.desaddr + wbytes);
-                `uvm_info("SB_PRED_BURST", $sformatf("Push expect axi burst read for fill/continue"), UVM_LOW)
-            end
-            if(!gi.usestream ||(gi.usestream && !(gi.streamtype == 2'b01))) begin  // using stream out for write data
-                predict_side(ch, gi.desaddr, int'(wbytes) >> gi.des_transize,
-                         gi.des_transize, 1'b0, max_wr, gi.des_xaddrinc, 1'b0);
-                `uvm_info("SB_PRED_BURST", $sformatf("Push expect axi burst write for fill/continue"), UVM_LOW)
-            end
-            
-            total_wr_bytes = wbytes;
-            `uvm_info("SB_PRED_BURST", $sformatf(
-                "CH%0d FILL: sb=%0d db=%0d last=%0d",
-                ch, sb, db, db - sb), UVM_LOW)
 
-            // Set expect with write_only situation, no read occur and fillval will be set expect value
-            //if(((axi_operation == WRITE_ONLY) || (sb < db)) && gi.fill_en) begin
-            if(((axi_operation == WRITE_ONLY)) && gi.fill_en) begin
-                for (int i= 0; i< gi.des_xsize; i++) begin
-                    for (int b=0; b<unit; b++) begin
-                        if(ctx[ch].intent.des_xaddrinc != 0) begin
-                            longint dst = gi.desaddr + longint'(i)*unit + b;
-                                refmem.set_expected(dst, ctx[ch].intent.fillval[8*(b%4) +: 8]);
-                            ctx[ch].bytes_read++;
-                        end else begin
-                            refmem.exp_fifo.push_back(ctx[ch].intent.fillval[8*(b%4) +: 8]);
-                        end
-                    // if (!(gi.des_xaddrinc == 0)) a += unit;
-                    end
-                end
-            end
-            
+        // anh xa du lieu nguon -> dich (dung cho ca fill / wrap / 2D)
+        init_data_mapping(ch);
+
+        // stream path: du lieu di qua AXI-Stream, khong co giao dich AXI-M
+        if (gi.usestream && gi.streamtype == 2'b00) begin
+            arm_cmdlink_from_regs(ch);
+            return;
         end
+
+        // ---- (1) thuoc tinh AR cua lenh ------------------------------------
+        // streamtype=10 : phia doc lay tu stream -> khong co AR tren AXI-M
+        if (sb > 0 && (!gi.usestream || gi.streamtype != 2'b10))
+            ctx[ch].exp_rd = predict_side(ch, 1'b1);
+        // ---- (1) thuoc tinh AW cua lenh ------------------------------------
+        // streamtype=01 : phia ghi di ra stream -> khong co AW tren AXI-M
+        if (db > 0 && (!gi.usestream || gi.streamtype != 2'b01))
+            ctx[ch].exp_wr = predict_side(ch, 1'b0);
+
         // tong byte dich ky vong = tong byte GHI (dung cho check_status DONE)
-        ctx[ch].exp_total_bytes = total_wr_bytes;
-        `uvm_info("SB_PRED", $sformatf("CH%0d predicted %0d rd-burst, %0d wr-burst (%0d byte ghi)",
-                  ch, ctx[ch].exp_rd.size(), ctx[ch].exp_wr.size(),
-                  ctx[ch].exp_total_bytes), UVM_LOW)
+        side_geometry(ch, 1'b0, dummy_base, dummy_line, dummy_stride,
+                      dummy_lines, wr_total);
+        side_geometry(ch, 1'b1, dummy_base, dummy_line, dummy_stride,
+                      dummy_lines, rd_total);
+        ctx[ch].exp_total_bytes = wr_total;
+
+        // ---- (2) FILL khong co nguon: toan bo dich la FILLVAL --------------
+        if (gi.fill_en && rd_total == 0)
+            for (int y = 0; y < ctx[ch].line_count; y++) next_dest_line(ch);
+
+        // ---- (3) lenh nay co command-link khong? ---------------------------
+        arm_cmdlink_from_regs(ch);
+
+        `uvm_info("SB_PRED", $sformatf(
+          "CH%0d du doan CA LENH: rd=%0d byte, wr=%0d byte\n  RD: %s\n  WR: %s",
+          ch, rd_total, wr_total,
+          (ctx[ch].exp_rd != null) ? ctx[ch].exp_rd.convert2string() : "(khong co)",
+          (ctx[ch].exp_wr != null) ? ctx[ch].exp_wr.convert2string() : "(khong co)"),
+          UVM_LOW)
+    endtask
+
+    //=========================================================================
+    // KIEM RANG BUOC cho MOT AR/AW quan sat duoc so voi ban ghi du doan cua lenh
+    //=========================================================================
+    //   chid_sw = AxCHIDVALID : CHID do SW cau hinh (NSEC/SEC_CHCFG.CHID) chu
+    //             khong phai chi so channel -> bo qua so CHID trong truong hop do.
+    function void check_axi_attr(int ch, dma_axi_burst e, string tag,
+                                 longint a, int beats, int size, bit [1:0] burst,
+                                 bit [2:0] prot, bit [3:0] cache, bit [1:0] domain,
+                                 bit [3:0] inner, int id, int chid, bit chid_sw = 0);
+        longint bytes = longint'(beats) << size;
+        string  pfx   = $sformatf("CH%0d %s", ch, tag);
+
+        // ---- dia chi : trong cua so cua lenh ------------------------------
+        if (e.fixed) begin
+            if (a !== e.addr)
+                attr_err($sformatf("%s addr=0x%0h nhung FIXED phai giu 0x%0h",
+                                   pfx, a, e.addr));
+        end
+        else if (a < e.addr_lo || a >= e.addr_hi)
+            attr_err($sformatf("%s addr=0x%0h ngoai cua so lenh [0x%0h,0x%0h)",
+                               pfx, a, e.addr_lo, e.addr_hi));
+
+        // ---- beat size : KHONG doi chieu voi du doan ----------------------
+        // RTL duoc phep toi uu (gop beat len ca do rong bus). Chi giu luat AXI:
+        // AxSIZE khong duoc lon hon do rong bus.
+        if (size > bus_log2())
+            attr_err($sformatf("%s SIZE=%0d(%0dB) > do rong bus (%0dB)",
+                               pfx, size, (1<<size), bus_bytes()));
+        else if (size != e.size)
+            `uvm_info("SB_ATTR", $sformatf(
+              "%s SIZE=%0dB khac beatsize cua lenh (%0dB) - DMA toi uu, khong tinh la loi",
+              pfx, (1<<size), (1<<e.size)), UVM_HIGH)
+
+        // ---- do dai burst : MAXBURSTLEN (beat) / FIFO/2 va 1KB (byte) -----
+        if (beats > e.max_beats)
+            attr_err($sformatf(
+              "%s LEN+1=%0d > gioi han %0d beat (MAXBURSTLEN+1=%0d, INCR<=256 / FIXED<=16)",
+              pfx, beats, e.max_beats, e.maxburst_beats));
+        if (bytes > e.fifo_max_bytes)
+            attr_err($sformatf("%s burst mang %0d byte > FIFO/2 = %0d byte",
+                               pfx, bytes, e.fifo_max_bytes));
+        // breakpoint 1KB: mot burst INCR khong duoc vat qua bien 1KB
+        if (!e.fixed && (((a & 64'h3FF) + bytes) > 1024))
+            attr_err($sformatf("%s burst vat qua breakpoint 1KB: addr=0x%0h bytes=%0d",
+                               pfx, a, bytes));
+
+        // ---- kieu burst ---------------------------------------------------
+        if (burst !== e.burst)
+            attr_err($sformatf("%s BURST=%0b nhung du doan %s",
+                               pfx, burst, e.fixed ? "FIXED" : "INCR"));
+
+        // ---- thuoc tinh bo nho / bao mat ----------------------------------
+        if (prot !== e.prot)
+            attr_err($sformatf("%s PROT=0b%03b nhung du doan 0b%03b (instr/nonsec/priv)",
+                               pfx, prot, e.prot));
+        if (domain !== e.domain)
+            attr_err($sformatf("%s DOMAIN=%0b nhung du doan %0b (SHAREATTR)",
+                               pfx, domain, e.domain));
+        // AxCACHE cua VIP chi 2 bit -> so 2 bit thap cua MEMATTRHI
+        if (cache[1:0] !== e.cache[1:0])
+            attr_err($sformatf("%s CACHE=0x%0h nhung du doan 0x%0h (MEMATTRHI)",
+                               pfx, cache, e.cache));
+        if (inner !== e.inner)
+            `uvm_info("SB_ATTR", $sformatf("%s INNER=0x%0h (du doan 0x%0h MEMATTRLO)",
+                                           pfx, inner, e.inner), UVM_HIGH)
+        // ---- dinh danh channel --------------------------------------------
+        // AxID = so channel. CHID (User signal) cung bang chi so channel TRU KHI
+        // SW cau hinh CHID rieng (AxCHIDVALID=1) - luc do khong doi chieu.
+        if (id !== int'(e.id))
+            attr_err($sformatf("%s ID=%0d nhung du doan channel %0d", pfx, id, e.id));
+        if ((CHID_WIDTH > 0) && !chid_sw && (chid !== int'(e.chid)))
+            attr_err($sformatf("%s CHID=%0d nhung du doan %0d", pfx, chid, e.chid));
+
+        // ---- thong ke khoi luong -------------------------------------------
+        e.seen_bursts++;
+        e.seen_bytes += bytes;
+        if (!e.is_cmdlink && e.seen_bytes > e.total_bytes)
+            attr_err($sformatf("%s da chuyen %0d byte > du doan %0d byte cua lenh",
+                               pfx, e.seen_bytes, e.total_bytes));
+    endfunction
+
+    function void attr_err(string m);
+        `uvm_error("SB_ATTR", m) err_addr_mismatch++;
     endfunction
 
     //=========================================================================
@@ -939,62 +1305,78 @@ class dma350_scoreboard extends uvm_scoreboard;
     endtask
 
     //=========================================================================
-    // (3) COMPARATOR read-address : so AR thuc te voi burst du doan
+    // (3) COMPARATOR read-address : AR thuc te phai THOA ban ghi thuoc tinh
+    // cua lenh (khong con so tung burst mot).
     //=========================================================================
     task process_ar(axi5_slave_tx t, int port);
         int ch = ch_from_axi(t, 1'b1);
         int size = int'(t.arsize);
         int beats = int'(t.arlen) + 1;
         bit [1:0] burst = t.arburst; // enum base la bit[1:0]
-        dma_axi_burst exp, obs;
+        dma_axi_burst obs;
 
-        // (excl) command-link descriptor fetch (arcmdlink=1) : KHONG phai data
-        // read. Config lay bang BACKDOOR peek nen loai khoi so sanh burst; chi
-        // push marker de giu dong bo pairing voi R-channel.
+        // ---- COMMAND-LINK / AUTOBOOT FETCH (arcmdlink=1) --------------------
+        // Day la lan doc DESCRIPTOR, khong phai du lieu. So voi ban ghi da chot
+        // truoc do: hoac tu autoboot (boot_addr + boot_memattr/shareattr), hoac
+        // tu LINKADDR/LINKATTR cua lenh vua chay.
         if (t.arcmdlink) begin
+            if (!ctx[ch].link_armed || ctx[ch].exp_link == null) begin
+                `uvm_error("SB_AR_LINK", $sformatf(
+                  "CH%0d: AR command-link @0x%0h nhung KHONG co du doan (lenh truoc khong bat LINKADDREN va cung khong co autoboot)",
+                  ch, t.araddr))
+                err_addr_mismatch++;
+            end
+            else begin
+                check_axi_attr(ch, ctx[ch].exp_link,
+                               ctx[ch].exp_link.is_boot ? "AR BOOT-LINK" : "AR CMD-LINK",
+                               t.araddr, beats, size, burst,
+                               t.arprot, {2'b00, t.arcache}, t.ardomain, t.arinner,
+                               int'(t.arid), int'(t.archid), t.archidvalid);
+                `uvm_info("SB_AR_LINK", $sformatf(
+                  "CH%0d AR command-link @0x%0h len=%0d size=%0d (du doan %s)",
+                  ch, t.araddr, t.arlen, size,
+                  ctx[ch].exp_link.convert2string()), UVM_LOW)
+                // descriptor co the dai hon 1 burst (RTL fetch tiep). Chi ha co
+                // khi da doc het cua so descriptor du doan.
+                if (ctx[ch].exp_link.seen_bytes >= ctx[ch].exp_link.total_bytes)
+                    ctx[ch].link_armed = 0;
+            end
             obs = dma_axi_burst::type_id::create("obs");
             obs.addr=t.araddr; obs.beats=beats; obs.size=size;
             obs.fixed=(burst==BURST_FIXED); obs.is_cmdlink=1;
             ctx[ch].out_rd.push_back(obs);
             ctx[ch].outstanding_rd++;
-            `uvm_info("SB_AR", $sformatf(
-                "CH%0d AR cmd-link fetch @0x%0h (loai khoi data-path)", ch, t.araddr), UVM_HIGH)
             return;
         end
 
+        // ---- AR DU LIEU ------------------------------------------------------
         // (7) khong duoc co AR khi config-error hoac chua enable
         if (ctx[ch].state == CH_ST_DISABLED)
             `uvm_warning("SB_ORDER",
                 $sformatf("CH%0d: thay AR@0x%0h khi channel DISABLED", ch, t.araddr))
-        if (ctx[ch].exp_rd.size() == 0) begin
+        if (ctx[ch].exp_rd == null) begin
             `uvm_error("SB_AR", $sformatf(
-                "CH%0d: AR thua khong co du doan : addr=0x%0h len=%0d size=%0d",
+                "CH%0d: AR thua - lenh dang chay khong du doan co doc AXI : addr=0x%0h len=%0d size=%0d",
                 ch, t.araddr, t.arlen, size))
             err_addr_mismatch++;
         end
         else begin
-            `uvm_info("SB_AR", $sformatf("pop_front exp_rd queue"), UVM_LOW)
-            exp = ctx[ch].exp_rd.pop_front();
-            if (exp.addr !== t.araddr || exp.beats != beats || exp.size != size) begin
-                `uvm_error("SB_AR", $sformatf(
-                    "CH%0d AR mismatch\n  exp %s\n  act addr=0x%0h len=%0d size=%0d burst=%0d",
-                    ch, exp.convert2string(), t.araddr, t.arlen, size, burst))
-                err_addr_mismatch++;
-            end
-            else `uvm_info("SB_AR",
-                $sformatf("CH%0d AR OK %s", ch, exp.convert2string()), UVM_HIGH)
+            check_axi_attr(ch, ctx[ch].exp_rd, "AR", t.araddr, beats, size, burst,
+                           t.arprot, {2'b00, t.arcache}, t.ardomain, t.arinner,
+                           int'(t.arid), int'(t.archid), t.archidvalid);
+            // AR du lieu KHONG duoc dat arprot[2] (chi command-link la instruction)
+            if (t.arprot[2])
+                attr_err($sformatf(
+                  "CH%0d AR du lieu co PROT[2]=1 (instruction) nhung arcmdlink=0", ch));
+            `uvm_info("SB_AR", $sformatf(
+              "CH%0d AR @0x%0h len=%0d size=%0d (da doc %0d/%0d byte cua lenh)",
+              ch, t.araddr, t.arlen, size,
+              ctx[ch].exp_rd.seen_bytes, ctx[ch].exp_rd.total_bytes), UVM_HIGH)
         end
-        // outstanding de dat R data; mang theo anh xa dich tu burst du doan
+        // outstanding de dat R data (anh xa dich do map_src_byte lo)
         obs = dma_axi_burst::type_id::create("obs");
         obs.addr=t.araddr; obs.beats=beats; obs.size=size;
         obs.fixed=(burst==BURST_FIXED); obs.is_cmdlink=0;
-        if (exp != null) begin
-            obs.dest_base = exp.dest_base;   // predictor da tinh theo pass/line
-            obs.dest_cap  = exp.dest_cap;
-        end
-        else begin
-            obs.dest_base = 0; obs.dest_cap = 0;  // AR thua: khong anh xa data
-        end
         ctx[ch].out_rd.push_back(obs);
         ctx[ch].outstanding_rd++;
         peek_check_counters(ch);           // (6) peek live counter tai bien AR
@@ -1021,41 +1403,19 @@ class dma350_scoreboard extends uvm_scoreboard;
                 "CH%0d R cmd-link descriptor (loai khoi ref-memory)", ch), UVM_HIGH)
             return;
         end
+        if (ctx[ch].intent == null) return;
         size = ob.size; bpb = (1<<size);
         nbeats = t.rdata.size();               // so beat thuc su co data
         a = ob.addr;
-        // Anh xa du lieu theo ke hoach cua PREDICTOR (dest_base/dest_cap tinh
-        // theo pass/line): byte thu k cua burst -> dest_base+k. Dung cho ca
-        // wrap (moi pass co dest block rieng), 2D va continue. Byte vuot
-        // dest_cap la doc-thua (wrap pass cuoi / continue des<src) -> drain.
+        // Anh xa du lieu KHONG con lay tu burst du doan (khong con dest_base/
+        // dest_cap): moi byte nguon doc duoc di qua map_src_byte(), no tu dat
+        // vao dia chi dich hien tai, tu nhay dong 2D / pass wrap, tu bu FILLVAL
+        // khi dich con thieu, va tu drain byte doc-thua (SRCXSIZE > DESXSIZE).
         for (int i=0; i<nbeats; i++) begin
             bit [DATA_WIDTH-1:0] beat = t.rdata[i];
-            for (int b=0; b<bpb; b++) begin
-                if(ctx[ch].intent.des_xaddrinc != 0) begin
-                    longint dst = ob.dest_base + longint'(i)*bpb + b;
-                    if (dst < ob.dest_cap)
-                        refmem.set_expected(dst, beat[8*b +: 8]);
-                    ctx[ch].bytes_read++;
-                end else begin
-                    refmem.exp_fifo.push_back(beat[8*b +: 8]);
-                end
-            end
+            for (int b=0; b<bpb; b++)
+                map_src_byte(ch, beat[8*b +: 8]);
             if (!ob.fixed) a += bpb;
-        end
-        // fetch expect value to queue array with fill transfer
-        if(gi_fill_only(ch) && (ctx[ch].intent.src_xsize < ctx[ch].intent.des_xsize)) begin
-            for (int i= nbeats; i< ctx[ch].intent.des_xsize; i++) begin
-                for (int b=0; b<bpb; b++) begin
-                    if(ctx[ch].intent.des_xaddrinc != 0) begin
-                        longint dst = ob.dest_base + longint'(i)*bpb + b;
-                            refmem.set_expected(dst, ctx[ch].intent.fillval[8*(b%4) +: 8]);
-                        ctx[ch].bytes_read++;
-                    end else begin
-                        refmem.exp_fifo.push_back(ctx[ch].intent.fillval[8*(b%4) +: 8]);
-                    end
-                end
-                if (!ob.fixed) a += bpb;
-            end
         end
 
         peek_check_counters(ch);           // (6) peek live counter tai bien R
@@ -1069,26 +1429,25 @@ class dma350_scoreboard extends uvm_scoreboard;
         int size = int'(t.awsize);
         int beats = int'(t.awlen) + 1;
         bit [1:0] burst = t.awburst;
-        dma_axi_burst exp, obs;
-        if (gi_fill_only(ch)) begin
-            // FILL: khong doc nguon nhung van du doan write; van so binh thuong
-        end
-        if (ctx[ch].exp_wr.size() == 0) begin
+        dma_axi_burst obs;
+        if (ctx[ch].exp_wr == null) begin
             `uvm_error("SB_AW", $sformatf(
-                "CH%0d: AW thua khong co du doan : addr=0x%0h len=%0d size=%0d",
+                "CH%0d: AW thua - lenh dang chay khong du doan co ghi AXI : addr=0x%0h len=%0d size=%0d",
                 ch, t.awaddr, t.awlen, size))
             err_addr_mismatch++;
         end
         else begin
-            exp = ctx[ch].exp_wr.pop_front();
-            if (exp.addr !== t.awaddr || exp.beats != beats || exp.size != size) begin
-                `uvm_error("SB_AW", $sformatf(
-                    "CH%0d AW mismatch  exp %s,  act addr=0x%0h len=%0d size=%0d",
-                    ch, exp.convert2string(), t.awaddr, t.awlen, size))
-                err_addr_mismatch++;
-            end
-            else `uvm_info("SB_AW",
-                $sformatf("CH%0d AW OK %s", ch, exp.convert2string()), UVM_HIGH)
+            check_axi_attr(ch, ctx[ch].exp_wr, "AW", t.awaddr, beats, size, burst,
+                           t.awprot, {2'b00, t.awcache}, t.awdomain, t.awinner,
+                           int'(t.awid), int'(t.awchid), t.awchidvalid);
+            // AWAKEUP: con giao dich dang cho -> phai duoc keo len
+            if (ctx[ch].exp_wr.wakeup && !t.awakeup)
+                `uvm_info("SB_AW", $sformatf(
+                  "CH%0d AWAKEUP=0 trong khi con giao dich AXI dang cho", ch), UVM_HIGH)
+            `uvm_info("SB_AW", $sformatf(
+              "CH%0d AW @0x%0h len=%0d size=%0d (da ghi %0d/%0d byte cua lenh)",
+              ch, t.awaddr, t.awlen, size,
+              ctx[ch].exp_wr.seen_bytes, ctx[ch].exp_wr.total_bytes), UVM_HIGH)
         end
         obs = dma_axi_burst::type_id::create("obs");
         obs.addr=t.awaddr; obs.beats=beats; obs.size=size;
@@ -1347,6 +1706,10 @@ class dma350_scoreboard extends uvm_scoreboard;
                   ch, en, exp_en, ctx[ch].state.name()), UVM_HIGH)
             ctx[ch].obs_enabled = en; ctx[ch].obs_err = er;
             ctx[ch].obs_stopped = sp; ctx[ch].obs_paused = pa;
+            // security/privilege cua channel -> AxPROT[1:0] cua ca data lan
+            // command-link (attribute command-link dung state cua channel).
+            ctx[ch].obs_priv    = t.ch_priv[ch];
+            ctx[ch].obs_nonsec  = t.ch_nonsec[ch];
             if (er) ctx[ch].state = CH_ST_ERROR;
             // (4) GPO: gia tri gpo_ch phai khop GPOVAL0 & GPOEN0 khi USEGPO
             check_gpo(ch, t.gpo_ch[ch]);
@@ -1412,12 +1775,31 @@ class dma350_scoreboard extends uvm_scoreboard;
     //=========================================================================
     // (2) BOOT : autoboot nap golden intent cho Ch0
     //=========================================================================
+    // AUTOBOOT: boot_en=1 => Ch0 tu fetch DESCRIPTOR tai boot_addr ngay sau
+    // reset, KHONG can SW ghi thanh ghi nao. Lan doc arcmdlink=1 DAU TIEN cua
+    // Ch0 chinh la lan doc command description do -> chot du doan ngay day.
+    // boot_memattr[7:0] dung chung encoding voi LINKMEMATTRHI+LINKMEMATTRLO va
+    // boot_shareattr[1:0] voi LINKSHAREATTR (cung mot loai giao dich: descriptor
+    // fetch), nen dung chung predict_cmdlink().
     task process_boot(boot_seq_item t);
-        if (t.boot_en)
-            `uvm_info("SB_BOOT", $sformatf(
-              "autoboot Ch0 tu descriptor @0x%0h - se decode command-link qua AR",
-              {t.boot_addr,2'b00}), UVM_MEDIUM)
-        // fetch descriptor se xuat hien tren AR (arcmdlink=1) -> decode o process_ar
+        bit [7:0] ma;
+        if (!t.boot_en) begin
+            boot_en_seen = 0;
+            `uvm_info("SB_BOOT", "boot_en=0 : khong co autoboot", UVM_HIGH)
+            return;
+        end
+        ma              = t.memattr();
+        boot_en_seen    = 1;
+        boot_fetch_addr = {t.boot_addr, 2'b00};
+        boot_memattr    = ma;
+        boot_shareattr  = t.shareattr;
+        // Ch0 boot Secure (TRM 4.9.1) -> AxPROT[1]=0, xu ly trong predict_cmdlink
+        ctx[0].exp_link   = predict_cmdlink(0, 1'b1, boot_fetch_addr,
+                                            ma[7:4], ma[3:0], t.shareattr);
+        ctx[0].link_armed = 1;
+        `uvm_info("SB_BOOT", $sformatf(
+          "autoboot Ch0: doc command description @0x%0h, du doan %s",
+          boot_fetch_addr, ctx[0].exp_link.convert2string()), UVM_LOW)
     endtask
 
     //=========================================================================
@@ -1437,17 +1819,24 @@ class dma350_scoreboard extends uvm_scoreboard;
     //=========================================================================
     function void check_phase(uvm_phase phase);
         super.check_phase(phase);
-        // AR/AW du doan chua tieu thu het = giao dich THIEU
+        // Du doan la theo CA LENH: cuoi test tong byte da thay tren bus phai
+        // bang tong byte du doan cua lenh cuoi cung (thieu = lenh chua chay het).
         foreach (ctx[ch]) begin
             if (ch >= num_channels) continue;
-            if (ctx[ch].exp_rd.size() > 0)
+            if (ctx[ch].exp_rd != null && ctx[ch].exp_rd.seen_bytes < ctx[ch].exp_rd.total_bytes)
                 `uvm_error("SB_EOT", $sformatf(
-                  "CH%0d con %0d read-burst du doan CHUA thay tren bus",
-                  ch, ctx[ch].exp_rd.size()))
-            if (ctx[ch].exp_wr.size() > 0)
+                  "CH%0d read-side moi thay %0d/%0d byte tren bus (%0d burst)",
+                  ch, ctx[ch].exp_rd.seen_bytes, ctx[ch].exp_rd.total_bytes,
+                  ctx[ch].exp_rd.seen_bursts))
+            if (ctx[ch].exp_wr != null && ctx[ch].exp_wr.seen_bytes < ctx[ch].exp_wr.total_bytes)
                 `uvm_error("SB_EOT", $sformatf(
-                  "CH%0d con %0d write-burst du doan CHUA thay tren bus",
-                  ch, ctx[ch].exp_wr.size()))
+                  "CH%0d write-side moi thay %0d/%0d byte tren bus (%0d burst)",
+                  ch, ctx[ch].exp_wr.seen_bytes, ctx[ch].exp_wr.total_bytes,
+                  ctx[ch].exp_wr.seen_bursts))
+            if (ctx[ch].link_armed)
+                `uvm_error("SB_EOT", $sformatf(
+                  "CH%0d da du doan mot lan fetch command-link (%s) nhung KHONG thay AR arcmdlink tren bus",
+                  ch, (ctx[ch].exp_link != null) ? ctx[ch].exp_link.convert2string() : ""))
             if (ctx[ch].outstanding_rd != 0 || ctx[ch].outstanding_wr != 0)
                 `uvm_error("SB_EOT", $sformatf(
                   "CH%0d con outstanding rd=%0d wr=%0d", ch,

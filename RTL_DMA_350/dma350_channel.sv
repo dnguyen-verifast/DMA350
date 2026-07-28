@@ -586,6 +586,7 @@ module dma350_channel import dma350_pkg::*; #(
     reg [5:0]            link_words_needed, link_words_got;
     reg [5:0]            apply_b, apply_idx;     // command-link replay walker
     reg                  apply_first;
+    reg                  link_hdr_err;   // bad header: drain the burst, then error
 
     // number of data words a command-link header implies = set bits that carry
     // a word (REGCLEAR bit0 and reserved bits 1/23/25/27 carry none).
@@ -595,6 +596,27 @@ module dma350_channel import dma350_pkg::*; #(
             if (hdr[k] && (link_bit_off(k) != 8'hFF)) c += 1'b1;
         return c;
     endfunction
+
+    // ---- command-link fetch burst sizing --------------------------------
+    // Fetch the descriptor with ONE long burst rather than a read per word:
+    // the header comes back together with its data words, so it is decoded
+    // from data already sitting in the buffer and the whole descriptor costs a
+    // single round-trip. The header length is not known when the address is
+    // issued, so speculatively request the most a descriptor can occupy
+    // (1 header + 32 register words); any beat past the end of the descriptor
+    // is simply dropped - reading a few surplus words is far cheaper than a
+    // second round-trip. Words are consumed strictly in the order received.
+    localparam int LINK_MAX_BEATS = 33;                    // header + 32 words
+    wire [8:0] link_want = (link_word_idx == 6'd0)
+                         ? LINK_MAX_BEATS[8:0]             // header not yet seen
+                         : {3'd0, (link_words_needed - link_words_got)};
+    // one 32-bit word per beat; never cross the DMA-350 1KB burst breakpoint
+    wire [10:0] link_d1k = 11'd1024 - {1'b0, link_fetch_addr[9:0]};
+    wire [8:0]  link_b1k = link_d1k[10:2];
+    wire [8:0]  link_beats = (link_want == 9'd0)        ? 9'd1
+                           : (link_b1k  == 9'd0)        ? 9'd1
+                           : (link_want < link_b1k)     ? link_want : link_b1k;
+    wire [8:0]  link_len9  = link_beats - 9'd1;           // AxLEN = beats - 1
 
     // compute beats-per-line for the latched config
     function automatic [23:0] beats_of(input [31:0] bytes, input [2:0] sz);
@@ -654,7 +676,7 @@ module dma350_channel import dma350_pkg::*; #(
             paused_req<=0; trigout_started<=0; restart_cnt<=0; restart_inf<=0;
             live_we<=0; iwr_en<=0; iwr_off<=0; iwr_data<=0; iwr_regclear<=0;
             apply_b<=0; apply_idx<=0; apply_first<=0;
-            link_fetch_addr<=0; link_word_idx<=0;
+            link_fetch_addr<=0; link_word_idx<=0; link_hdr_err<=0;
             link_words_needed<=0; link_words_got<=0;
             src_trig_take<=0; des_trig_take<=0; trigout_start<=0;
             src_trig_take_last<=0; des_trig_take_last<=0;
@@ -846,7 +868,7 @@ module dma350_channel import dma350_pkg::*; #(
                     if (boot_req && !stop_eff) begin
                         ch_enabled<=1'b1; errinfo<=0;
                         link_fetch_addr<={boot_addr_i[ADDR_WIDTH-1:1],1'b0};
-                        link_word_idx<=0; link_words_got<=0;
+                        link_word_idx<=0; link_words_got<=0; link_hdr_err<=0;
                         ds<=D_LINK_AR;
                     end else if (enablecmd && !clr_enablecmd && !stop_eff) begin
                         // !clr_enablecmd: the auto-clear of ENABLECMD lands one
@@ -1305,7 +1327,7 @@ module dma350_channel import dma350_pkg::*; #(
                         ds <= D_RESTART;
                     end else if (linkaddren) begin
                         link_fetch_addr <= {linkaddr[ADDR_WIDTH-1:1],1'b0};
-                        link_word_idx<=0; link_words_got<=0;
+                        link_word_idx<=0; link_words_got<=0; link_hdr_err<=0;
                         ds <= D_LINK_AR;
                     end else if (donepauseen) begin
                         ds <= D_DONEPAUSE;
@@ -1335,46 +1357,78 @@ module dma350_channel import dma350_pkg::*; #(
                 end
 
                 //----------------------------------------------------------
+                // Issue ONE long burst covering header + data words (see the
+                // link_beats sizing above) instead of a single-beat read per word.
                 D_LINK_AR: begin
                     link_rd_active <= 1'b1;
                     m_axi_arsize  <= LOG2BPB[2:0];
                     m_axi_arburst <= AXBURST_INCR;
                     if (err_pending) begin link_rd_active<=1'b0; ds<=D_ERR; end
                     else if (!m_axi_arvalid) begin
-                        m_axi_araddr<=link_fetch_addr; m_axi_arlen<=8'd0; m_axi_arvalid<=1'b1;
+                        m_axi_araddr <= link_fetch_addr;
+                        m_axi_arlen  <= link_len9[7:0];
+                        m_axi_arvalid<= 1'b1;
                     end else if (ar_fire) begin
                         m_axi_arvalid<=1'b0; ds<=D_LINK_R;
                     end
                 end
-                D_LINK_R: begin
+                // Consume the burst beat by beat. The first beat of the FIRST
+                // burst is the header: decode it on the fly, then map each
+                // following word into link_words[] strictly in the order
+                // received. Once the header's word count is satisfied the
+                // remaining beats of the burst are accepted and dropped (a
+                // burst must always be drained to RLAST), so a descriptor that
+                // is shorter than the speculative burst costs nothing extra.
+                D_LINK_R: begin : link_r_state
+                    logic [5:0] nx_needed, nx_got;
+                    logic       hdr_bad;
                     link_rd_active <= 1'b1;
-                    if (err_pending) begin link_rd_active<=1'b0; ds<=D_ERR; end
-                    else if (r_fire) begin
-                        if (link_word_idx==0) begin
-                            link_hdr<=m_axi_rdata;
-                            link_words_needed<=count_link_words(m_axi_rdata);
-                            // an all-zero header is an invalid command-link header
-                            if (m_axi_rdata == 32'h0) begin
+                    if (r_fire) begin
+                        hdr_bad   = (link_word_idx == 6'd0) && (m_axi_rdata[31:0] == 32'h0);
+                        nx_needed = (link_word_idx == 6'd0)
+                                    ? count_link_words(m_axi_rdata[31:0])
+                                    : link_words_needed;
+                        nx_got    = ((link_word_idx != 6'd0) &&
+                                     (link_words_got < link_words_needed))
+                                    ? (link_words_got + 6'd1) : link_words_got;
+
+                        if (link_word_idx == 6'd0) begin
+                            link_hdr          <= m_axi_rdata[31:0];
+                            link_words_needed <= nx_needed;
+                            // an all-zero header is an invalid command-link header;
+                            // flag it but keep draining until RLAST
+                            if (hdr_bad) begin
                                 errinfo[EI_CFGERR]     <= 1'b1;
                                 errinfo[EI_LINKHDRERR] <= 1'b1;
-                                err_pending <= 1'b1;
+                                link_hdr_err           <= 1'b1;
+                            end
+                        end else if (link_words_got < link_words_needed) begin
+                            link_words[link_words_got] <= m_axi_rdata[31:0];
+                            link_words_got             <= nx_got;
+                        end
+                        // else: beat beyond the descriptor -> accepted and dropped
+
+                        link_word_idx   <= link_word_idx + 1'b1;
+                        link_fetch_addr <= link_fetch_addr + 4;
+
+                        // A burst must always be drained to RLAST, so errors are
+                        // never acted on mid-burst (dropping RREADY early would
+                        // stall the bus); they are resolved here at the boundary.
+                        if (m_axi_rlast) begin
+                            if (link_hdr_err | hdr_bad) begin
+                                err_pending    <= 1'b1;
                                 link_rd_active <= 1'b0;
                                 ds <= D_ERR;
-                            end else if (count_link_words(m_axi_rdata) == 0) begin
-                                // header with no data words: nothing to fetch
+                            end else if (err_pending) begin
+                                link_rd_active <= 1'b0;
+                                ds <= D_ERR;             // bus error during the fetch
+                            end else if (nx_got >= nx_needed) begin
                                 link_rd_active<=1'b0; apply_first<=1'b1; apply_idx<=0;
-                                ds <= D_LINK_APPLY;
-                            end else ds <= D_LINK_AR;
-                        end else begin
-                            link_words[link_word_idx-1]<=m_axi_rdata;
-                            link_words_got<=link_words_got+1'b1;
-                            if (link_words_got+1>=link_words_needed) begin
-                                link_rd_active<=1'b0; apply_first<=1'b1; apply_idx<=0;
-                                ds<=D_LINK_APPLY;
-                            end else ds<=D_LINK_AR;
+                                ds <= D_LINK_APPLY;      // whole descriptor in hand
+                            end else begin
+                                ds <= D_LINK_AR;         // descriptor spans another burst
+                            end
                         end
-                        link_word_idx<=link_word_idx+1'b1;
-                        link_fetch_addr<=link_fetch_addr+4;
                     end
                 end
                 D_LINK_APPLY: begin

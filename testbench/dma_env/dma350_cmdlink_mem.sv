@@ -70,7 +70,7 @@ package dma350_cmdlink_mem_pkg;
   // Dia chi goc cua vung command link trong system memory.
   // Doi lai neu memory map cua TB khac.
   //--------------------------------------------------------------------------
-  localparam longint unsigned CMDLINK_BASE = 64'h0000_2000;
+  localparam longint unsigned CMDLINK_BASE = 64'h0000_0000_0000_2000;
 
   // Dia chi vung du lieu dung cho cac lenh copy trong vi du
   localparam bit [31:0] SRC_BUF_0 = 32'h0001_0000;
