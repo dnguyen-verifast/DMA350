@@ -1186,75 +1186,104 @@ class dma350_scoreboard extends uvm_scoreboard;
 
         // ---- dia chi : trong cua so cua lenh ------------------------------
         if (e.fixed) begin
-            if (a !== e.addr)
-                attr_err($sformatf("%s addr=0x%0h nhung FIXED phai giu 0x%0h",
-                                   pfx, a, e.addr));
+            if (a !== e.addr) begin
+                `uvm_error("SB_ATTR", $sformatf(
+                  "%s addr=0x%0h nhung FIXED phai giu 0x%0h", pfx, a, e.addr))
+                err_addr_mismatch++;
+            end
         end
-        else if (a < e.addr_lo || a >= e.addr_hi)
-            attr_err($sformatf("%s addr=0x%0h ngoai cua so lenh [0x%0h,0x%0h)",
-                               pfx, a, e.addr_lo, e.addr_hi));
+        else if (a < e.addr_lo || a >= e.addr_hi) begin
+            `uvm_error("SB_ATTR", $sformatf(
+              "%s addr=0x%0h ngoai cua so lenh [0x%0h,0x%0h)",
+              pfx, a, e.addr_lo, e.addr_hi))
+            err_addr_mismatch++;
+        end
 
         // ---- beat size : KHONG doi chieu voi du doan ----------------------
         // RTL duoc phep toi uu (gop beat len ca do rong bus). Chi giu luat AXI:
         // AxSIZE khong duoc lon hon do rong bus.
-        if (size > bus_log2())
-            attr_err($sformatf("%s SIZE=%0d(%0dB) > do rong bus (%0dB)",
-                               pfx, size, (1<<size), bus_bytes()));
+        if (size > bus_log2()) begin
+            `uvm_error("SB_ATTR", $sformatf(
+              "%s SIZE=%0d(%0dB) > do rong bus (%0dB)",
+              pfx, size, (1<<size), bus_bytes()))
+            err_addr_mismatch++;
+        end
         else if (size != e.size)
             `uvm_info("SB_ATTR", $sformatf(
               "%s SIZE=%0dB khac beatsize cua lenh (%0dB) - DMA toi uu, khong tinh la loi",
               pfx, (1<<size), (1<<e.size)), UVM_HIGH)
 
         // ---- do dai burst : MAXBURSTLEN (beat) / FIFO/2 va 1KB (byte) -----
-        if (beats > e.max_beats)
-            attr_err($sformatf(
+        if (beats > e.max_beats) begin
+            `uvm_error("SB_ATTR", $sformatf(
               "%s LEN+1=%0d > gioi han %0d beat (MAXBURSTLEN+1=%0d, INCR<=256 / FIXED<=16)",
-              pfx, beats, e.max_beats, e.maxburst_beats));
-        if (bytes > e.fifo_max_bytes)
-            attr_err($sformatf("%s burst mang %0d byte > FIFO/2 = %0d byte",
-                               pfx, bytes, e.fifo_max_bytes));
+              pfx, beats, e.max_beats, e.maxburst_beats))
+            err_addr_mismatch++;
+        end
+        if (bytes > e.fifo_max_bytes) begin
+            `uvm_error("SB_ATTR", $sformatf(
+              "%s burst mang %0d byte > FIFO/2 = %0d byte",
+              pfx, bytes, e.fifo_max_bytes))
+            err_addr_mismatch++;
+        end
         // breakpoint 1KB: mot burst INCR khong duoc vat qua bien 1KB
-        if (!e.fixed && (((a & 64'h3FF) + bytes) > 1024))
-            attr_err($sformatf("%s burst vat qua breakpoint 1KB: addr=0x%0h bytes=%0d",
-                               pfx, a, bytes));
+        if (!e.fixed && (((a & 64'h3FF) + bytes) > 1024)) begin
+            `uvm_error("SB_ATTR", $sformatf(
+              "%s burst vat qua breakpoint 1KB: addr=0x%0h bytes=%0d", pfx, a, bytes))
+            err_addr_mismatch++;
+        end
 
         // ---- kieu burst ---------------------------------------------------
-        if (burst !== e.burst)
-            attr_err($sformatf("%s BURST=%0b nhung du doan %s",
-                               pfx, burst, e.fixed ? "FIXED" : "INCR"));
+        if (burst !== e.burst) begin
+            `uvm_error("SB_ATTR", $sformatf(
+              "%s BURST=%0b nhung du doan %s", pfx, burst, e.fixed ? "FIXED" : "INCR"))
+            err_addr_mismatch++;
+        end
 
         // ---- thuoc tinh bo nho / bao mat ----------------------------------
-        if (prot !== e.prot)
-            attr_err($sformatf("%s PROT=0b%03b nhung du doan 0b%03b (instr/nonsec/priv)",
-                               pfx, prot, e.prot));
-        if (domain !== e.domain)
-            attr_err($sformatf("%s DOMAIN=%0b nhung du doan %0b (SHAREATTR)",
-                               pfx, domain, e.domain));
+        if (prot !== e.prot) begin
+            `uvm_error("SB_ATTR", $sformatf(
+              "%s PROT=0b%03b nhung du doan 0b%03b (instr/nonsec/priv)",
+              pfx, prot, e.prot))
+            err_addr_mismatch++;
+        end
+        if (domain !== e.domain) begin
+            `uvm_error("SB_ATTR", $sformatf(
+              "%s DOMAIN=%0b nhung du doan %0b (SHAREATTR)", pfx, domain, e.domain))
+            err_addr_mismatch++;
+        end
         // AxCACHE cua VIP chi 2 bit -> so 2 bit thap cua MEMATTRHI
-        if (cache[1:0] !== e.cache[1:0])
-            attr_err($sformatf("%s CACHE=0x%0h nhung du doan 0x%0h (MEMATTRHI)",
-                               pfx, cache, e.cache));
+        if (cache[1:0] !== e.cache[1:0]) begin
+            `uvm_error("SB_ATTR", $sformatf(
+              "%s CACHE=0x%0h nhung du doan 0x%0h (MEMATTRHI)", pfx, cache, e.cache))
+            err_addr_mismatch++;
+        end
         if (inner !== e.inner)
             `uvm_info("SB_ATTR", $sformatf("%s INNER=0x%0h (du doan 0x%0h MEMATTRLO)",
                                            pfx, inner, e.inner), UVM_HIGH)
         // ---- dinh danh channel --------------------------------------------
         // AxID = so channel. CHID (User signal) cung bang chi so channel TRU KHI
         // SW cau hinh CHID rieng (AxCHIDVALID=1) - luc do khong doi chieu.
-        if (id !== int'(e.id))
-            attr_err($sformatf("%s ID=%0d nhung du doan channel %0d", pfx, id, e.id));
-        if ((CHID_WIDTH > 0) && !chid_sw && (chid !== int'(e.chid)))
-            attr_err($sformatf("%s CHID=%0d nhung du doan %0d", pfx, chid, e.chid));
+        if (id !== int'(e.id)) begin
+            `uvm_error("SB_ATTR", $sformatf(
+              "%s ID=%0d nhung du doan channel %0d", pfx, id, e.id))
+            err_addr_mismatch++;
+        end
+        if ((CHID_WIDTH > 0) && !chid_sw && (chid !== int'(e.chid))) begin
+            `uvm_error("SB_ATTR", $sformatf(
+              "%s CHID=%0d nhung du doan %0d", pfx, chid, e.chid))
+            err_addr_mismatch++;
+        end
 
         // ---- thong ke khoi luong -------------------------------------------
         e.seen_bursts++;
         e.seen_bytes += bytes;
-        if (!e.is_cmdlink && e.seen_bytes > e.total_bytes)
-            attr_err($sformatf("%s da chuyen %0d byte > du doan %0d byte cua lenh",
-                               pfx, e.seen_bytes, e.total_bytes));
-    endfunction
-
-    function void attr_err(string m);
-        `uvm_error("SB_ATTR", m) err_addr_mismatch++;
+        if (!e.is_cmdlink && e.seen_bytes > e.total_bytes) begin
+            `uvm_error("SB_ATTR", $sformatf(
+              "%s da chuyen %0d byte > du doan %0d byte cua lenh",
+              pfx, e.seen_bytes, e.total_bytes))
+            err_addr_mismatch++;
+        end
     endfunction
 
     //=========================================================================
@@ -1279,26 +1308,37 @@ class dma350_scoreboard extends uvm_scoreboard;
         if (ok_s && !multi_pass) begin
             longint lo = gi.srcaddr;
             longint hi = gi.srcaddr + gi.total_src_bytes();
-            if (!gi.fill_en && !(s >= lo[31:0] && s <= hi[31:0]))
-                mism_status($sformatf("CH%0d live SRCADDR=0x%0h ngoai [0x%0h,0x%0h]",
-                                      ch, s, lo, hi));
-            if (ctx[ch].cnt_peek_valid && !gi.fill_en && s < ctx[ch].last_src_peek)
-                mism_status($sformatf("CH%0d live SRCADDR lui: 0x%0h < 0x%0h",
-                                      ch, s, ctx[ch].last_src_peek));
+            if (!gi.fill_en && !(s >= lo[31:0] && s <= hi[31:0])) begin
+                `uvm_error("SB_STATUS", $sformatf(
+                  "CH%0d live SRCADDR=0x%0h ngoai [0x%0h,0x%0h]", ch, s, lo, hi))
+                err_status_mismatch++;
+            end
+            if (ctx[ch].cnt_peek_valid && !gi.fill_en && s < ctx[ch].last_src_peek) begin
+                `uvm_error("SB_STATUS", $sformatf(
+                  "CH%0d live SRCADDR lui: 0x%0h < 0x%0h",
+                  ch, s, ctx[ch].last_src_peek))
+                err_status_mismatch++;
+            end
         end
         if (ok_s) ctx[ch].last_src_peek = s;
         if (ok_d) begin
             // DESADDR luon tien (moi mode: wrap dich cung tien block ke tiep)
-            if (ctx[ch].cnt_peek_valid && !multi_pass && d < ctx[ch].last_des_peek)
-                mism_status($sformatf("CH%0d live DESADDR lui: 0x%0h < 0x%0h",
-                                      ch, d, ctx[ch].last_des_peek));
+            if (ctx[ch].cnt_peek_valid && !multi_pass && d < ctx[ch].last_des_peek) begin
+                `uvm_error("SB_STATUS", $sformatf(
+                  "CH%0d live DESADDR lui: 0x%0h < 0x%0h",
+                  ch, d, ctx[ch].last_des_peek))
+                err_status_mismatch++;
+            end
             ctx[ch].last_des_peek = d;
         end
         if (ok_x) begin
             if (ctx[ch].cnt_peek_valid && !multi_pass
-                && int'(x[15:0]) > ctx[ch].last_xsize_peek)
-                mism_status($sformatf("CH%0d live SRCXSIZE tang: %0d > %0d",
-                                      ch, x[15:0], ctx[ch].last_xsize_peek));
+                && int'(x[15:0]) > ctx[ch].last_xsize_peek) begin
+                `uvm_error("SB_STATUS", $sformatf(
+                  "CH%0d live SRCXSIZE tang: %0d > %0d",
+                  ch, x[15:0], ctx[ch].last_xsize_peek))
+                err_status_mismatch++;
+            end
             ctx[ch].last_xsize_peek = x[15:0];
         end
         if (ok_s || ok_d || ok_x) ctx[ch].cnt_peek_valid = 1;
@@ -1365,9 +1405,11 @@ class dma350_scoreboard extends uvm_scoreboard;
                            t.arprot, {2'b00, t.arcache}, t.ardomain, t.arinner,
                            int'(t.arid), int'(t.archid), t.archidvalid);
             // AR du lieu KHONG duoc dat arprot[2] (chi command-link la instruction)
-            if (t.arprot[2])
-                attr_err($sformatf(
-                  "CH%0d AR du lieu co PROT[2]=1 (instruction) nhung arcmdlink=0", ch));
+            if (t.arprot[2]) begin
+                `uvm_error("SB_ATTR", $sformatf(
+                  "CH%0d AR du lieu co PROT[2]=1 (instruction) nhung arcmdlink=0", ch))
+                err_addr_mismatch++;
+            end
             `uvm_info("SB_AR", $sformatf(
               "CH%0d AR @0x%0h len=%0d size=%0d (da doc %0d/%0d byte cua lenh)",
               ch, t.araddr, t.arlen, size,
@@ -1627,13 +1669,18 @@ class dma350_scoreboard extends uvm_scoreboard;
         bit stat_paus = s[ST_STAT_PAUSED];
         // DONE: da thay du transfer (bytes_written >= exp_total)
         if (stat_done && ctx[ch].exp_total_bytes>0 &&
-            ctx[ch].bytes_written < ctx[ch].exp_total_bytes)
-            mism_status($sformatf(
+            ctx[ch].bytes_written < ctx[ch].exp_total_bytes) begin
+            `uvm_error("SB_STATUS", $sformatf(
               "CH%0d STAT_DONE nhung moi ghi %0d/%0d byte",
-              ch, ctx[ch].bytes_written, ctx[ch].exp_total_bytes));
+              ch, ctx[ch].bytes_written, ctx[ch].exp_total_bytes))
+            err_status_mismatch++;
+        end
         // ERR: phai co loi thuc te (bus resp / stream / trigger) quan sat
-        if (stat_err && !(ctx[ch].seen_rd_resp_err || ctx[ch].seen_wr_resp_err))
-            mism_status($sformatf("CH%0d STAT_ERR nhung khong thay loi tren bus", ch));
+        if (stat_err && !(ctx[ch].seen_rd_resp_err || ctx[ch].seen_wr_resp_err)) begin
+            `uvm_error("SB_STATUS", $sformatf(
+              "CH%0d STAT_ERR nhung khong thay loi tren bus", ch))
+            err_status_mismatch++;
+        end
         if (stat_done) begin ctx[ch].state = CH_ST_DONE; check_done_counters(ch); end
         if (stat_err)  ctx[ch].state = CH_ST_ERROR;
         if (stat_stop) ctx[ch].state = CH_ST_STOPPED;
@@ -1652,23 +1699,31 @@ class dma350_scoreboard extends uvm_scoreboard;
         ral_peek(ch, CH_XSIZE,   ok_x, x);
         if (ok_s && !gi.fill_en) begin
             longint expa = gi.srcaddr + (gi.src_xaddrinc==0 ? 0 : gi.line_bytes());
-            if (s !== expa[31:0])
-                mism_status($sformatf("CH%0d DONE SRCADDR peek=0x%0h exp=0x%0h",ch,s,expa));
+            if (s !== expa[31:0]) begin
+                `uvm_error("SB_STATUS", $sformatf(
+                  "CH%0d DONE SRCADDR peek=0x%0h exp=0x%0h", ch, s, expa))
+                err_status_mismatch++;
+            end
         end
-        if (ok_x && x[15:0] != 0)
-            mism_status($sformatf("CH%0d DONE nhung SRCXSIZE=%0d != 0", ch, x[15:0]));
+        if (ok_x && x[15:0] != 0) begin
+            `uvm_error("SB_STATUS", $sformatf(
+              "CH%0d DONE nhung SRCXSIZE=%0d != 0", ch, x[15:0]))
+            err_status_mismatch++;
+        end
     endtask
 
     // ERRINFO bit phai khop loai loi thuc te
     function void check_errinfo(int ch, bit [31:0] e);
-        if (e[EI_AXIRDRESPERR] && !ctx[ch].seen_rd_resp_err)
-            mism_status($sformatf("CH%0d ERRINFO.AXIRDRESPERR nhung R khong loi",ch));
-        if (e[EI_AXIWRRESPERR] && !ctx[ch].seen_wr_resp_err)
-            mism_status($sformatf("CH%0d ERRINFO.AXIWRRESPERR nhung B khong loi",ch));
-    endfunction
-
-    function void mism_status(string m);
-        `uvm_error("SB_STATUS", m) err_status_mismatch++;
+        if (e[EI_AXIRDRESPERR] && !ctx[ch].seen_rd_resp_err) begin
+            `uvm_error("SB_STATUS", $sformatf(
+              "CH%0d ERRINFO.AXIRDRESPERR nhung R khong loi", ch))
+            err_status_mismatch++;
+        end
+        if (e[EI_AXIWRRESPERR] && !ctx[ch].seen_wr_resp_err) begin
+            `uvm_error("SB_STATUS", $sformatf(
+              "CH%0d ERRINFO.AXIWRRESPERR nhung B khong loi", ch))
+            err_status_mismatch++;
+        end
     endfunction
 
     //=========================================================================
