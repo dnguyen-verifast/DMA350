@@ -631,7 +631,15 @@ module dma350_top import dma350_pkg::*; #(
         // The SW channel-ID (NSEC/SEC_CHCFG.CHID) is driven when CHIDVLD is
         // set, otherwise the channel index is used.
         localparam int CHID_G = g;
-        wire [2:0] c_arprot_eff = {c_arcmdlink[g],
+        // ARPROT for a normal data read is TRANSCFG-derived. A command-link /
+        // boot fetch (TRM A-11 / image) instead takes fixed CHANNEL-context bits,
+        // NOT TRANSCFG (which is unloaded or stale during the fetch):
+        //   [2] instruction = 1  (command-link access)
+        //   [1] security     = channel NONSEC (0 = Secure for the CH0 boot)
+        //   [0] privilege    = 0 (unprivileged, per the boot AR table)
+        wire [2:0] c_arprot_eff = c_arcmdlink[g]
+                                ? {1'b1, c_nonsec[g], 1'b0}
+                                : {1'b0,
                                    c_src_prot[g][1] | c_nonsec[g],
                                    c_src_prot[g][0] & c_priv[g]};
         wire [2:0] c_awprot_eff = {1'b0,
@@ -640,8 +648,16 @@ module dma350_top import dma350_pkg::*; #(
         wire [CHIDNZ-1:0] c_chid_eff = ((CHID_WIDTH > 0) && chidvld_q[g])
                                        ? chid_q[g][CHIDNZ-1:0]
                                        : CHID_G[CHIDNZ-1:0];
-        assign c_aruser[g] = pack_aruser(c_arprot_eff, c_src_cache[g],
-                                         c_src_domain[g], c_src_inner[g],
+        // A command-link / boot descriptor fetch (ARCMDLINK=1) has no configured
+        // TRANSCFG yet, so its memory attributes come from the boot tie-offs
+        // (TRM A-11): ARCACHE = boot_memattr[7:4] (outer), ARINNER =
+        // boot_memattr[3:0] (inner), ARDOMAIN = boot_shareattr. Normal data reads
+        // keep the channel's SRCTRANSCFG-derived attributes.
+        wire [3:0] c_ar_cache_eff  = c_arcmdlink[g] ? boot_memattr[7:4]   : c_src_cache[g];
+        wire [3:0] c_ar_inner_eff  = c_arcmdlink[g] ? boot_memattr[3:0]   : c_src_inner[g];
+        wire [1:0] c_ar_domain_eff = c_arcmdlink[g] ? boot_shareattr[1:0] : c_src_domain[g];
+        assign c_aruser[g] = pack_aruser(c_arprot_eff, c_ar_cache_eff,
+                                         c_ar_domain_eff, c_ar_inner_eff,
                                          c_chprio[g], c_chid_eff,
                                          c_arcmdlink[g]);
         assign c_awuser[g] = pack_awuser(c_awprot_eff, c_des_cache[g],

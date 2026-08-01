@@ -73,7 +73,7 @@ class boot_monitor extends uvm_monitor;
                 tr.convert2string()), UVM_LOW)
 
     check_legal(tr);
-    ap.write(tr);
+    if(captured_en) ap.write(tr);
 
     // Launch the stability watcher in the background so the monitor can re-arm
     // on the next reset without blocking here.

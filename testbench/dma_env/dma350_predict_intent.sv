@@ -45,6 +45,7 @@ class dma_golden_intent extends uvm_object;
     int        ch_id;                     // channel nao
     bit        valid;                     // 1 = intent dang hieu luc (channel active)
                                           // 0 = channel vua ket thuc/disable
+    bit        disablecmd;
     // Channel khoi dong bang TRIGGER NGOAI (HW) thay vi chi bang ENABLECMD.
     // => KHONG duoc phat AR du lieu truoc khi handshake trigger-in hoan tat.
     bit        ext_cmd;
@@ -58,12 +59,14 @@ class dma_golden_intent extends uvm_object;
     // kieu transfer
     int        xtype, ytype;              // CH_CTRL.XTYPE/YTYPE
     bit        wrap_en, fill_en;
-    int        ysize;                     // so dong 2D
+    int        ysize, desysize, srcysize;                     // so dong 2D
     int signed src_stride, des_stride;    // buoc dong 2D (byte)
     bit [31:0] fillval;
     // burst limit
     int        src_maxburstlen, des_maxburstlen; // beats = value+1
     // dieu khien / autorestart / link
+    bit cmdrstren;
+    bit [15:0] cmdrestrcnt;
     int        chprio, donetype, regreloadtype;
     bit        usestream, donepauseen;
     bit [63:0] linkaddr; bit linkaddren;
@@ -82,6 +85,9 @@ class dma_golden_intent extends uvm_object;
     bit [1:0]  srctrig_mode, destrig_mode;
 
     bit [1:0] streamtype;
+    bit       usestream_out,usestream_in;
+
+    bit       intren_done;
 
     `uvm_object_utils(dma_golden_intent)
     function new(string name="dma_golden_intent"); super.new(name); endfunction
@@ -125,10 +131,17 @@ class dma350_predict_intent extends uvm_component;
     `uvm_component_utils(dma350_predict_intent)
 
     // ---- cong vao ----
+    // apb_imp : GIU LAI. Day la nguon nuoi reg_mirror - duong FALLBACK duy nhat
+    //           khi backdoor peek khong dung duoc (m_ral null / khong co HDL
+    //           path). Bo no di thi peek_or_mirror() luon tra 0.
+    // sc_imp  : BO. Viec phat hien "channel activate" da chuyen han sang FSM
+    //           lenh trong cmd_trigger_checker (no goi emit_intent truc tiep),
+    //           nen predictor khong con can theo doi canh len ch_enabled nua.
     uvm_analysis_imp_apb #(apb_seq_item_master, dma350_predict_intent) apb_imp;
-    uvm_analysis_imp_sc  #(dma350_sc_item,      dma350_predict_intent) sc_imp;
 
     // ---- cong ra : intent cho scoreboard / checker ----
+    // Van giu de emit_invalidate() (va bat ky ai muon dung predictor doc lap)
+    // co duong phat. Duong CHINH hien nay la cmd_trigger_checker.intent_ap.
     uvm_analysis_port #(dma_golden_intent) intent_ap;
 
     // ---- phu thuoc ----
@@ -138,11 +151,7 @@ class dma350_predict_intent extends uvm_component;
 
     // ---- trang thai noi bo ----
     bit [31:0] reg_mirror [int][bit [7:0]];   // [ch][offset]
-    bit        prev_enabled [int];            // phat hien canh len ch_enabled
     int        n_activations = 0;
-
-    // hang doi channel cho activate (write() la function, khong the doi clock)
-    int        pend_activate [$];
 
     function new(string name = "dma350_predict_intent", uvm_component parent = null);
         super.new(name, parent);
@@ -151,7 +160,6 @@ class dma350_predict_intent extends uvm_component;
     function void build_phase(uvm_phase phase);
         super.build_phase(phase);
         apb_imp   = new("apb_imp",   this);
-        sc_imp    = new("sc_imp",    this);
         intent_ap = new("intent_ap", this);
 
         if (!uvm_config_db#(int)::get(this, "", "num_channels", num_channels))
@@ -165,61 +173,71 @@ class dma350_predict_intent extends uvm_component;
         if (!uvm_config_db#(virtual dma350_sc_if)::get(this, "", "sc_vif", m_sc_vif))
             `uvm_info("PRED_CFG",
               "khong co sc_vif : peek se khong tri hoan 1 clock", UVM_MEDIUM)
-
-        for (int c = 0; c < num_channels; c++) prev_enabled[c] = 0;
     endfunction
 
     //-------------------------------------------------------------------------
-    // (1) APB : chi CAP NHAT MIRROR. Khong chot intent o day - viec chot do
-    //     canh len ch_enabled quyet dinh (xem write_sc).
+    // RESET : xoa mirror. Sau reset thanh ghi ve gia tri reset cua RTL, giu lai
+    // mirror cu se khien peek_or_mirror() tra gia tri CHET cua lenh truoc do.
+    //-------------------------------------------------------------------------
+    function void reset_mirror();
+        reg_mirror.delete();
+        `uvm_info("PRED_INT", "reset : xoa reg_mirror", UVM_HIGH)
+    endfunction
+
+    //-------------------------------------------------------------------------
+    // (1) APB : chi CAP NHAT MIRROR. Khong chot intent o day - viec chot la do
+    //     FSM lenh trong cmd_trigger_checker goi emit_intent() quyet dinh.
     //-------------------------------------------------------------------------
     virtual function void write_apb(apb_seq_item_master t);
-        bit [12:0] a13 = t.paddr[12:0];
+        bit [12:0] a13;
         int        ch;
         bit [7:0]  off;
-        if (!a13[12]) return;                 // khong phai vung DMACH
+        if (t == null) return;                   // kiem TRUOC khi cham t.paddr
+        if (!t.pwrite) return;
+        a13 = t.paddr[12:0];
+        if (!a13[12]) return;                    // khong phai vung DMACH
         ch  = int'(a13[10:8]);
         off = a13[7:0];
         if (ch >= num_channels) return;
-        if (t.pwrite) reg_mirror[ch][off] = t.pwdata;
+        reg_mirror[ch][off] = t.pwdata;
     endfunction
 
-    //-------------------------------------------------------------------------
-    // (2) Status/Control : bat canh len/xuong cua ch_enabled.
-    //     write() la function nen KHONG the @clock o day -> day channel vao
-    //     hang doi, run_phase se xu ly (co the settle 1 clock roi peek).
-    //-------------------------------------------------------------------------
-    virtual function void write_sc(dma350_sc_item t);
-        for (int ch = 0; ch < num_channels; ch++) begin
-            bit en = t.ch_enabled[ch];
-            if (en && !prev_enabled[ch]) begin
-                pend_activate.push_back(ch);            // canh LEN -> chot intent
-            end
-            else if (!en && prev_enabled[ch]) begin
-                emit_invalidate(ch);                    // canh XUONG -> het hieu luc
-            end
-            prev_enabled[ch] = en;
-        end
-    endfunction
+    // //-------------------------------------------------------------------------
+    // // (2) Status/Control : bat canh len/xuong cua ch_enabled.
+    // //     write() la function nen KHONG the @clock o day -> day channel vao
+    // //     hang doi, run_phase se xu ly (co the settle 1 clock roi peek).
+    // //-------------------------------------------------------------------------
+    // virtual function void write_sc(dma350_sc_item t);
+    //     for (int ch = 0; ch < num_channels; ch++) begin
+    //         bit en = t.ch_enabled[ch];
+    //         if (en && !prev_enabled[ch]) begin
+    //             pend_activate.push_back(ch);            // canh LEN -> chot intent
+    //         end
+    //         else if (!en && prev_enabled[ch]) begin
+    //             emit_invalidate(ch);                    // canh XUONG -> het hieu luc
+    //         end
+    //         prev_enabled[ch] = en;
+    //     end
+    // endfunction
 
     //-------------------------------------------------------------------------
     // run_phase : xu ly hang doi activation (can doi clock nen phai o task)
     //-------------------------------------------------------------------------
-    task run_phase(uvm_phase phase);
-        forever begin
-            wait (pend_activate.size() > 0);
-            begin
-                int ch = pend_activate.pop_front();
-                settle_one_clock();
-                emit_intent(ch);
-            end
-        end
-    endtask
+    // task run_phase(uvm_phase phase);
+    //     forever begin
+    //         wait (pend_activate.size() > 0);
+    //         begin
+    //             int ch = pend_activate.pop_front();
+    //             settle_one_clock();
+    //             emit_intent(ch);
+    //         end
+    //     end
+    // endtask
 
-    task settle_one_clock();
-        if (m_sc_vif != null) @(posedge m_sc_vif.clk);
-        else                  #0;
-    endtask
+    // task settle_one_clock();
+    //     if (m_sc_vif != null) @(posedge m_sc_vif.clk);
+    //     else                  #0;
+    // endtask
 
     //-------------------------------------------------------------------------
     // Bao cho downstream biet intent cua channel het hieu luc
@@ -235,11 +253,23 @@ class dma350_predict_intent extends uvm_component;
     //-------------------------------------------------------------------------
     // Chot config -> dma_golden_intent -> broadcast
     //-------------------------------------------------------------------------
-    task emit_intent(int ch);
-        dma_golden_intent gi = dma_golden_intent::type_id::create("gi");
+    task emit_intent(input int ch, output dma_golden_intent chanel_intent);
+        dma_golden_intent gi;
         bit [31:0] ctrl, xsz, xszhi, xinc, ystr, sctc, dstc, scfg, dcfg, tocfg;
         bit [31:0] sa_lo, sa_hi, da_lo, da_hi, fillv, ysz, la_lo, la_hi;
+        bit [31:0] streamcfg, intren, autorestart, cmd;
 
+        chanel_intent = null;
+        // Chan index sai TRUOC khi cham vao m_ral.dmach[ch] : ral_reg() co kiem
+        // bien nhung neu m_ral null thi khong, va reg_mirror[ch] se tao entry rac.
+        if (ch < 0 || ch >= num_channels) begin
+            `uvm_error("PRED_INT", $sformatf(
+              "emit_intent: ch=%0d ngoai dai [0..%0d] - bo qua", ch, num_channels-1))
+            return;
+        end
+
+        gi = dma_golden_intent::type_id::create("gi");
+        peek_or_mirror(ch, CH_CMD,          cmd);
         peek_or_mirror(ch, CH_CTRL,         ctrl);
         peek_or_mirror(ch, CH_XSIZE,        xsz);
         peek_or_mirror(ch, CH_XSIZEHI,      xszhi);
@@ -258,9 +288,12 @@ class dma350_predict_intent extends uvm_component;
         peek_or_mirror(ch, CH_YSIZE,        ysz);
         peek_or_mirror(ch, CH_LINKADDR,     la_lo);
         peek_or_mirror(ch, CH_LINKADDRHI,   la_hi);
-
+        peek_or_mirror(ch, CH_STREAMINTCFG,   streamcfg);
+        peek_or_mirror(ch, CH_INTREN,   intren);
+        peek_or_mirror(ch, CH_AUTOCFG,   autorestart);
         gi.ch_id        = ch;
         gi.valid        = 1;
+        gi.disablecmd   = cmd[2];
 
         gi.srcaddr      = {sa_hi, sa_lo};
         gi.desaddr      = {da_hi, da_lo};
@@ -282,7 +315,11 @@ class dma350_predict_intent extends uvm_component;
         gi.src_stride   = $signed(ystr[15:0]);
         gi.des_stride   = $signed(ystr[31:16]);
         gi.fillval      = fillv;
-        gi.ysize        = ysz & 32'h0000_FFFF;
+        // CH_YSIZE : SRCYSIZE = [15:0], DESYSIZE = [31:16]. ysize (dung chung cho
+        // total_src_bytes) lay theo phia NGUON.
+        gi.srcysize     = int'(ysz[15:0]);
+        gi.desysize     = int'(ysz[31:16]);
+        gi.ysize        = gi.srcysize;
 
         gi.src_maxburstlen = sctc[19:16];
         gi.des_maxburstlen = dstc[19:16];
@@ -301,21 +338,37 @@ class dma350_predict_intent extends uvm_component;
         gi.destrig_mode = dcfg[11:10];  gi.destrig_blksize = dcfg[23:16];
         gi.trigout_sel  = tocfg[7:0];   gi.trigout_type = tocfg[9:8];
 
+
         // ext_cmd : channel cho TRIGGER NGOAI (HW) truoc khi chay.
         // TYPE = 2'b10 = HW (00=SW, 11=internal) -> chi HW moi co handshake tren
         // chan trig_in_*; SW/internal khong co, khong ap check flow duoc.
         gi.ext_cmd = ctrl[25] && (scfg[9:8] == 2'b10);
-
-        gi.linkaddr   = {la_hi, la_lo};
+        gi.cmdrstren   = autorestart[16];
+        gi.cmdrestrcnt = autorestart[15:0];
+        // CH_LINKADDR : bit0 = LINKADDREN, dia chi descriptor la [63:2]<<2 (word
+        // aligned) - bit0/1 KHONG thuoc dia chi nen phai mask di, khong thi
+        // linkaddr lech 1 byte so voi AR ma DUT phat.
+        gi.linkaddr   = {la_hi, la_lo} & ~64'h3;
         gi.linkaddren = la_lo[0];
 
+        // ---- STREAM : CH_STREAMINTCFG[10:9] = STREAMTYPE ----
+        //   00 = ca hai chieu, 01 = stream OUT (des), 10 = stream IN (src)
+        // Cac truong nay la CUA gi (dma_golden_intent), truoc day bi ghi thieu
+        // tien to "gi." nen tro thanh bien khong khai bao -> loi compile.
+        gi.streamtype    = streamcfg[10:9];
+        gi.usestream_out = gi.usestream && (gi.streamtype == 2'b01 || gi.streamtype == 2'b00);
+        gi.usestream_in  = gi.usestream && (gi.streamtype == 2'b10 || gi.streamtype == 2'b00);
+        gi.intren_done   = intren[IE_DONE];
         n_activations++;
         `uvm_info("PRED_INT", $sformatf(
           "CH%0d ACTIVATE -> intent: src=0x%0h des=0x%0h SRCXSIZE=%0d DESXSIZE=%0d xtype=%0b ext_cmd=%0b srctrig_sel=%0d",
           ch, gi.srcaddr, gi.desaddr, gi.src_xsize, gi.des_xsize,
           gi.xtype, gi.ext_cmd, gi.srctrig_sel), UVM_MEDIUM)
 
-        intent_ap.write(gi);
+        // KHONG write() o day: nguoi goi (cmd_trigger_checker FSM) moi biet
+        // intent nay ung voi giai doan nao cua lenh va tu phat qua intent_ap
+        // cua no. Phat ca hai noi se lam scoreboard chot intent 2 lan.
+        chanel_intent = gi;
     endtask
 
     //-------------------------------------------------------------------------
@@ -325,6 +378,18 @@ class dma350_predict_intent extends uvm_component;
         if (m_ral == null)                     return null;
         if (ch < 0 || ch >= m_ral.dmach.size()) return null;
         case (off)
+            // 4 thanh ghi duoi day TRUOC DAY BI THIEU o day: emit_intent co peek
+            // chung nhung ral_reg() tra null -> roi ve reg_mirror; ma cac test
+            // dung command-link / autoboot khong he ghi chung qua APB nen mirror
+            // rong -> cmd/intren/autocfg/streamintcfg LUON doc ra 0. Hau qua:
+            // intren_done=0, cmdrstren=0, usestream_out=0 -> FSM lenh chon nham
+            // dieu kien ket thuc va treo o ST_ENABLE.
+            CH_CMD:          return m_ral.dmach[ch].ch_cmd;
+            CH_INTREN:       return m_ral.dmach[ch].ch_intren;
+            CH_AUTOCFG:      return m_ral.dmach[ch].ch_autocfg;
+            CH_STREAMINTCFG: return m_ral.dmach[ch].ch_streamintcfg;
+            CH_STATUS:       return m_ral.dmach[ch].ch_status;
+            CH_LINKATTR:     return m_ral.dmach[ch].ch_linkattr;
             CH_CTRL:         return m_ral.dmach[ch].ch_ctrl;
             CH_SRCADDR:      return m_ral.dmach[ch].ch_srcaddr;
             CH_SRCADDRHI:    return m_ral.dmach[ch].ch_srcaddrhi;

@@ -187,6 +187,12 @@ class dma_ch_ctx extends uvm_object;
     // mot con tro chay theo dong/pass. Byte thu k doc duoc do vao des_ptr roi
     // tien len; het dong thi nhay sang dong ke tiep theo DES stride.
     bit              des_fixed;            // DESXADDRINC == 0 -> so sanh qua FIFO
+    // Stream mode (CH_CTRL.USESTREAM): du lieu di vong qua AXI4-Stream (DMA doc
+    // nguon tren AXI -> str_out; str_in -> DMA ghi dich tren AXI). Van co AR/AW
+    // that tren AXI-M (RTL nay khong phan biet STREAMTYPE), nen VAN du doan dia
+    // chi/so luong AR/AW; nhung NOI DUNG byte di qua stream nen BO so sanh
+    // du lieu R->W qua ref-memory (tranh mismatch gia).
+    bit              stream_mode;
     longint          des_ptr;              // dia chi dich cho byte nguon ke tiep
     longint          des_left;             // byte con nhan duoc cua dong dich
     longint          src_left;             // byte nguon con lai cua dong hien tai
@@ -236,7 +242,7 @@ class dma_ch_ctx extends uvm_object;
         des_ptr = 0; des_left = 0; src_left = 0;
         des_line_base = 0; des_line_bytes = 0; src_line_bytes = 0;
         des_line_stride = 0; line_idx = 0; line_count = 0;
-        des_fixed = 0;
+        des_fixed = 0; stream_mode = 0;
     endfunction
 endclass
 
@@ -1008,7 +1014,7 @@ class dma350_scoreboard extends uvm_scoreboard;
         bd.cache      = memattr_hi;
         bd.inner      = memattr_lo;
         bd.domain     = shareattr;
-        // AxPROT: [2]=1 instruction (command-link), [1]=non-secure cua channel,
+        // AxPROT: [2]=1 instruction (command-link), [1]=secure cua channel bc after reset seccfg = 0 corresponding = secure,
         // [0]=privileged cua channel. Autoboot Ch0 chay Secure -> [1]=0.
         bd.prot       = {1'b1,
                          is_boot ? 1'b0 : ctx[ch].obs_nonsec,
@@ -1135,19 +1141,17 @@ class dma350_scoreboard extends uvm_scoreboard;
         // anh xa du lieu nguon -> dich (dung cho ca fill / wrap / 2D)
         init_data_mapping(ch);
 
-        // stream path: du lieu di qua AXI-Stream, khong co giao dich AXI-M
-        if (gi.usestream && gi.streamtype == 2'b00) begin
-            arm_cmdlink_from_regs(ch);
-            return;
-        end
+        // STREAM mode (CH_CTRL.USESTREAM): RTL nay KHONG phan biet STREAMTYPE ->
+        // luon doc nguon tren AXI (-> str_out) va ghi dich tren AXI (str_in ->).
+        // Van du doan AR/AW BINH THUONG (dia chi/so luong) nhung danh dau
+        // stream_mode de BO so sanh NOI DUNG byte (du lieu di vong qua stream).
+        ctx[ch].stream_mode = gi.usestream;
 
         // ---- (1) thuoc tinh AR cua lenh ------------------------------------
-        // streamtype=10 : phia doc lay tu stream -> khong co AR tren AXI-M
-        if (sb > 0 && (!gi.usestream || gi.streamtype != 2'b10))
+        if (sb > 0)
             ctx[ch].exp_rd = predict_side(ch, 1'b1);
         // ---- (1) thuoc tinh AW cua lenh ------------------------------------
-        // streamtype=01 : phia ghi di ra stream -> khong co AW tren AXI-M
-        if (db > 0 && (!gi.usestream || gi.streamtype != 2'b01))
+        if (db > 0)
             ctx[ch].exp_wr = predict_side(ch, 1'b0);
 
         // tong byte dich ky vong = tong byte GHI (dung cho check_status DONE)
@@ -1446,6 +1450,13 @@ class dma350_scoreboard extends uvm_scoreboard;
             return;
         end
         if (ctx[ch].intent == null) return;
+        // STREAM: du lieu nguon di ra str_out (khong toi thang dich); byte ghi
+        // dich lay tu str_in. Nen KHONG anh xa R->dich qua ref-memory (tranh
+        // mismatch gia). Van dem/peek de kiem tra so luong + tien do.
+        if (ctx[ch].stream_mode) begin
+            peek_check_counters(ch);
+            return;
+        end
         size = ob.size; bpb = (1<<size);
         nbeats = t.rdata.size();               // so beat thuc su co data
         a = ob.addr;
@@ -1535,10 +1546,14 @@ class dma350_scoreboard extends uvm_scoreboard;
 
             for (int b=0; b<bpb; b++) begin
                 if (wstrb[b]) begin           // xu ly unaligned dau/cuoi qua wstrb
-                    if(!ob.fixed) begin
-                        refmem.set_actual(a+b, beat[8*b +: 8]);
-                    end else begin
-                        refmem.act_fifo.push_back(beat[8*b +: 8]);
+                    // STREAM: byte ghi lay tu str_in (khong tu nguon AXI) -> BO
+                    // so sanh noi dung qua ref-memory, chi dem so byte.
+                    if (!ctx[ch].stream_mode) begin
+                        if(!ob.fixed) begin
+                            refmem.set_actual(a+b, beat[8*b +: 8]);
+                        end else begin
+                            refmem.act_fifo.push_back(beat[8*b +: 8]);
+                        end
                     end
                     ctx[ch].bytes_written++;
                     `uvm_info("SB_W", $sformatf("Counter byte written to des %d",ctx[ch].bytes_written), UVM_LOW)
@@ -1547,8 +1562,8 @@ class dma350_scoreboard extends uvm_scoreboard;
 
             if (!ob.fixed) a += bpb;
         end
-        
-        if(ob.fixed) refmem.fixed_compare(size,bpb);
+
+        if(ob.fixed && !ctx[ch].stream_mode) refmem.fixed_compare(size,bpb);
         peek_check_counters(ch);           // (6) peek live counter tai bien W
     endtask
 

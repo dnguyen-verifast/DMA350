@@ -35,15 +35,56 @@
 +incdir+testbench/test/seq
 +incdir+testbench/test/vseq
 +incdir+testbench/test/testcases
-// Test 1D gom rieng trong vseq/1d va testcases/1d. dma350_test_pkg include
-// bang path "1d/<file>.sv" (resolve qua incdir cha o tren); 2 incdir duoi day
-// them cho chac, de include bang ten tran cung tim thay.
+// Test 1D gom rieng trong vseq/1d/<nhom> va testcases/1d/<nhom>.
+// dma350_test_pkg include bang path "1d/<nhom>/<file>.sv" (resolve qua incdir
+// cha o tren); cac incdir duoi day them cho chac, de include bang ten tran
+// cung tim thay.
 +incdir+testbench/test/vseq/1d
 +incdir+testbench/test/testcases/1d
-+incdir+testbench/test/vseq/trigger
-+incdir+testbench/test/testcases/trigger
-+incdir+testbench/test/vseq/cmdlink
-+incdir+testbench/test/testcases/cmdlink
+// Test 2D gom trong vseq/2d/<nhom> va testcases/2d/<nhom> (cung quy uoc voi 1D).
+// dma350_vseq_2d_base la base CHUNG nen nam o goc 2d/.
++incdir+testbench/test/vseq/2d
++incdir+testbench/test/testcases/2d
++incdir+testbench/test/vseq/2d/axi_only_operation
++incdir+testbench/test/testcases/2d/axi_only_operation
++incdir+testbench/test/vseq/2d/wrap_fill
++incdir+testbench/test/testcases/2d/wrap_fill
++incdir+testbench/test/vseq/2d/corner_cases
++incdir+testbench/test/testcases/2d/corner_cases
++incdir+testbench/test/vseq/2d/transform
++incdir+testbench/test/testcases/2d/transform
++incdir+testbench/test/vseq/2d/template
++incdir+testbench/test/testcases/2d/template
++incdir+testbench/test/vseq/2d/trigger
++incdir+testbench/test/testcases/2d/trigger
++incdir+testbench/test/vseq/2d/stream
++incdir+testbench/test/testcases/2d/stream
++incdir+testbench/test/vseq/2d/cmdlink
++incdir+testbench/test/testcases/2d/cmdlink
++incdir+testbench/test/vseq/2d/lifecycle
++incdir+testbench/test/testcases/2d/lifecycle
++incdir+testbench/test/vseq/2d/power
++incdir+testbench/test/testcases/2d/power
++incdir+testbench/test/vseq/2d/secpriv
++incdir+testbench/test/testcases/2d/secpriv
++incdir+testbench/test/vseq/2d/arbitration
++incdir+testbench/test/testcases/2d/arbitration
++incdir+testbench/test/vseq/2d/negative
++incdir+testbench/test/testcases/2d/negative
++incdir+testbench/test/vseq/1d/axi_only_operation
++incdir+testbench/test/testcases/1d/axi_only_operation
++incdir+testbench/test/vseq/1d/trigger
++incdir+testbench/test/testcases/1d/trigger
++incdir+testbench/test/vseq/1d/cmdlink
++incdir+testbench/test/testcases/1d/cmdlink
++incdir+testbench/test/vseq/1d/stream
++incdir+testbench/test/testcases/1d/stream
++incdir+testbench/test/vseq/1d/lifecycle
++incdir+testbench/test/testcases/1d/lifecycle
++incdir+testbench/test/vseq/1d/power
++incdir+testbench/test/testcases/1d/power
++incdir+testbench/test/vseq/1d/secpriv
++incdir+testbench/test/testcases/1d/secpriv
 +incdir+AMBA_AXI5/src/globals
 +incdir+AMBA_AXI5/src/hvl_top/base_tx
 +incdir+AMBA_AXI5/src/hvl_top/slave

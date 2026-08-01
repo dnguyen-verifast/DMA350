@@ -46,6 +46,7 @@ class dma350_env extends uvm_env;
     //                agent trig_out rieng)
     //-------------------------------------------------------------------------
     localparam int NUM_TRIG = 4;
+    localparam int NUM_CH   = 8;   // khop dma350_tb_top.NUM_CH / dma_if.NUM_CHANNELS
     dma_trig_in_agent trig_agt_h[NUM_TRIG];
 
     //-------------------------------------------------------------------------
@@ -145,6 +146,16 @@ class dma350_env extends uvm_env;
         predict_intent_h = dma350_predict_intent::type_id::create("predict_intent_h",this);
         cmd_trig_chk_h   = cmd_trigger_checker::type_id::create("cmd_trig_chk_h",this);
 
+        // Cau hinh kich thuoc cho predictor + checker. PHAI set TRUOC khi
+        // build_phase cua chinh chung chay (build_phase con chay sau khi
+        // build_phase cha ket thuc) - dat ngay sau create la du som.
+        // Khong set thi predictor mac dinh num_channels=1 -> emit_intent()
+        // tu choi moi ch != 0.
+        uvm_config_db#(int)::set(this, "predict_intent_h", "num_channels",    NUM_CH);
+        uvm_config_db#(int)::set(this, "cmd_trig_chk_h",   "num_channels",    NUM_CH);
+        uvm_config_db#(int)::set(this, "cmd_trig_chk_h",   "num_trigger_in",  NUM_TRIG);
+        uvm_config_db#(int)::set(this, "cmd_trig_chk_h",   "num_trigger_out", NUM_TRIG);
+
         v_seqr_h = dma350_virtual_sequencer::type_id::create("v_seqr_h",this);
 
         //---------------------------------------------------------------------
@@ -227,15 +238,33 @@ class dma350_env extends uvm_env;
             trig_agt_h[i].ap.connect(dma350_scb_h.dma_trig_analysis_fifo_h0.analysis_export);
 
         //=====================================================================
-        // PREDICTOR INTENT
-        //   vao : APB (mirror thanh ghi) + Status/Control (canh len ch_enabled)
-        //   ra  : dma_golden_intent -> scoreboard VA cmd_trigger_checker
-        // Analysis port fan-out duoc nen cung 1 nguon cap cho nhieu noi.
+        // PREDICTOR INTENT  (luong da DOI so voi truoc)
+        //
+        // TRUOC : predictor tu bat canh len ch_enabled (sc_imp) roi tu phat
+        //         intent thang len scoreboard.
+        // NAY   : viec quyet dinh "khi nao mot vong lenh bat dau" nam o FSM
+        //         trong cmd_trigger_checker (no phan biet duoc ENABLECMD /
+        //         autoboot / autorestart / command-link, dieu ma canh len
+        //         ch_enabled don thuan khong lam duoc). Checker goi truc tiep
+        //         predict_intent_h.emit_intent() qua HANDLE (gan ben duoi) roi
+        //         phat qua intent_ap CUA CHINH NO.
+        //
+        //   predictor.apb_imp  : VAN CAN - nuoi reg_mirror lam fallback cho
+        //                        backdoor peek.
+        //   predictor.sc_imp   : DA BO khoi predictor (khong con dung).
+        //   predictor.intent_ap: chi con emit_invalidate() dung; noi vao
+        //                        scoreboard cho du duong, khong bat buoc.
         //=====================================================================
         apb_agent_mst_h.mon_port_m.connect(predict_intent_h.apb_imp);
-        dma350_sc_agent_h.ap_status.connect(predict_intent_h.sc_imp);
 
-        predict_intent_h.intent_ap.connect(dma350_scb_h.intent_analysis_fifo_h0.analysis_export);
+        // HANDLE predictor cho checker. Checker KHONG tu type_id::create nua:
+        // component tao khong parent se nam ngoai cay UVM, build/connect cua no
+        // khong chay dung thu tu nen m_ral luon null -> peek tra ve 0 het.
+        cmd_trig_chk_h.dma350_predict_intent_h = predict_intent_h;
+
+        // DUONG CHINH: intent len scoreboard di qua checker.
+        cmd_trig_chk_h.intent_ap.connect(dma350_scb_h.intent_analysis_fifo_h0.analysis_export);
+        // Duong phu: neu predictor tu phat invalidate thi checker cung biet.
         predict_intent_h.intent_ap.connect(cmd_trig_chk_h.gi_imp);
 
         //=====================================================================

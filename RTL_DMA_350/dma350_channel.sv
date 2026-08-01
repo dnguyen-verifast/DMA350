@@ -598,24 +598,29 @@ module dma350_channel import dma350_pkg::*; #(
     endfunction
 
     // ---- command-link fetch burst sizing --------------------------------
-    // Fetch the descriptor with ONE long burst rather than a read per word:
-    // the header comes back together with its data words, so it is decoded
-    // from data already sitting in the buffer and the whole descriptor costs a
-    // single round-trip. The header length is not known when the address is
-    // issued, so speculatively request the most a descriptor can occupy
-    // (1 header + 32 register words); any beat past the end of the descriptor
-    // is simply dropped - reading a few surplus words is far cheaper than a
-    // second round-trip. Words are consumed strictly in the order received.
-    localparam int LINK_MAX_BEATS = 33;                    // header + 32 words
+    // Fetch the descriptor with a MAX-LENGTH burst rather than a read per word:
+    // the header returns together with its data words in the same burst, so it
+    // is decoded from data already in the buffer and a typical descriptor costs
+    // a single round-trip. The header length is unknown when the address is
+    // issued, so the first burst speculatively reads the maximum burst length
+    // (LINK_MAX_BURST); any beat past the end of the descriptor is accepted and
+    // dropped - reading a few surplus words is far cheaper than a round-trip.
+    // The burst must NOT exceed the DMA-350 max burst length (MAXBURSTLEN); a
+    // longer descriptor is completed with further bursts (see got<needed path).
+    // Words are consumed strictly in the order received.
+    localparam int LINK_MAX_BURST = 16;                    // MAXBURSTLEN (max AxLEN+1)
+    wire [8:0] link_rem  = {3'd0, (link_words_needed - link_words_got)};
     wire [8:0] link_want = (link_word_idx == 6'd0)
-                         ? LINK_MAX_BEATS[8:0]             // header not yet seen
-                         : {3'd0, (link_words_needed - link_words_got)};
+                         ? LINK_MAX_BURST[8:0]             // header not yet seen: read max
+                         : link_rem;                       // then only what's still missing
     // one 32-bit word per beat; never cross the DMA-350 1KB burst breakpoint
     wire [10:0] link_d1k = 11'd1024 - {1'b0, link_fetch_addr[9:0]};
     wire [8:0]  link_b1k = link_d1k[10:2];
-    wire [8:0]  link_beats = (link_want == 9'd0)        ? 9'd1
+    // beats = min(want, MAXBURSTLEN, beats-to-1KB), floored at 1
+    wire [8:0]  link_cap = (link_want < LINK_MAX_BURST[8:0]) ? link_want : LINK_MAX_BURST[8:0];
+    wire [8:0]  link_beats = (link_cap  == 9'd0)        ? 9'd1
                            : (link_b1k  == 9'd0)        ? 9'd1
-                           : (link_want < link_b1k)     ? link_want : link_b1k;
+                           : (link_cap  < link_b1k)     ? link_cap : link_b1k;
     wire [8:0]  link_len9  = link_beats - 9'd1;           // AxLEN = beats - 1
 
     // compute beats-per-line for the latched config
