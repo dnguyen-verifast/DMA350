@@ -420,8 +420,10 @@ class dma350_predict_intent extends uvm_component;
         if (r != null && (r.get_backdoor() != null || r.has_hdl_path())) begin
             r.peek(st, d);
             if (st == UVM_IS_OK) begin
-                `uvm_info("PEEK_REG", "st == UVM_IS_OK : intent chot bang BACKDOOR peek", UVM_LOW) 
-                val = d[31:0]; return; end
+                val = d[31:0];
+                `uvm_info("PEEK_REG", $sformatf("st == UVM_IS_OK  val = %0h: intent chot bang BACKDOOR peek",val), UVM_LOW)  
+                return; 
+            end
         end
         // fallback: mirror tu APB write
         if (reg_mirror.exists(ch) && reg_mirror[ch].exists(off))
