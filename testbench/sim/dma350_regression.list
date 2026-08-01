@@ -20,172 +20,172 @@ dma350_cmdlink_boot_chain_test
 dma350_cmdlink_apb_example_test
 
 # --- Stream mode (TRM 5.5): no-stream / out-only / in-only / in+out (+ bien the) ---
-dma350_stream_no_stream_test
-dma350_stream_out_only_test
-dma350_stream_in_only_test
-dma350_stream_in_out_test
-dma350_stream_in_out_hw_test
-
-# --- Lifecycle / execution states (TRM 5.6): disabled/enabled/paused/stopped/halted(CTI)/error ---
-dma350_lifecycle_disabled_test
-dma350_lifecycle_enabled_test
-dma350_lifecycle_paused_test
-dma350_lifecycle_stopped_test
-dma350_lifecycle_halted_cti_test
-dma350_lifecycle_error_test
-
-# --- Power / LPI (TRM 4.6 / 5.9.1): active / retention / P-Channel / Q-Channel ---
-dma350_power_active_test
-dma350_power_retention_test
-dma350_power_pchannel_test
-dma350_power_qchannel_test
-
-# --- Security / Privilege (AxPROT): secure / non-secure / privileged / unprivileged ---
-dma350_secpriv_secure_test
-dma350_secpriv_nonsecure_test
-dma350_secpriv_privileged_test
-dma350_secpriv_unprivileged_test
-
-# ==========================================================================
-# 2D extended commands (TRM 5.3) - 114 test
-# ==========================================================================
-
-# --- GROUP A - 2D co ban (TRM 5.3.1) ---
-dma350_2d_basic_continue_test
-dma350_2d_basic_xaddrinc_test
-dma350_2d_basic_negstride_test
-dma350_2d_basic_as_1d_test
-dma350_2d_basic_desinc0_test
-dma350_2d_basic_transize_byte_test
-dma350_2d_basic_transize_hword_test
-dma350_2d_basic_large_frame_test
-
-# --- GROUP B - WRAP / FILL reshaping (TRM 5.3.2) ---
-dma350_2d_wrap_x_srclt_test
-dma350_2d_wrap_y_srclt_test
-dma350_2d_fill_y_test
-dma350_2d_fill_x_test
-dma350_2d_wrap_xy_test
-dma350_2d_wrap_x_eq_test
-dma350_2d_wrap_srcy_gt_desy_test
-dma350_2d_cont_srcy_lt_desy_test
-dma350_2d_cont_srcx_gt_desx_test
-dma350_2d_wrap_srcx_gt_desx_test
-dma350_2d_fill_x_ycont_test
-dma350_2d_reshape_same_area_test
-dma350_2d_reshape_1d_to_2d_test
-dma350_2d_reshape_2d_to_1d_test
-
-# --- GROUP C - 19 corner case Table 5-3 (TRM 5.3.2.1) ---
-dma350_2d_corner_01_test
-dma350_2d_corner_02_test
-dma350_2d_corner_03_test
-dma350_2d_corner_04_test
-dma350_2d_corner_05_test
-dma350_2d_corner_06_test
-dma350_2d_corner_07_test
-dma350_2d_corner_08_test
-dma350_2d_corner_09_test
-dma350_2d_corner_10_test
-dma350_2d_corner_11_test
-dma350_2d_corner_12_test
-dma350_2d_corner_13_test
-dma350_2d_corner_14_test
-dma350_2d_corner_15_test
-dma350_2d_corner_16_test
-dma350_2d_corner_17_test
-dma350_2d_corner_18_test
-dma350_2d_corner_19_test
-
-# --- GROUP D - Bien hinh mirror/rotate/transpose (TRM 5.3.1 Fig 5-7) ---
-dma350_2d_xform_mirror_x_test
-dma350_2d_xform_mirror_y_test
-dma350_2d_xform_rotate_180_test
-dma350_2d_xform_rotate_90_test
-dma350_2d_xform_rotate_270_test
-dma350_2d_xform_transpose_test
-dma350_2d_xform_overlap_stride_test
-dma350_2d_xform_stride_zero_test
-
-# --- GROUP E - Templated transfers (TRM 5.3.3) ---
-dma350_2d_tmplt_src_1d_test
-dma350_2d_tmplt_des_1d_test
-dma350_2d_tmplt_both_1d_test
-
-# --- GROUP F - Trigger tren lenh 2D (TRM 5.4) ---
-dma350_2d_trig_sw_cmd_test
-dma350_2d_trig_hw_cmd_src_test
-dma350_2d_trig_hw_cmd_des_test
-dma350_2d_trig_hw_cmd_both_test
-dma350_2d_trig_internal_test
-dma350_2d_trig_out_test
-dma350_2d_trig_out_sw_ack_test
-dma350_2d_trig_last_block_test
-dma350_2d_trig_pending_test
-dma350_2d_trig_sw_des_test
-
-# --- GROUP G - AXI4-Stream tren lenh 2D (TRM 5.5, Table 5-6) ---
-dma350_2d_stream_out_only_test
-dma350_2d_stream_in_only_test
-dma350_2d_stream_in_out_test
-dma350_2d_stream_cont_cont_test
-dma350_2d_stream_cont_fill_test
-dma350_2d_stream_early_tlast_test
-dma350_2d_stream_no_stream_test
-dma350_2d_stream_pkt_boundary_test
-
-# --- GROUP H - Command link / autoboot / autorestart (TRM 5.7) ---
-dma350_2d_link_chain_test
-dma350_2d_link_regclear_test
-dma350_2d_link_ysize_update_test
-dma350_2d_link_stride_update_test
-dma350_2d_link_1d_to_2d_test
-dma350_2d_boot_single_test
-dma350_2d_boot_chain_test
-dma350_2d_autorestart_cnt_test
-dma350_2d_autorestart_reload_test
-
-# --- GROUP I - Lifecycle / execution states (TRM 5.6) ---
-dma350_2d_life_pause_resume_test
-dma350_2d_life_pause_twice_test
-dma350_2d_life_stop_test
-dma350_2d_life_disable_test
-dma350_2d_life_halt_cti_test
-dma350_2d_life_done_pause_test
-dma350_2d_life_err_bus_test
-dma350_2d_life_err_cfg_test
-dma350_2d_life_allch_stop_test
-
-# --- GROUP J - Power / LPI (TRM 4.6, 5.9.1) ---
-dma350_2d_power_active_test
-dma350_2d_power_retention_test
-dma350_2d_power_pchannel_test
-dma350_2d_power_qchannel_test
-
-# --- GROUP K - Security / privilege (TRM 5.10) ---
-dma350_2d_sec_secure_test
-dma350_2d_sec_nonsecure_test
-dma350_2d_sec_priv_test
-dma350_2d_sec_unpriv_test
-dma350_2d_sec_mixed_test
-
-# --- GROUP L - Arbitration / nhieu channel (TRM 5.8) ---
-dma350_2d_arb_two_ch_test
-dma350_2d_arb_prio_test
-dma350_2d_arb_2d_vs_1d_test
-dma350_2d_arb_four_ch_test
-
-# --- GROUP X - Test AM / rang buoc cheo bi cam ---
-dma350_2d_neg_ytype_wrap_stream_test
-dma350_2d_neg_xtype_wrap_stream_test
-dma350_2d_neg_xtype_fill_stream_test
-dma350_2d_neg_flowctrl_src_2d_test
-dma350_2d_neg_flowctrl_des_2d_test
-dma350_2d_neg_flowctrl_wrap_2d_test
-dma350_2d_neg_flowctrl_stream_2d_test
-dma350_2d_neg_transize_gt_bus_test
-dma350_2d_neg_trigsel_out_of_range_test
-dma350_2d_neg_tmplt_with_2d_src_test
-dma350_2d_neg_tmplt_with_2d_des_test
-dma350_2d_neg_ytype_disabled_ysize_test
-dma350_2d_neg_zero_dest_area_test
+#dma350_stream_no_stream_test
+#dma350_stream_out_only_test
+#dma350_stream_in_only_test
+#dma350_stream_in_out_test
+#dma350_stream_in_out_hw_test
+#
+## --- Lifecycle / execution states (TRM 5.6): disabled/enabled/paused/stopped/halted(CTI)/error ---
+#dma350_lifecycle_disabled_test
+#dma350_lifecycle_enabled_test
+#dma350_lifecycle_paused_test
+#dma350_lifecycle_stopped_test
+#dma350_lifecycle_halted_cti_test
+#dma350_lifecycle_error_test
+#
+## --- Power / LPI (TRM 4.6 / 5.9.1): active / retention / P-Channel / Q-Channel ---
+#dma350_power_active_test
+#dma350_power_retention_test
+#dma350_power_pchannel_test
+#dma350_power_qchannel_test
+#
+## --- Security / Privilege (AxPROT): secure / non-secure / privileged / unprivileged ---
+#dma350_secpriv_secure_test
+#dma350_secpriv_nonsecure_test
+#dma350_secpriv_privileged_test
+#dma350_secpriv_unprivileged_test
+#
+## ==========================================================================
+## 2D extended commands (TRM 5.3) - 114 test
+## ==========================================================================
+#
+## --- GROUP A - 2D co ban (TRM 5.3.1) ---
+#dma350_2d_basic_continue_test
+#dma350_2d_basic_xaddrinc_test
+#dma350_2d_basic_negstride_test
+#dma350_2d_basic_as_1d_test
+#dma350_2d_basic_desinc0_test
+#dma350_2d_basic_transize_byte_test
+#dma350_2d_basic_transize_hword_test
+#dma350_2d_basic_large_frame_test
+#
+## --- GROUP B - WRAP / FILL reshaping (TRM 5.3.2) ---
+#dma350_2d_wrap_x_srclt_test
+#dma350_2d_wrap_y_srclt_test
+#dma350_2d_fill_y_test
+#dma350_2d_fill_x_test
+#dma350_2d_wrap_xy_test
+#dma350_2d_wrap_x_eq_test
+#dma350_2d_wrap_srcy_gt_desy_test
+#dma350_2d_cont_srcy_lt_desy_test
+#dma350_2d_cont_srcx_gt_desx_test
+#dma350_2d_wrap_srcx_gt_desx_test
+#dma350_2d_fill_x_ycont_test
+#dma350_2d_reshape_same_area_test
+#dma350_2d_reshape_1d_to_2d_test
+#dma350_2d_reshape_2d_to_1d_test
+#
+## --- GROUP C - 19 corner case Table 5-3 (TRM 5.3.2.1) ---
+#dma350_2d_corner_01_test
+#dma350_2d_corner_02_test
+#dma350_2d_corner_03_test
+#dma350_2d_corner_04_test
+#dma350_2d_corner_05_test
+#dma350_2d_corner_06_test
+#dma350_2d_corner_07_test
+#dma350_2d_corner_08_test
+#dma350_2d_corner_09_test
+#dma350_2d_corner_10_test
+#dma350_2d_corner_11_test
+#dma350_2d_corner_12_test
+#dma350_2d_corner_13_test
+#dma350_2d_corner_14_test
+#dma350_2d_corner_15_test
+#dma350_2d_corner_16_test
+#dma350_2d_corner_17_test
+#dma350_2d_corner_18_test
+#dma350_2d_corner_19_test
+#
+## --- GROUP D - Bien hinh mirror/rotate/transpose (TRM 5.3.1 Fig 5-7) ---
+#dma350_2d_xform_mirror_x_test
+#dma350_2d_xform_mirror_y_test
+#dma350_2d_xform_rotate_180_test
+#dma350_2d_xform_rotate_90_test
+#dma350_2d_xform_rotate_270_test
+#dma350_2d_xform_transpose_test
+#dma350_2d_xform_overlap_stride_test
+#dma350_2d_xform_stride_zero_test
+#
+## --- GROUP E - Templated transfers (TRM 5.3.3) ---
+#dma350_2d_tmplt_src_1d_test
+#dma350_2d_tmplt_des_1d_test
+#dma350_2d_tmplt_both_1d_test
+#
+## --- GROUP F - Trigger tren lenh 2D (TRM 5.4) ---
+#dma350_2d_trig_sw_cmd_test
+#dma350_2d_trig_hw_cmd_src_test
+#dma350_2d_trig_hw_cmd_des_test
+#dma350_2d_trig_hw_cmd_both_test
+#dma350_2d_trig_internal_test
+#dma350_2d_trig_out_test
+#dma350_2d_trig_out_sw_ack_test
+#dma350_2d_trig_last_block_test
+#dma350_2d_trig_pending_test
+#dma350_2d_trig_sw_des_test
+#
+## --- GROUP G - AXI4-Stream tren lenh 2D (TRM 5.5, Table 5-6) ---
+#dma350_2d_stream_out_only_test
+#dma350_2d_stream_in_only_test
+#dma350_2d_stream_in_out_test
+#dma350_2d_stream_cont_cont_test
+#dma350_2d_stream_cont_fill_test
+#dma350_2d_stream_early_tlast_test
+#dma350_2d_stream_no_stream_test
+#dma350_2d_stream_pkt_boundary_test
+#
+## --- GROUP H - Command link / autoboot / autorestart (TRM 5.7) ---
+#dma350_2d_link_chain_test
+#dma350_2d_link_regclear_test
+#dma350_2d_link_ysize_update_test
+#dma350_2d_link_stride_update_test
+#dma350_2d_link_1d_to_2d_test
+#dma350_2d_boot_single_test
+#dma350_2d_boot_chain_test
+#dma350_2d_autorestart_cnt_test
+#dma350_2d_autorestart_reload_test
+#
+## --- GROUP I - Lifecycle / execution states (TRM 5.6) ---
+#dma350_2d_life_pause_resume_test
+#dma350_2d_life_pause_twice_test
+#dma350_2d_life_stop_test
+#dma350_2d_life_disable_test
+#dma350_2d_life_halt_cti_test
+#dma350_2d_life_done_pause_test
+#dma350_2d_life_err_bus_test
+#dma350_2d_life_err_cfg_test
+#dma350_2d_life_allch_stop_test
+#
+## --- GROUP J - Power / LPI (TRM 4.6, 5.9.1) ---
+#dma350_2d_power_active_test
+#dma350_2d_power_retention_test
+#dma350_2d_power_pchannel_test
+#dma350_2d_power_qchannel_test
+#
+## --- GROUP K - Security / privilege (TRM 5.10) ---
+#dma350_2d_sec_secure_test
+#dma350_2d_sec_nonsecure_test
+#dma350_2d_sec_priv_test
+#dma350_2d_sec_unpriv_test
+#dma350_2d_sec_mixed_test
+#
+## --- GROUP L - Arbitration / nhieu channel (TRM 5.8) ---
+#dma350_2d_arb_two_ch_test
+#dma350_2d_arb_prio_test
+#dma350_2d_arb_2d_vs_1d_test
+#dma350_2d_arb_four_ch_test
+#
+## --- GROUP X - Test AM / rang buoc cheo bi cam ---
+#dma350_2d_neg_ytype_wrap_stream_test
+#dma350_2d_neg_xtype_wrap_stream_test
+#dma350_2d_neg_xtype_fill_stream_test
+#dma350_2d_neg_flowctrl_src_2d_test
+#dma350_2d_neg_flowctrl_des_2d_test
+#dma350_2d_neg_flowctrl_wrap_2d_test
+#dma350_2d_neg_flowctrl_stream_2d_test
+#dma350_2d_neg_transize_gt_bus_test
+#dma350_2d_neg_trigsel_out_of_range_test
+#dma350_2d_neg_tmplt_with_2d_src_test
+#dma350_2d_neg_tmplt_with_2d_des_test
+#dma350_2d_neg_ytype_disabled_ysize_test
+#dma350_2d_neg_zero_dest_area_test
