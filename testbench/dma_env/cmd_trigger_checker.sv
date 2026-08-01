@@ -124,7 +124,9 @@ class cmd_trigger_checker extends uvm_component;
         void'(uvm_config_db#(int)::get(this, "", "strb_width",     strb_width));
         void'(uvm_config_db#(int)::get(this, "", "cmd_timeout",    cmd_timeout));
         void'(uvm_config_db#(int)::get(this, "", "settle_cycles",  settle_cycles));
-        void'(uvm_config_db#(int)::get(this, "", "enable_chanel",         enable_chanel));
+        void'(uvm_config_db#(int)::get(this, "", "enable_chanel",         enable_chanel));\
+
+    //    dma350_predict_intent_h = dma350_predict_intent::type_id::create("dma350_predict_intent_h");
     endfunction
 
     // Chay sau connect_phase cua env -> luc nay handle predictor phai co.
