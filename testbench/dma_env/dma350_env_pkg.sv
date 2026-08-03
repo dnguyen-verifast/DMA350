@@ -55,17 +55,22 @@ package dma350_env_pkg;
   // trong dma_trig_in_driver -> khong dung agent trig_out rieng.
   import dma_trig_common_pkg::*; // dma_trig_item, dma_trig_cfg, enum reqtype/acktype
   import dma_trig_in_pkg::*;     // dma_trig_in_agent, _sequencer, cac sequence
+  // Header bitmap cua command descriptor (TRM Table 5-12): HDR_REGCLEAR,
+  // HDR_CTRL, HDR_SRCADDR... dma350_predict_intent dung de giai ma descriptor
+  // ma checker bat duoc tren kenh R. Package nay compile o dma350.f dong 126,
+  // TRUOC env nen import duoc.
+  import dma350_cmdlink_mem_pkg::*;
 
   // ---- (1) DINH NGHIA DUNG CHUNG + PREDICTOR ----
   // Chua: localparam offset thanh ghi / bit STATUS / enum trang thai,
   //       class dma_golden_intent, component dma350_predict_intent.
-  // PHAI include TRUOC cmd_trigger_checker va scoreboard: ca hai deu dung
+  // PHAI include TRUOC checker_dma_operation va scoreboard: ca hai deu dung
   // dma_golden_intent, rieng scoreboard con dung cac localparam/enum o day.
   // (dma_axi_burst / dma_ch_ctx / dma_ref_memory nam trong dma350_scoreboard.sv)
   `include "dma350_predict_intent.sv"
 
   // ---- (2) checker lien-interface (dung dma_if + dma_golden_intent) ----
-  `include "cmd_trigger_checker.sv"
+  `include "checker_dma_operation.sv"
 
   // ---- (3) scoreboard ----
   `include "dma350_scoreboard.sv"

@@ -36,6 +36,40 @@
     localparam int MAX_BYTES_PER_BURST = 1024;   // DMA-350 burst payload cap
     localparam int MAX_CHANNELS        = 8;
 
+    //=========================================================================
+    // ANH RESET cua khoi thanh ghi DMACH (lay tu RAL_DMA350/DMACH/*.sv).
+    //
+    // Chi liet ke thanh ghi co reset KHAC 0 - phan con lai mac dinh 0. Day la
+    // nguon su that DUY NHAT cho:
+    //   * dma_golden_intent::set_reset_defaults()  (khoi tao object)
+    //   * img_set_reset()                          (nen khi descriptor co REGCLEAR)
+    // Sua o day la ca hai noi cung doi, khong con nguy co lech nhau.
+    //=========================================================================
+    localparam bit [31:0] RST_CH_CTRL        = 32'h0020_0200; // XTYPE=1, DONETYPE=1
+    localparam bit [31:0] RST_CH_SRCTRANSCFG = 32'h000F_0400; // MAXBURSTLEN=15, NONSECATTR=1
+    localparam bit [31:0] RST_CH_DESTRANSCFG = 32'h000F_0400;
+    localparam bit [31:0] RST_CH_SRCTMPLT    = 32'h0000_0001;
+    localparam bit [31:0] RST_CH_DESTMPLT    = 32'h0000_0001;
+
+    //=========================================================================
+    // NGUON chot intent. Ba duong nap lenh cua DMA-350 khac nhau ve BAN CHAT
+    // nen khong the dung chung mot cach lay config:
+    //
+    //   APB    : SW ghi thang thanh ghi roi ENABLECMD. Thanh ghi da dung ngay
+    //            tai thoi diem ENABLECMD -> peek backdoor la chinh xac.
+    //   DESC   : autoboot / command-link. DMAC doc descriptor qua AXI roi nap
+    //            vao thanh ghi, MAT nhieu chu ky (~33ck tren RTL nay) va khong
+    //            co moc bao "nap xong" -> peek se doc trung config cua lenh
+    //            TRUOC. Phai giai ma tu chinh du lieu descriptor tren kenh R.
+    //   REPEAT : autorestart. Khong nap gi moi, khong doc AXI -> dung lai anh
+    //            thanh ghi cua vong vua chay.
+    //=========================================================================
+    typedef enum {
+        INTENT_SRC_APB,
+        INTENT_SRC_DESC,
+        INTENT_SRC_REPEAT
+    } intent_src_e;
+
 //=============================================================================
 // dma_golden_intent : snapshot cau hinh 1 command tai thoi diem ENABLECMD.
 // Day la "y dinh" chot cung; predictor va ref-memory doc tu day.
@@ -90,7 +124,71 @@ class dma_golden_intent extends uvm_object;
     bit       intren_done;
 
     `uvm_object_utils(dma_golden_intent)
-    function new(string name="dma_golden_intent"); super.new(name); endfunction
+
+    // Object sinh ra la da mang gia tri RESET cua thanh ghi, khong phai toan 0.
+    // Nho vay noi goi chi can gan nhung truong that su khac mac dinh.
+    function new(string name="dma_golden_intent");
+        super.new(name);
+        set_reset_defaults();
+    endfunction
+
+    //-------------------------------------------------------------------------
+    // Gia tri mac dinh = anh RESET cua khoi thanh ghi DMACH (RST_CH_* o tren).
+    //
+    // Quan trong: KHONG phai truong nao cung reset ve 0. Truoc day moi noi tao
+    // dma_golden_intent deu ra object toan 0, nen bat ky lenh nao khong ghi
+    // CH_*TRANSCFG se bi hieu la maxburstlen=0 (1 beat/burst) thay vi 15
+    // (16 beat) -> du doan burst sai hoan toan.
+    //
+    // Cung la NEN cho descriptor co HDR_REGCLEAR: TRM noi "xoa thanh ghi truoc
+    // khi update", tuc ve gia tri RESET chu khong phai ve 0.
+    //-------------------------------------------------------------------------
+    function void set_reset_defaults();
+        // ---- CH_CTRL = 0x00200200 ----
+        xtype           = 1;              // XTYPE   = 0x1 (continue)
+        ytype           = 0;
+        donetype        = 1;              // DONETYPE= 0x1
+        src_transize    = 0;
+        des_transize    = 0;
+        chprio          = 0;
+        regreloadtype   = 0;
+        donepauseen     = 0;
+        usestream       = 0;
+        use_srctrig     = 0;
+        use_destrig     = 0;
+        use_trigout     = 0;
+        wrap_en         = (xtype == 2);
+        fill_en         = (xtype == 3);
+
+        // ---- CH_SRCTRANSCFG / CH_DESTRANSCFG = 0x000F0400 ----
+        // MAXBURSTLEN=0xF, NONSECATTR(bit10)=1, PRIVATTR(bit11)=0
+        // prot duoc ghep theo dung cong thuc trong img_decode(): {0, [10], [11]}
+        src_maxburstlen = 15;  des_maxburstlen = 15;
+        src_prot        = 3'b010;  des_prot   = 3'b010;
+        src_cache       = 0;   des_cache      = 0;
+        src_inner       = 0;   des_inner      = 0;
+        src_domain      = 0;   des_domain     = 0;
+
+        // ---- CH_SRCTMPLT / CH_DESTMPLT = 0x00000001 ----
+        // (template chua co truong rieng trong intent - ghi chu de sau nay them)
+
+        // ---- phan con lai: reset = 0 ----
+        ch_id = 0;  valid = 0;  disablecmd = 0;  ext_cmd = 0;
+        srcaddr = 0; desaddr = 0;
+        src_xsize = 0; des_xsize = 0;
+        src_xaddrinc = 0; des_xaddrinc = 0;
+        ysize = 0; desysize = 0; srcysize = 0;
+        src_stride = 0; des_stride = 0;
+        fillval = 0;
+        cmdrstren = 0; cmdrestrcnt = 0;
+        linkaddr = 0;  linkaddren = 0;
+        srctrig_sel = 0; destrig_sel = 0; trigout_sel = 0;
+        srctrig_type = 0; destrig_type = 0; trigout_type = 0;
+        srctrig_mode = 0; destrig_mode = 0;
+        srctrig_blksize = 0; destrig_blksize = 0;
+        streamtype = 0; usestream_out = 0; usestream_in = 0;
+        intren_done = 0;
+    endfunction
 
     // tong so byte 1D (mot dong) va toan transfer (co 2D)
     function int line_bytes(); return src_xsize << src_transize; endfunction
@@ -105,7 +203,7 @@ endclass
 //-----------------------------------------------------------------------------
 // Nhiem vu DUY NHAT: phat hien thoi diem mot channel ACTIVATE, chot toan bo
 // config cua channel do thanh dma_golden_intent roi BROADCAST cho moi component
-// quan tam (scoreboard, cmd_trigger_checker, coverage...).
+// quan tam (scoreboard, checker_dma_operation, coverage...).
 //
 // Tach khoi scoreboard vi:
 //   * scoreboard chi nen lo viec DOI CHIEU, khong kiem luon viec dich config
@@ -135,13 +233,13 @@ class dma350_predict_intent extends uvm_component;
     //           khi backdoor peek khong dung duoc (m_ral null / khong co HDL
     //           path). Bo no di thi peek_or_mirror() luon tra 0.
     // sc_imp  : BO. Viec phat hien "channel activate" da chuyen han sang FSM
-    //           lenh trong cmd_trigger_checker (no goi emit_intent truc tiep),
+    //           lenh trong checker_dma_operation (no goi emit_intent truc tiep),
     //           nen predictor khong con can theo doi canh len ch_enabled nua.
     uvm_analysis_imp_apb #(apb_seq_item_master, dma350_predict_intent) apb_imp;
 
     // ---- cong ra : intent cho scoreboard / checker ----
     // Van giu de emit_invalidate() (va bat ky ai muon dung predictor doc lap)
-    // co duong phat. Duong CHINH hien nay la cmd_trigger_checker.intent_ap.
+    // co duong phat. Duong CHINH hien nay la checker_dma_operation.intent_ap.
     uvm_analysis_port #(dma_golden_intent) intent_ap;
 
     // ---- phu thuoc ----
@@ -150,7 +248,17 @@ class dma350_predict_intent extends uvm_component;
     int                  num_channels = 1;
 
     // ---- trang thai noi bo ----
-    bit [31:0] reg_mirror [int][bit [7:0]];   // [ch][offset]
+    bit [31:0] reg_mirror [int][bit [7:0]];   // [ch][offset] - mirror tu APB write
+
+    // ANH THANH GHI cua lenh dang chay, theo channel. Day la "state" ma
+    // predictor tu duy tri thay vi hoi RTL:
+    //   * APB    : nap tu peek
+    //   * DESC   : nen (anh cu, hoac anh RESET neu HDR_REGCLEAR) + de descriptor len
+    //   * REPEAT : giu nguyen
+    // Nho co anh nay, chuoi command-link nhieu lenh moi chong dung: descriptor
+    // thu N chi mang MOT SO thanh ghi, phan khong co phai giu gia tri cua lenh
+    // thu N-1 chu khong phai ve 0.
+    bit [31:0] cmd_img [int][bit [7:0]];
     int        n_activations = 0;
 
     function new(string name = "dma350_predict_intent", uvm_component parent = null);
@@ -181,12 +289,145 @@ class dma350_predict_intent extends uvm_component;
     //-------------------------------------------------------------------------
     function void reset_mirror();
         reg_mirror.delete();
-        `uvm_info("PRED_INT", "reset : xoa reg_mirror", UVM_HIGH)
+        cmd_img.delete();
+        `uvm_info("PRED_INT", "reset : xoa reg_mirror + cmd_img", UVM_HIGH)
+    endfunction
+
+    //=========================================================================
+    // ANH THANH GHI : tao / nap / de descriptor len / giai ma
+    //=========================================================================
+
+    // Dat anh cua channel ve gia tri RESET (khong phai ve 0 - xem RST_CH_*).
+    function void img_set_reset(int ch);
+        cmd_img[ch].delete();
+        cmd_img[ch][CH_CTRL]         = RST_CH_CTRL;
+        cmd_img[ch][CH_SRCTRANSCFG]  = RST_CH_SRCTRANSCFG;
+        cmd_img[ch][CH_DESTRANSCFG]  = RST_CH_DESTRANSCFG;
+        cmd_img[ch][CH_SRCTMPLT]     = RST_CH_SRCTMPLT;
+        cmd_img[ch][CH_DESTMPLT]     = RST_CH_DESTMPLT;
+        // cac offset khac: khong co entry => img_get() tra 0
+    endfunction
+
+    function bit [31:0] img_get(int ch, bit [7:0] off);
+        if (cmd_img.exists(ch) && cmd_img[ch].exists(off)) return cmd_img[ch][off];
+        return 32'h0;
+    endfunction
+
+    // Nap anh tu RTL (duong APB): peek toan bo thanh ghi lien quan.
+    task img_load_from_peek(int ch);
+        bit [7:0] offs [$] = '{ CH_CMD, CH_INTREN, CH_CTRL,
+                                CH_SRCADDR, CH_SRCADDRHI, CH_DESADDR, CH_DESADDRHI,
+                                CH_XSIZE, CH_XSIZEHI, CH_SRCTRANSCFG, CH_DESTRANSCFG,
+                                CH_XADDRINC, CH_YADDRSTRIDE, CH_FILLVAL, CH_YSIZE,
+                                CH_TMPLTCFG, CH_SRCTMPLT, CH_DESTMPLT,
+                                CH_SRCTRIGINCFG, CH_DESTRIGINCFG, CH_TRIGOUTCFG,
+                                CH_GPOEN0, CH_GPOVAL0, CH_STREAMINTCFG,
+                                CH_LINKATTR, CH_AUTOCFG, CH_LINKADDR, CH_LINKADDRHI };
+        bit [31:0] v;
+        bit        ok;
+        // Nen la anh RESET, roi CHI ghi de nhung thanh ghi doc duoc that su.
+        // Thanh ghi khong peek duoc ma van ghi de bang 0 se bien CH_*TRANSCFG
+        // (reset 0x000F0400) thanh maxburstlen=0 -> du doan 1 beat/burst thay
+        // vi 16.
+        img_set_reset(ch);
+        foreach (offs[i]) begin
+            peek_or_mirror(ch, offs[i], v, ok);
+            if (ok) cmd_img[ch][offs[i]] = v;
+        end
+    endtask
+
+    //-------------------------------------------------------------------------
+    // Anh xa BIT HEADER cua command descriptor -> offset thanh ghi.
+    // Thu tu word trong descriptor la LSB -> MSB cua header (TRM Table 5-12,
+    // da model san trong dma350_cmdlink_mem_pkg).
+    // Tra 8'hFF = bit reserved / khong hop le.
+    //-------------------------------------------------------------------------
+    function bit [7:0] hdr_bit_to_offset(int b);
+        case (b)
+            HDR_INTREN:       return CH_INTREN;
+            HDR_CTRL:         return CH_CTRL;
+            HDR_SRCADDR:      return CH_SRCADDR;
+            HDR_SRCADDRHI:    return CH_SRCADDRHI;
+            HDR_DESADDR:      return CH_DESADDR;
+            HDR_DESADDRHI:    return CH_DESADDRHI;
+            HDR_XSIZE:        return CH_XSIZE;
+            HDR_XSIZEHI:      return CH_XSIZEHI;
+            HDR_SRCTRANSCFG:  return CH_SRCTRANSCFG;
+            HDR_DESTRANSCFG:  return CH_DESTRANSCFG;
+            HDR_XADDRINC:     return CH_XADDRINC;
+            HDR_YADDRSTRIDE:  return CH_YADDRSTRIDE;
+            HDR_FILLVAL:      return CH_FILLVAL;
+            HDR_YSIZE:        return CH_YSIZE;
+            HDR_TMPLTCFG:     return CH_TMPLTCFG;
+            HDR_SRCTMPLT:     return CH_SRCTMPLT;
+            HDR_DESTMPLT:     return CH_DESTMPLT;
+            HDR_SRCTRIGINCFG: return CH_SRCTRIGINCFG;
+            HDR_DESTRIGINCFG: return CH_DESTRIGINCFG;
+            HDR_TRIGOUTCFG:   return CH_TRIGOUTCFG;
+            HDR_GPOEN0:       return CH_GPOEN0;
+            HDR_GPOVAL0:      return CH_GPOVAL0;
+            HDR_STREAMINTCFG: return CH_STREAMINTCFG;
+            HDR_LINKATTR:     return CH_LINKATTR;
+            HDR_AUTOCFG:      return CH_AUTOCFG;
+            HDR_LINKADDR:     return CH_LINKADDR;
+            HDR_LINKADDRHI:   return CH_LINKADDRHI;
+            default:          return 8'hFF;   // bit 1/23/25/27 = Reserved
+        endcase
+    endfunction
+
+    //-------------------------------------------------------------------------
+    // De descriptor (da bat duoc tren kenh R) len anh thanh ghi.
+    // desc[0] = header bitmap, desc[1..] = gia tri theo thu tu bit tang dan.
+    // Tra 0 neu descriptor loi dinh dang.
+    //-------------------------------------------------------------------------
+    function bit img_apply_descriptor(int ch, const ref bit [31:0] desc [$]);
+        bit [31:0] hdr;
+        int        idx = 1;
+        bit [7:0]  off;
+
+        if (desc.size() == 0) begin
+            `uvm_error("PRED_DESC", $sformatf("CH%0d descriptor RONG", ch))
+            return 0;
+        end
+        hdr = desc[0];
+
+        // REGCLEAR : xoa ve gia tri RESET truoc khi de len. Khong co bit nay thi
+        // descriptor chi la BAN VA len cau hinh cua lenh truoc.
+        if (hdr[HDR_REGCLEAR]) begin
+            img_set_reset(ch);
+            `uvm_info("PRED_DESC", $sformatf(
+              "CH%0d descriptor co REGCLEAR - nen = anh RESET", ch), UVM_HIGH)
+        end
+
+        for (int b = 1; b < 32; b++) begin
+            if (!hdr[b]) continue;
+            off = hdr_bit_to_offset(b);
+            if (off == 8'hFF) begin
+                `uvm_error("PRED_DESC", $sformatf(
+                  "CH%0d header 0x%08h set bit RESERVED %0d - khong biet co word di kem hay khong, bo giai ma",
+                  ch, hdr, b))
+                return 0;
+            end
+            if (idx >= desc.size()) begin
+                `uvm_error("PRED_DESC", $sformatf(
+                  "CH%0d descriptor NGAN hon header doi hoi: header 0x%08h can them word cho bit %0d nhung chi doc duoc %0d word",
+                  ch, hdr, b, desc.size()))
+                return 0;
+            end
+            cmd_img[ch][off] = desc[idx];
+            idx++;
+        end
+
+        if (idx != desc.size())
+            `uvm_info("PRED_DESC", $sformatf(
+              "CH%0d descriptor con %0d word thua sau khi giai ma header 0x%08h (burst doc dai hon descriptor - binh thuong)",
+              ch, desc.size()-idx, hdr), UVM_HIGH)
+        return 1;
     endfunction
 
     //-------------------------------------------------------------------------
     // (1) APB : chi CAP NHAT MIRROR. Khong chot intent o day - viec chot la do
-    //     FSM lenh trong cmd_trigger_checker goi emit_intent() quyet dinh.
+    //     FSM lenh trong checker_dma_operation goi emit_intent() quyet dinh.
     //-------------------------------------------------------------------------
     virtual function void write_apb(apb_seq_item_master t);
         bit [12:0] a13;
@@ -250,15 +491,22 @@ class dma350_predict_intent extends uvm_component;
         `uvm_info("PRED_INT", $sformatf("CH%0d intent het hieu luc", ch), UVM_HIGH)
     endfunction
 
-    //-------------------------------------------------------------------------
-    // Chot config -> dma_golden_intent -> broadcast
-    //-------------------------------------------------------------------------
-    task emit_intent(input int ch, output dma_golden_intent chanel_intent);
-        dma_golden_intent gi;
-        bit [31:0] ctrl, xsz, xszhi, xinc, ystr, sctc, dstc, scfg, dcfg, tocfg;
-        bit [31:0] sa_lo, sa_hi, da_lo, da_hi, fillv, ysz, la_lo, la_hi;
-        bit [31:0] streamcfg, intren, autorestart, cmd;
-
+    //=========================================================================
+    // CHOT CONFIG -> dma_golden_intent
+    //
+    // Ba nguon (intent_src_e) chi khac nhau o cach NAP ANH THANH GHI; sau do
+    // dung CHUNG mot bo giai ma img_decode(). Truoc day chi co duong peek nen
+    // boot/command-link doc trung config cua lenh truoc (RTL can ~33ck de nap
+    // descriptor vao thanh ghi, ma peek lai chay ngay sau RLAST).
+    //
+    //   INTENT_SRC_APB    : peek RTL (SW da ghi xong thanh ghi truoc ENABLECMD)
+    //   INTENT_SRC_DESC   : de 'desc' (bat tren kenh R) len anh hien co
+    //   INTENT_SRC_REPEAT : giu nguyen anh - autorestart khong nap gi moi
+    //=========================================================================
+    task emit_intent(input int          ch,
+                     input intent_src_e src,
+                     const ref bit [31:0] desc [$],
+                     output dma_golden_intent chanel_intent);
         chanel_intent = null;
         // Chan index sai TRUOC khi cham vao m_ral.dmach[ch] : ral_reg() co kiem
         // bien nhung neu m_ral null thi khong, va reg_mirror[ch] se tao entry rac.
@@ -268,29 +516,59 @@ class dma350_predict_intent extends uvm_component;
             return;
         end
 
-        gi = dma_golden_intent::type_id::create("gi");
-        peek_or_mirror(ch, CH_CMD,          cmd);
-        peek_or_mirror(ch, CH_CTRL,         ctrl);
-        peek_or_mirror(ch, CH_XSIZE,        xsz);
-        peek_or_mirror(ch, CH_XSIZEHI,      xszhi);
-        peek_or_mirror(ch, CH_XADDRINC,     xinc);
-        peek_or_mirror(ch, CH_YADDRSTRIDE,  ystr);
-        peek_or_mirror(ch, CH_SRCTRANSCFG,  sctc);
-        peek_or_mirror(ch, CH_DESTRANSCFG,  dstc);
-        peek_or_mirror(ch, CH_SRCTRIGINCFG, scfg);
-        peek_or_mirror(ch, CH_DESTRIGINCFG, dcfg);
-        peek_or_mirror(ch, CH_TRIGOUTCFG,   tocfg);
-        peek_or_mirror(ch, CH_SRCADDR,      sa_lo);
-        peek_or_mirror(ch, CH_SRCADDRHI,    sa_hi);
-        peek_or_mirror(ch, CH_DESADDR,      da_lo);
-        peek_or_mirror(ch, CH_DESADDRHI,    da_hi);
-        peek_or_mirror(ch, CH_FILLVAL,      fillv);
-        peek_or_mirror(ch, CH_YSIZE,        ysz);
-        peek_or_mirror(ch, CH_LINKADDR,     la_lo);
-        peek_or_mirror(ch, CH_LINKADDRHI,   la_hi);
-        peek_or_mirror(ch, CH_STREAMINTCFG,   streamcfg);
-        peek_or_mirror(ch, CH_INTREN,   intren);
-        peek_or_mirror(ch, CH_AUTOCFG,   autorestart);
+        case (src)
+            INTENT_SRC_APB: begin
+                img_load_from_peek(ch);
+            end
+            INTENT_SRC_DESC: begin
+                // Chua co anh nao (autoboot ngay sau reset) -> nen la anh RESET.
+                if (!cmd_img.exists(ch)) img_set_reset(ch);
+                if (!img_apply_descriptor(ch, desc)) return;   // loi dinh dang
+            end
+            INTENT_SRC_REPEAT: begin
+                if (!cmd_img.exists(ch)) begin
+                    `uvm_error("PRED_INT", $sformatf(
+                      "CH%0d INTENT_SRC_REPEAT nhung chua co anh thanh ghi nao", ch))
+                    return;
+                end
+            end
+        endcase
+
+        chanel_intent = img_decode(ch, src);
+    endtask
+
+    //-------------------------------------------------------------------------
+    // GIAI MA anh thanh ghi -> dma_golden_intent. Dung chung cho ca ba nguon.
+    //-------------------------------------------------------------------------
+    function dma_golden_intent img_decode(int ch, intent_src_e src);
+        dma_golden_intent gi = dma_golden_intent::type_id::create("gi");
+        bit [31:0] ctrl, xsz, xszhi, xinc, ystr, sctc, dstc, scfg, dcfg, tocfg;
+        bit [31:0] sa_lo, sa_hi, da_lo, da_hi, fillv, ysz, la_lo, la_hi;
+        bit [31:0] streamcfg, intren, autorestart, cmd;
+
+        cmd       = img_get(ch, CH_CMD);
+        ctrl      = img_get(ch, CH_CTRL);
+        xsz       = img_get(ch, CH_XSIZE);
+        xszhi     = img_get(ch, CH_XSIZEHI);
+        xinc      = img_get(ch, CH_XADDRINC);
+        ystr      = img_get(ch, CH_YADDRSTRIDE);
+        sctc      = img_get(ch, CH_SRCTRANSCFG);
+        dstc      = img_get(ch, CH_DESTRANSCFG);
+        scfg      = img_get(ch, CH_SRCTRIGINCFG);
+        dcfg      = img_get(ch, CH_DESTRIGINCFG);
+        tocfg     = img_get(ch, CH_TRIGOUTCFG);
+        sa_lo     = img_get(ch, CH_SRCADDR);
+        sa_hi     = img_get(ch, CH_SRCADDRHI);
+        da_lo     = img_get(ch, CH_DESADDR);
+        da_hi     = img_get(ch, CH_DESADDRHI);
+        fillv     = img_get(ch, CH_FILLVAL);
+        ysz       = img_get(ch, CH_YSIZE);
+        la_lo     = img_get(ch, CH_LINKADDR);
+        la_hi     = img_get(ch, CH_LINKADDRHI);
+        streamcfg = img_get(ch, CH_STREAMINTCFG);
+        intren    = img_get(ch, CH_INTREN);
+        autorestart = img_get(ch, CH_AUTOCFG);
+
         gi.ch_id        = ch;
         gi.valid        = 1;
         gi.disablecmd   = cmd[2];
@@ -361,15 +639,15 @@ class dma350_predict_intent extends uvm_component;
         gi.intren_done   = intren[IE_DONE];
         n_activations++;
         `uvm_info("PRED_INT", $sformatf(
-          "CH%0d ACTIVATE -> intent: src=0x%0h des=0x%0h SRCXSIZE=%0d DESXSIZE=%0d xtype=%0b ext_cmd=%0b srctrig_sel=%0d",
-          ch, gi.srcaddr, gi.desaddr, gi.src_xsize, gi.des_xsize,
+          "CH%0d ACTIVATE (%s) -> intent: src=0x%0h des=0x%0h SRCXSIZE=%0d DESXSIZE=%0d xtype=%0b ext_cmd=%0b srctrig_sel=%0d",
+          ch, src.name(), gi.srcaddr, gi.desaddr, gi.src_xsize, gi.des_xsize,
           gi.xtype, gi.ext_cmd, gi.srctrig_sel), UVM_MEDIUM)
 
-        // KHONG write() o day: nguoi goi (cmd_trigger_checker FSM) moi biet
+        // KHONG write() o day: nguoi goi (checker_dma_operation FSM) moi biet
         // intent nay ung voi giai doan nao cua lenh va tu phat qua intent_ap
         // cua no. Phat ca hai noi se lam scoreboard chot intent 2 lan.
-        chanel_intent = gi;
-    endtask
+        return gi;
+    endfunction
 
     //-------------------------------------------------------------------------
     // BACKDOOR peek helper (giong scoreboard): uu tien RAL, fallback mirror
@@ -412,23 +690,34 @@ class dma350_predict_intent extends uvm_component;
         endcase
     endfunction
 
-    task peek_or_mirror(int ch, bit [7:0] off, output bit [31:0] val);
+    // 'ok' = 1 khi that su doc duoc gia tri (backdoor peek hoac mirror co entry).
+    // ok = 0 nghia la KHONG BIET, khong phai "bang 0" - noi goi phai giu gia tri
+    // reset thay vi ghi de bang 0 (xem img_load_from_peek).
+    task peek_or_mirror(int ch, bit [7:0] off, output bit [31:0] val, output bit ok);
         uvm_reg        r = ral_reg(ch, off);
         uvm_status_e   st;
         uvm_reg_data_t d;
         val = 0;
+        ok  = 0;
         if (r != null && (r.get_backdoor() != null || r.has_hdl_path())) begin
             r.peek(st, d);
             if (st == UVM_IS_OK) begin
                 val = d[31:0];
-                `uvm_info("PEEK_REG", $sformatf("st == UVM_IS_OK  val = %0h: intent chot bang BACKDOOR peek",val), UVM_LOW)  
-                return; 
+                ok  = 1;
+                `uvm_info("PEEK_REG", $sformatf("st == UVM_IS_OK  val = %0h: intent chot bang BACKDOOR peek",val), UVM_LOW)
+                return;
             end
         end
-        // fallback: mirror tu APB write
-        if (reg_mirror.exists(ch) && reg_mirror[ch].exists(off))
-            `uvm_info("PEEK_REG", "Mirror_apb: intent chot bang FRONTDOOR peek", UVM_LOW)
+        // fallback: mirror tu APB write.
+        // THIEU begin/end o day la mot loi that: `uvm_info expand ra mot cau
+        // lenh, nen "val = ..." nam NGOAI if va luon chay -> doc phan tu khong
+        // ton tai cua mang ket hop, ghi de ket qua peek bang 0.
+        if (reg_mirror.exists(ch) && reg_mirror[ch].exists(off)) begin
             val = reg_mirror[ch][off];
+            ok  = 1;
+            `uvm_info("PEEK_REG", $sformatf(
+              "Mirror_apb: ch%0d off 0x%02h = 0x%08h (mirror APB)", ch, off, val), UVM_HIGH)
+        end
     endtask
 
     //-------------------------------------------------------------------------

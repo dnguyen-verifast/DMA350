@@ -293,7 +293,7 @@ module dma350_tb_top;
 
   //---------------------------------------------------------------------------
   // dma_if : interface TONG HOP moi tin hieu bien DMA-350, cho cac checker
-  // lien-interface (cmd_trigger_checker). THU DONG: chi assign VAO, khong lai
+  // lien-interface (checker_dma_operation). THU DONG: chi assign VAO, khong lai
   // nguoc ve DUT -> khong the gay tranh chap driver.
   //---------------------------------------------------------------------------
   dma_if #(
@@ -684,7 +684,7 @@ module dma350_tb_top;
     uvm_config_db#(virtual dma_trig_if)::set(null, "*", "trig_vif_t2", trig_if_i[2]);
     uvm_config_db#(virtual dma_trig_if)::set(null, "*", "trig_vif_t3", trig_if_i[3]);
 
-    // ---- dma_if : interface tong hop cho cmd_trigger_checker ----
+    // ---- dma_if : interface tong hop cho checker_dma_operation ----
     uvm_config_db#(virtual dma_if)::set(null, "*", "vif", dma_if_i);
     // So cong trigger (checker dung de kiem SEL co hop le khong)
     uvm_config_db#(int)::set(null, "*", "num_trigger_in", NUM_TRIG);

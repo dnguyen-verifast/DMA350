@@ -30,7 +30,7 @@ class dma350_vseq_trig_srccmd_block extends dma350_vseq_trig_base;
     enable_ch(ch);
 
     // Channel PHAI dung cho trigger, chua duoc tu chay.
-    // (cmd_trigger_checker chay nen cung soi "AR du lieu truoc handshake")
+    // (checker_dma_operation chay nen cung soi "AR du lieu truoc handshake")
     check_waiting_trigger("cho trigger dau tien");
 
     // COMMAND mode: MOT trigger giai phong CA LENH, bat ke reqtype la BLOCK.

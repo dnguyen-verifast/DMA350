@@ -53,11 +53,12 @@ class dma350_env extends uvm_env;
     // PREDICTOR + CHECKER lien-interface
     //   dma350_predict_intent : chot config luc channel activate -> broadcast
     //                           dma_golden_intent (scoreboard + checker cung dung)
-    //   cmd_trigger_checker   : soi "AR du lieu truoc handshake trigger" (can
-    //                           dma_if - interface tong hop cua DMA-350)
+    //   checker_dma_operation : FSM vong doi lenh + soi "AR du lieu truoc
+    //                           handshake trigger" (can dma_if - interface
+    //                           tong hop cua DMA-350)
     //-------------------------------------------------------------------------
     dma350_predict_intent predict_intent_h;
-    cmd_trigger_checker   cmd_trig_chk_h;
+    checker_dma_operation checker_dma_operation_h;
 
     // Virtual sequencer: virtual sequence dieu khien toan testbench qua day
     dma350_virtual_sequencer v_seqr_h;
@@ -144,17 +145,17 @@ class dma350_env extends uvm_env;
                                 $sformatf("trig_agt_t%0d", i), this);
 
         predict_intent_h = dma350_predict_intent::type_id::create("predict_intent_h",this);
-        cmd_trig_chk_h   = cmd_trigger_checker::type_id::create("cmd_trig_chk_h",this);
+        checker_dma_operation_h = checker_dma_operation::type_id::create("checker_dma_operation_h",this);
 
         // Cau hinh kich thuoc cho predictor + checker. PHAI set TRUOC khi
         // build_phase cua chinh chung chay (build_phase con chay sau khi
         // build_phase cha ket thuc) - dat ngay sau create la du som.
         // Khong set thi predictor mac dinh num_channels=1 -> emit_intent()
         // tu choi moi ch != 0.
-        uvm_config_db#(int)::set(this, "predict_intent_h", "num_channels",    NUM_CH);
-        uvm_config_db#(int)::set(this, "cmd_trig_chk_h",   "num_channels",    NUM_CH);
-        uvm_config_db#(int)::set(this, "cmd_trig_chk_h",   "num_trigger_in",  NUM_TRIG);
-        uvm_config_db#(int)::set(this, "cmd_trig_chk_h",   "num_trigger_out", NUM_TRIG);
+        uvm_config_db#(int)::set(this, "predict_intent_h",        "num_channels",    NUM_CH);
+        uvm_config_db#(int)::set(this, "checker_dma_operation_h", "num_channels",    NUM_CH);
+        uvm_config_db#(int)::set(this, "checker_dma_operation_h", "num_trigger_in",  NUM_TRIG);
+        uvm_config_db#(int)::set(this, "checker_dma_operation_h", "num_trigger_out", NUM_TRIG);
 
         v_seqr_h = dma350_virtual_sequencer::type_id::create("v_seqr_h",this);
 
@@ -243,7 +244,7 @@ class dma350_env extends uvm_env;
         // TRUOC : predictor tu bat canh len ch_enabled (sc_imp) roi tu phat
         //         intent thang len scoreboard.
         // NAY   : viec quyet dinh "khi nao mot vong lenh bat dau" nam o FSM
-        //         trong cmd_trigger_checker (no phan biet duoc ENABLECMD /
+        //         trong checker_dma_operation (no phan biet duoc ENABLECMD /
         //         autoboot / autorestart / command-link, dieu ma canh len
         //         ch_enabled don thuan khong lam duoc). Checker goi truc tiep
         //         predict_intent_h.emit_intent() qua HANDLE (gan ben duoi) roi
@@ -260,12 +261,12 @@ class dma350_env extends uvm_env;
         // HANDLE predictor cho checker. Checker KHONG tu type_id::create nua:
         // component tao khong parent se nam ngoai cay UVM, build/connect cua no
         // khong chay dung thu tu nen m_ral luon null -> peek tra ve 0 het.
-        cmd_trig_chk_h.dma350_predict_intent_h = predict_intent_h;
+        checker_dma_operation_h.dma350_predict_intent_h = predict_intent_h;
 
         // DUONG CHINH: intent len scoreboard di qua checker.
-        cmd_trig_chk_h.intent_ap.connect(dma350_scb_h.intent_analysis_fifo_h0.analysis_export);
+        checker_dma_operation_h.intent_ap.connect(dma350_scb_h.intent_analysis_fifo_h0.analysis_export);
         // Duong phu: neu predictor tu phat invalidate thi checker cung biet.
-        predict_intent_h.intent_ap.connect(cmd_trig_chk_h.gi_imp);
+        predict_intent_h.intent_ap.connect(checker_dma_operation_h.gi_imp);
 
         //=====================================================================
         // RAL : frontdoor sequencer + auto-predict + handoff model cho backdoor

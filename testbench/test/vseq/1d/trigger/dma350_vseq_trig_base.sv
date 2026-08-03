@@ -28,7 +28,7 @@
 //   3. ban sequence trigger tren p_sequencer.trig_seqr_h[<cong TI>]
 //   4. wait_ch_done() : chi xong khi da nhan du trigger
 //
-// cmd_trigger_checker chay nen se bat loi "AR du lieu truoc handshake trigger".
+// checker_dma_operation chay nen se bat loi "AR du lieu truoc handshake trigger".
 //==============================================================================
 `ifndef DMA350_VSEQ_TRIG_BASE_SV
 `define DMA350_VSEQ_TRIG_BASE_SV

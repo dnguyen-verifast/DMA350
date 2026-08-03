@@ -2,7 +2,7 @@
 // dma350_vseq_2d_trig_hw_cmd_src.sv
 //   GROUP F - TRM 5.4.1.1 'Trigger input command mode' (phia nguon) tren 2D
 //   Trigger phan cung tren cong TI0 khoi dong toan bo lenh 2D.
-//   Ky vong: khong co AR nao truoc handshake trigger (cmd_trigger_checker soi);
+//   Ky vong: khong co AR nao truoc handshake trigger (checker_dma_operation soi);
 //            sau handshake thi ca 4 dong chay lien mach.
 //==============================================================================
 `ifndef DMA350_VSEQ_2D_TRIG_HW_CMD_SRC_SV

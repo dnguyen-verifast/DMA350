@@ -2,7 +2,7 @@
 // dma_if.sv
 //-----------------------------------------------------------------------------
 // Interface TONG HOP toan bo dan tin hieu bien cua DMA-350 (Table A-1 .. A-11),
-// gom mot cho de cac COMPONENT KIEM TRA (vd cmd_trigger_checker) soi nhieu
+// gom mot cho de cac COMPONENT KIEM TRA (vd checker_dma_operation) soi nhieu
 // interface cung luc ma khong phai giu 7-8 vif rieng le.
 //
 // Day la interface THU DONG (monitor-only): tb_top `assign` tin hieu vao day tu
@@ -147,7 +147,7 @@ interface dma_if #(
   // LUU Y: MOI tin hieu ma checker doc trong task doi su kien PHAI co mat o day.
   // Doc thang vif.<sig> (ngoai clocking block) se lay gia tri o vung delta cua
   // RTL -> race, bat nham/soi sot handshake. Cac tin hieu duoi day duoc bo sung
-  // cho cmd_trigger_checker: kenh B (dem outstanding), WSTRB (dem byte ghi),
+  // cho checker_dma_operation: kenh B (dem outstanding), WSTRB (dem byte ghi),
   // R/rlast (nhan biet descriptor fetch xong), stream out, boot_en va resetn.
   clocking mon_cb @(posedge clk);
     default input #1step;
@@ -158,14 +158,14 @@ interface dma_if #(
     input arvalid_m0, arready_m0, araddr_m0, arid_m0, arlen_m0, arsize_m0, arburst_m0;
     input arcmdlink_m0, archid_m0, archidvalid_m0;
     input wvalid_m0, wready_m0, wlast_m0, wstrb_m0, wdata_m0;
-    input rvalid_m0, rready_m0, rlast_m0, rid_m0, rresp_m0;
+    input rvalid_m0, rready_m0, rlast_m0, rid_m0, rresp_m0, rdata_m0;
     input bvalid_m0, bready_m0, bid_m0, bresp_m0;
     input awvalid_m1, awready_m1, awaddr_m1, awid_m1;
     input awchid_m1, awchidvalid_m1;
     input arvalid_m1, arready_m1, araddr_m1, arid_m1, arcmdlink_m1;
     input archid_m1, archidvalid_m1;
     input wvalid_m1, wready_m1, wlast_m1, wstrb_m1;
-    input rvalid_m1, rready_m1, rlast_m1, rid_m1, rresp_m1;
+    input rvalid_m1, rready_m1, rlast_m1, rid_m1, rresp_m1, rdata_m1;
     input bvalid_m1, bready_m1, bid_m1, bresp_m1;
     input trig_in_req, trig_in_ack, trig_in_req_type, trig_in_ack_type;
     input trig_out_req, trig_out_ack;

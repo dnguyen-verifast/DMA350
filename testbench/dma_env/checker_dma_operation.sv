@@ -1,5 +1,5 @@
 //=============================================================================
-// cmd_trigger_checker.sv
+// checker_dma_operation.sv
 //-----------------------------------------------------------------------------
 // Hai nhiem vu:
 //
@@ -31,8 +31,8 @@
 //   Tuong tu, channel cua mot AR lay tu ARCHID (khi CHIDVALID) hoac ARID,
 //   giong ch_from_axi() cua scoreboard - khong gia dinh ARID == channel.
 //=============================================================================
-`ifndef CMD_TRIGGER_CHECKER_SV
-`define CMD_TRIGGER_CHECKER_SV
+`ifndef CHECKER_DMA_OPERATION_SV
+`define CHECKER_DMA_OPERATION_SV
 
 // Doi ten tu ST_* -> CMD_ST_* : ST_* de dung nham voi cac localparam bit STATUS
 // (ST_STAT_DONE, ST_STAT_ERR...) khai bao ngay tren trong cung package.
@@ -43,14 +43,14 @@ typedef enum {
     CMD_ST_FETCH      // dang doc command descriptor qua command-link
 } cmd_state_e;
 
-class cmd_trigger_checker extends uvm_component;
-    `uvm_component_utils(cmd_trigger_checker)
+class checker_dma_operation extends uvm_component;
+    `uvm_component_utils(checker_dma_operation)
 
     virtual dma_if vif;
 
     // intent tu predictor (neu co nguon ngoai muon nap vao) - van giu de
     // check_flow() dung duoc ngay ca khi FSM lenh chua chay.
-    uvm_analysis_imp #(dma_golden_intent, cmd_trigger_checker) gi_imp;
+    uvm_analysis_imp #(dma_golden_intent, checker_dma_operation) gi_imp;
 
     // DUONG CHINH dua intent len scoreboard
     uvm_analysis_port #(dma_golden_intent) intent_ap;
@@ -88,11 +88,13 @@ class cmd_trigger_checker extends uvm_component;
     // duong autoboot luon la Ch0 (TRM 4.9.1).
     int  enable_chanel          = 0;
 
+    bit [DATA_WIDTH-1:0] cmd_description [$];
+
     // So chu ky toi da cho MOT vong lenh truoc khi ket luan DUT TREO. 0 = tat.
     int  cmd_timeout     = 500000;
     // So chu ky cho thanh ghi settle sau khi descriptor duoc nap / sau
     // ENABLECMD, truoc khi peek. Command-link can vai chu ky.
-    int  settle_cycles   = 4;
+    int  settle_cycles   = 0;
     // Chan vong lap FSM khi CMDRESTARTEN=1 ma CMDRESTARTCNT=0 (restart vo han).
     int  max_restart     = 1024;
 
@@ -105,7 +107,7 @@ class cmd_trigger_checker extends uvm_component;
     dma_golden_intent cur_intent_dma;             // intent cua vong lenh dang chay
     int               autorestart_cnt = 0;
 
-    function new(string name = "cmd_trigger_checker", uvm_component parent = null);
+    function new(string name = "checker_dma_operation", uvm_component parent = null);
         super.new(name, parent);
     endfunction
 
@@ -134,7 +136,7 @@ class cmd_trigger_checker extends uvm_component;
         super.end_of_elaboration_phase(phase);
         if (dma350_predict_intent_h == null)
             `uvm_fatal("CMDTRIG",
-              "dma350_predict_intent_h = null : FSM lenh khong chot duoc intent. Gan cmd_trig_chk_h.dma350_predict_intent_h trong dma350_env.connect_phase.")
+              "dma350_predict_intent_h = null : FSM lenh khong chot duoc intent. Gan checker_dma_operation_h.dma350_predict_intent_h trong dma350_env.connect_phase.")
     endfunction
 
     //-------------------------------------------------------------------------
@@ -292,7 +294,10 @@ class cmd_trigger_checker extends uvm_component;
         // chuoi. Xoa o day thi khong dung nham nua.
         disable_req[start_ch] = 0;
         settle();
-        capture_intent(enable_chanel, via_boot ? "AUTOBOOT" : "APB ENABLECMD");
+        // Autoboot doc descriptor qua AXI -> giai ma tu cmd_description mà
+        // wait_boot_fetch() vua gom. Duong APB thi thanh ghi da dung san,
+        // peek la chinh xac.
+        capture_intent(enable_chanel, via_boot ? INTENT_SRC_DESC : INTENT_SRC_APB);
         state = CMD_ST_ENABLE;
     endtask
 
@@ -522,7 +527,11 @@ class cmd_trigger_checker extends uvm_component;
             `uvm_info("CMDTRIG", $sformatf(
               "CH%0d autorestart, con %0d lan - chot lai intent", ch, left), UVM_HIGH)
             settle();
-            capture_intent(ch, "AUTORESTART");
+            // Autorestart KHONG doc AXI va khong nap thanh ghi moi -> khong co
+            // descriptor de giai ma, cung khong duoc peek (thanh ghi da bi vong
+            // vua chay tieu thu: SRCADDR chay toi, XSIZE dem lui). Dung lai anh
+            // thanh ghi ma predictor dang giu.
+            capture_intent(ch, INTENT_SRC_REPEAT);
             // capture_intent nap LAI autorestart_cnt tu CH_AUTOCFG (van la gia tri
             // goc) -> phai ap lai bo dem da giam, khong thi vong DONE->ENABLE
             // lap VO HAN.
@@ -575,19 +584,64 @@ class cmd_trigger_checker extends uvm_component;
             return;
         end
         settle();
-        capture_intent(ch, "COMMAND-LINK");
+        capture_intent(ch, INTENT_SRC_DESC);
         state = CMD_ST_ENABLE;
     endtask
 
-    // AR co ARCMDLINK=1 tren M0 hoac M1, roi doi RLAST cua chinh burst do.
+    //-------------------------------------------------------------------------
+    // AR co ARCMDLINK=1 tren M0 hoac M1, roi GOM TUNG BEAT R cho den RLAST.
+    //
+    // Day la nguon du lieu de chot intent cho boot / command-link: thay vi doi
+    // RTL nap descriptor vao thanh ghi roi peek (mat ~33ck, lai khong co moc bao
+    // "nap xong" nen peek trung config cua lenh TRUOC), ta doc thang chinh cai
+    // descriptor ma DMAC vua nhan. Khong con phu thuoc do tre nao.
+    //
+    // MOT process, KHONG fork: ban fork/join truoc do co 3 loi -
+    //   * nhanh 2 doc on_m1 truoc khi nhanh 1 kip gan  -> luon chay nhanh M0
+    //   * push nham bus (on_m1 dung nhung lay rdata_m0)
+    //   * dangling-else: "if (A) if (B) X; else if (C) Y;" thi else thuoc if(B),
+    //     nen khi A=0 KHONG beat nao duoc gom
+    //-------------------------------------------------------------------------
     task wait_cmdlink_read_done();
         bit on_m1;
+        cmd_description.delete();          // vut descriptor cua lan fetch truoc
+
         @(vif.mon_cb iff ((vif.mon_cb.arvalid_m0 && vif.mon_cb.arready_m0 && vif.mon_cb.arcmdlink_m0) ||
                           (vif.mon_cb.arvalid_m1 && vif.mon_cb.arready_m1 && vif.mon_cb.arcmdlink_m1)));
         on_m1 = !(vif.mon_cb.arvalid_m0 && vif.mon_cb.arready_m0 && vif.mon_cb.arcmdlink_m0);
-        if (on_m1) @(vif.mon_cb iff (vif.mon_cb.rvalid_m1 && vif.mon_cb.rready_m1 && vif.mon_cb.rlast_m1));
-        else       @(vif.mon_cb iff (vif.mon_cb.rvalid_m0 && vif.mon_cb.rready_m0 && vif.mon_cb.rlast_m0));
+
+        forever begin
+            @(vif.mon_cb);
+            if (on_m1) begin
+                if (!(vif.mon_cb.rvalid_m1 && vif.mon_cb.rready_m1)) continue;
+                cmd_description.push_back(vif.mon_cb.rdata_m1);
+                if (vif.mon_cb.rlast_m1) break;
+            end
+            else begin
+                if (!(vif.mon_cb.rvalid_m0 && vif.mon_cb.rready_m0)) continue;
+                cmd_description.push_back(vif.mon_cb.rdata_m0);
+                if (vif.mon_cb.rlast_m0) break;
+            end
+        end
+
+        `uvm_info("CMDTRIG", $sformatf(
+          "bat duoc descriptor tren %s: %0d beat, header=0x%08h",
+          on_m1 ? "M1" : "M0", cmd_description.size(),
+          (cmd_description.size() > 0) ? cmd_description[0] : '0), UVM_HIGH)
     endtask
+
+    //-------------------------------------------------------------------------
+    // Cat cac beat da bat duoc thanh chuoi WORD 32-bit dung thu tu.
+    // Descriptor DMA-350 la mang tu 32-bit lien tiep; bus rong hon 32 thi moi
+    // beat chua nhieu word, tach theo little-endian.
+    //-------------------------------------------------------------------------
+    function void build_desc_words(output bit [31:0] w [$]);
+        int nw = (DATA_WIDTH < 32) ? 1 : (DATA_WIDTH / 32);
+        w.delete();
+        foreach (cmd_description[i])
+            for (int k = 0; k < nw; k++)
+                w.push_back(cmd_description[i][k*32 +: 32]);
+    endfunction
 
     task settle();
         repeat (settle_cycles) @(vif.mon_cb);
@@ -601,11 +655,29 @@ class cmd_trigger_checker extends uvm_component;
     // uvm_fatal neu van null. Phase chay theo thu tu connect -> end_of_elaboration
     // -> run, ma uvm_fatal ket thuc sim ngay, nen run_phase khong the chay voi
     // handle null.
-    task capture_intent(int ch, string why);
+    //
+    // src quyet dinh predictor lay config o dau:
+    //   INTENT_SRC_APB    - SW da ghi xong thanh ghi truoc ENABLECMD -> peek
+    //   INTENT_SRC_DESC   - boot / command-link -> giai ma descriptor vua bat
+    //                       duoc tren kenh R (cmd_description)
+    //   INTENT_SRC_REPEAT - autorestart, khong nap gi moi -> dung lai anh cu
+    task capture_intent(int ch, intent_src_e src);
         dma_golden_intent t;
-        dma350_predict_intent_h.emit_intent(ch, t);
+        bit [31:0] desc [$];
+
+        if (src == INTENT_SRC_DESC) begin
+            build_desc_words(desc);
+            if (desc.size() == 0) begin
+                `uvm_error("CMDTRIG", $sformatf(
+                  "CH%0d chot intent tu descriptor nhung khong bat duoc beat R nao", ch))
+                return;
+            end
+        end
+
+        dma350_predict_intent_h.emit_intent(ch, src, desc, t);
         if (t == null) begin
-            `uvm_error("CMDTRIG", $sformatf("CH%0d chot intent that bai (%s)", ch, why))
+            `uvm_error("CMDTRIG", $sformatf(
+              "CH%0d chot intent that bai (%s)", ch, src.name()))
             return;
         end
         cur_intent_dma = t;
@@ -621,7 +693,7 @@ class cmd_trigger_checker extends uvm_component;
         intent_ap.write(t);
         `uvm_info("CMDTRIG", $sformatf(
           "CH%0d chot intent (%s): src=0x%0h des=0x%0h desxsize=%0d desysize=%0d restart=%0d link=%0b",
-          ch, why, t.srcaddr, t.desaddr, t.des_xsize, t.desysize,
+          ch, src.name(), t.srcaddr, t.desaddr, t.des_xsize, t.desysize,
           autorestart_cnt, t.linkaddren), UVM_MEDIUM)
     endtask
 
@@ -732,10 +804,10 @@ class cmd_trigger_checker extends uvm_component;
     function void report_phase(uvm_phase phase);
         super.report_phase(phase);
         `uvm_info("CMDTRIG", $sformatf(
-          "cmd_trigger_checker: %0d lenh chot intent, %0d AR du lieu duoc soi, %0d vi pham flow, %0d lan TREO (timeout)",
+          "checker_dma_operation: %0d lenh chot intent, %0d AR du lieu duoc soi, %0d vi pham flow, %0d lan TREO (timeout)",
           n_cmd, n_checked, n_err, n_timeout), UVM_LOW)
     endfunction
 
 endclass
 
-`endif // CMD_TRIGGER_CHECKER_SV
+`endif // CHECKER_DMA_OPERATION_SV

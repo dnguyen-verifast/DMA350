@@ -139,7 +139,7 @@ AMBA_AXI5/src/hdl_top/axi5_interface/axi5_if.sv
 // Thay cho dma_trig_in_if/dma_trig_out_if (chi dung boi tb standalone cua CTI).
 CTI/rtl/dma_trig_if.sv
 // Interface TONG HOP moi tin hieu bien DMA-350 - cho cac checker lien-interface
-// (vd cmd_trigger_checker). Thu dong: tb_top assign vao, khong lai nguoc DUT.
+// (vd checker_dma_operation). Thu dong: tb_top assign vao, khong lai nguoc DUT.
 testbench/dma_env/dma_if.sv
 
 // ----------------------------------------------------------------------------

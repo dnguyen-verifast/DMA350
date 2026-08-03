@@ -10,7 +10,7 @@
 //      to show when the command is really started."
 //   -> Req den TRUOC (mac dinh: DES) KHONG duoc ack cho den khi req con lai den.
 //      Trong khoang do channel van dung yen: DONE = 0, khong co AR/AW nao phat ra
-//      (cmd_trigger_checker chay nen se bat neu co).
+//      (checker_dma_operation chay nen se bat neu co).
 //
 //   Vi finish_item() cua VIP trigger chi tra ve SAU khi hoan tat 4-phase
 //   handshake (req^ -> ack^ -> req v -> ack v), hai phia PHAI ban song song
@@ -80,7 +80,7 @@ class dma350_vseq_trig_bothcmd extends dma350_vseq_trig_base;
   //---------------------------------------------------------------------------
   // Hook goi khi MOI CO MOT trong hai command trigger:
   // channel da enable nhung PHAI chua chay -> DONE = 0.
-  // (Viec "chua phat AR/AW" do cmd_trigger_checker soi nen.)
+  // (Viec "chua phat AR/AW" do checker_dma_operation soi nen.)
   //---------------------------------------------------------------------------
   virtual task during_pair_gap(bit des_first);
     bit [31:0] st;

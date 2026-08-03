@@ -30,7 +30,7 @@ class dma350_vseq_trig_srccmd_last_single extends dma350_vseq_trig_base;
     enable_ch(ch);
 
     // Channel PHAI dung cho trigger, chua duoc tu chay.
-    // (cmd_trigger_checker chay nen cung soi "AR du lieu truoc handshake")
+    // (checker_dma_operation chay nen cung soi "AR du lieu truoc handshake")
     check_waiting_trigger("cho trigger dau tien");
 
     // COMMAND mode: 1 trigger = ca lenh. reqtype LAST_SINGLE chi doi encoding
