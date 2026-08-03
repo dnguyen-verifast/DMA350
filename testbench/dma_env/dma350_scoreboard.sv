@@ -1382,8 +1382,11 @@ class dma350_scoreboard extends uvm_scoreboard;
                   ctx[ch].exp_link.convert2string()), UVM_LOW)
                 // descriptor co the dai hon 1 burst (RTL fetch tiep). Chi ha co
                 // khi da doc het cua so descriptor du doan.
+                `uvm_info("SB_AR_LINK", $sformatf("CH%0d R seen_bytes=%0d, total_bytes =%0d", ch, ctx[ch].exp_link.seen_bytes, 
+                                                    ctx[ch].exp_link.total_bytes), UVM_MEDIUM)
                 if (ctx[ch].exp_link.seen_bytes >= ctx[ch].exp_link.total_bytes)
                     ctx[ch].link_armed = 0;
+                
             end
             obs = dma_axi_burst::type_id::create("obs");
             obs.addr=t.araddr; obs.beats=beats; obs.size=size;
