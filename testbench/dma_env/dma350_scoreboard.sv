@@ -399,7 +399,7 @@ class dma350_scoreboard extends uvm_scoreboard;
     int            fifo_depth_words = 16;
     // So beat toi da cua mot lan fetch descriptor command-link:
     // 1 header + 32 word thanh ghi (RTL doc suy doan het co, phan thua bi bo).
-    int            cmdlink_max_beats = 33;
+    int            cmdlink_max_beats = 16;
 
     // ---- autoboot : boot_en=1 thi lan doc command-link DAU TIEN cua Ch0 la
     //      fetch descriptor tai boot_addr voi boot_memattr/boot_shareattr ------
