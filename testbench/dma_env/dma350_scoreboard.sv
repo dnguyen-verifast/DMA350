@@ -1166,7 +1166,7 @@ class dma350_scoreboard extends uvm_scoreboard;
             for (int y = 0; y < ctx[ch].line_count; y++) next_dest_line(ch);
 
         // ---- (3) lenh nay co command-link khong? ---------------------------
-        arm_cmdlink_from_regs(ch);
+        // arm_cmdlink_from_regs(ch);
 
         `uvm_info("SB_PRED", $sformatf(
           "CH%0d du doan CA LENH: rd=%0d byte, wr=%0d byte\n  RD: %s\n  WR: %s",
