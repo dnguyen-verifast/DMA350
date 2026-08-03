@@ -196,6 +196,12 @@ module dma350_channel import dma350_pkg::*; #(
     localparam int FBYTES  = FIFO_DEPTH * BPB;      // data-FIFO capacity (bytes)
     localparam int FCW     = $clog2(FBYTES+1);      // FIFO byte-count width
     localparam int NBW     = $clog2(BPB+1);         // per-beat byte-count width
+    // Max payload bytes per burst. Besides the DMA-350 absolute cap (MAX_BYTES)
+    // a burst must not exceed HALF the per-channel FIFO (TRM burst breakpoints):
+    // half so a full read burst and a full write burst can be in flight at once
+    // without over/under-running the buffer. Floor at one bus word.
+    localparam int FIFO_HALF = (FBYTES/2 < BPB) ? BPB : FBYTES/2;
+    localparam int BURST_MAX_BYTES = (FIFO_HALF < MAX_BYTES) ? FIFO_HALF : MAX_BYTES;
 
     // =====================================================================
     // FSM state (declared early so datapath gates can reference it)
@@ -358,7 +364,7 @@ module dma350_channel import dma350_pkg::*; #(
     wire [8:0] src_max_beats = flowctrl_s ? fc_unit_s : mb_s;
     wire [8:0] des_max_beats = flowctrl_d ? fc_unit_d : mb_d;
 
-    dma350_burst #(.C_ADDR_WIDTH(ADDR_WIDTH), .C_BEATS_WIDTH(24), .MAX_BYTES(MAX_BYTES))
+    dma350_burst #(.C_ADDR_WIDTH(ADDR_WIDTH), .C_BEATS_WIDTH(24), .MAX_BYTES(BURST_MAX_BYTES))
     u_rburst (
         .aclk(aclk), .aresetn(aresetn),
         .start(rb_start), .addr_in(rb_addr_in), .beats_in(rb_beats_in),
@@ -369,7 +375,7 @@ module dma350_channel import dma350_pkg::*; #(
         .burst_ready(m_axi_arvalid & m_axi_arready & ~link_rd_active),
         .busy(rb_busy), .done(rb_done));
 
-    dma350_burst #(.C_ADDR_WIDTH(ADDR_WIDTH), .C_BEATS_WIDTH(24), .MAX_BYTES(MAX_BYTES))
+    dma350_burst #(.C_ADDR_WIDTH(ADDR_WIDTH), .C_BEATS_WIDTH(24), .MAX_BYTES(BURST_MAX_BYTES))
     u_wburst (
         .aclk(aclk), .aresetn(aresetn),
         .start(wb_start), .addr_in(wb_addr_in), .beats_in(wb_beats_in),

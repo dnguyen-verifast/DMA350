@@ -33,7 +33,8 @@
     localparam bit [1:0] BURST_FIXED=2'b00, BURST_INCR=2'b01;
     localparam bit [1:0] RESP_OKAY=2'b00, RESP_SLVERR=2'b10, RESP_DECERR=2'b11;
 
-    localparam int MAX_BYTES_PER_BURST = 1024;   // DMA-350 burst payload cap
+    localparam int CH_FIFO_DEPTH = 16;
+    localparam int MAX_BYTES_PER_BURST = CH_FIFO_DEPTH*(DATA_WIDTH/8);   // DMA-350 burst payload cap
     localparam int MAX_CHANNELS        = 8;
 
     //=========================================================================
