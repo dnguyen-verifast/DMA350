@@ -1166,7 +1166,7 @@ class dma350_scoreboard extends uvm_scoreboard;
             for (int y = 0; y < ctx[ch].line_count; y++) next_dest_line(ch);
 
         // ---- (3) lenh nay co command-link khong? ---------------------------
-        // arm_cmdlink_from_regs(ch);
+        if(gi.linkaddren) arm_cmdlink_from_regs(ch);
 
         `uvm_info("SB_PRED", $sformatf(
           "CH%0d du doan CA LENH: rd=%0d byte, wr=%0d byte\n  RD: %s\n  WR: %s",
@@ -1384,9 +1384,10 @@ class dma350_scoreboard extends uvm_scoreboard;
                 // khi da doc het cua so descriptor du doan.
                 `uvm_info("SB_AR_LINK", $sformatf("CH%0d R seen_bytes=%0d, total_bytes =%0d", ch, ctx[ch].exp_link.seen_bytes, 
                                                     ctx[ch].exp_link.total_bytes), UVM_MEDIUM)
-                if (ctx[ch].exp_link.seen_bytes >= ctx[ch].exp_link.total_bytes)
+                if (ctx[ch].exp_link.seen_bytes >= ctx[ch].exp_link.total_bytes) begin
                     ctx[ch].link_armed = 0;
-                
+                    `uvm_info("SB_AR_LINK", $sformatf("CH%0d link_armed = 0, axi read command appear in bus", ch), UVM_MEDIUM)
+                end
             end
             obs = dma_axi_burst::type_id::create("obs");
             obs.addr=t.araddr; obs.beats=beats; obs.size=size;
