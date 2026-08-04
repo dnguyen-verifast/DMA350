@@ -105,6 +105,7 @@ class dma_golden_intent extends uvm_object;
     int        chprio, donetype, regreloadtype;
     bit        usestream, donepauseen;
     bit [63:0] linkaddr; bit linkaddren;
+    bit [31:0] linkattr;
     // thuoc tinh AXI (tu TRANSCFG)
     bit [2:0]  src_prot, des_prot;
     bit [3:0]  src_cache, des_cache, src_inner, des_inner;
@@ -182,7 +183,7 @@ class dma_golden_intent extends uvm_object;
         src_stride = 0; des_stride = 0;
         fillval = 0;
         cmdrstren = 0; cmdrestrcnt = 0;
-        linkaddr = 0;  linkaddren = 0;
+        linkaddr = 0;  linkaddren = 0; linkattr = 0;
         srctrig_sel = 0; destrig_sel = 0; trigout_sel = 0;
         srctrig_type = 0; destrig_type = 0; trigout_type = 0;
         srctrig_mode = 0; destrig_mode = 0;
@@ -307,11 +308,6 @@ class dma350_predict_intent extends uvm_component;
         cmd_img[ch][CH_SRCTMPLT]     = RST_CH_SRCTMPLT;
         cmd_img[ch][CH_DESTMPLT]     = RST_CH_DESTMPLT;
         // cac offset khac: khong co entry => img_get() tra 0
-    endfunction
-
-    function bit [31:0] img_get(int ch, bit [7:0] off);
-        if (cmd_img.exists(ch) && cmd_img[ch].exists(off)) return cmd_img[ch][off];
-        return 32'h0;
     endfunction
 
     // Nap anh tu RTL (duong APB): peek toan bo thanh ghi lien quan.
@@ -524,7 +520,7 @@ class dma350_predict_intent extends uvm_component;
             INTENT_SRC_DESC: begin
                 // Chua co anh nao (autoboot ngay sau reset) -> nen la anh RESET.
                 if (!cmd_img.exists(ch)) img_set_reset(ch);
-                if (!img_apply_descriptor(ch, desc)) return;   // loi dinh dang
+                if (!img_apply_descriptor(ch, desc)) return;   // implement storage desc to cmd_img and check a form format
             end
             INTENT_SRC_REPEAT: begin
                 if (!cmd_img.exists(ch)) begin
@@ -541,10 +537,15 @@ class dma350_predict_intent extends uvm_component;
     //-------------------------------------------------------------------------
     // GIAI MA anh thanh ghi -> dma_golden_intent. Dung chung cho ca ba nguon.
     //-------------------------------------------------------------------------
+    function bit [31:0] img_get(int ch, bit [7:0] off);
+        if (cmd_img.exists(ch) && cmd_img[ch].exists(off)) return cmd_img[ch][off];
+        return 32'h0;
+    endfunction
+
     function dma_golden_intent img_decode(int ch, intent_src_e src);
         dma_golden_intent gi = dma_golden_intent::type_id::create("gi");
         bit [31:0] ctrl, xsz, xszhi, xinc, ystr, sctc, dstc, scfg, dcfg, tocfg;
-        bit [31:0] sa_lo, sa_hi, da_lo, da_hi, fillv, ysz, la_lo, la_hi;
+        bit [31:0] sa_lo, sa_hi, da_lo, da_hi, fillv, ysz, la_lo, la_hi, linkattr;
         bit [31:0] streamcfg, intren, autorestart, cmd;
 
         cmd       = img_get(ch, CH_CMD);
@@ -564,6 +565,7 @@ class dma350_predict_intent extends uvm_component;
         da_hi     = img_get(ch, CH_DESADDRHI);
         fillv     = img_get(ch, CH_FILLVAL);
         ysz       = img_get(ch, CH_YSIZE);
+        linkattr  = img_get(ch, CH_LINKATTR);
         la_lo     = img_get(ch, CH_LINKADDR);
         la_hi     = img_get(ch, CH_LINKADDRHI);
         streamcfg = img_get(ch, CH_STREAMINTCFG);
@@ -629,6 +631,7 @@ class dma350_predict_intent extends uvm_component;
         // linkaddr lech 1 byte so voi AR ma DUT phat.
         gi.linkaddr   = {la_hi, la_lo} & ~64'h3;
         gi.linkaddren = la_lo[0];
+        gi.linkattr   = linkattr;
 
         // ---- STREAM : CH_STREAMINTCFG[10:9] = STREAMTYPE ----
         //   00 = ca hai chieu, 01 = stream OUT (des), 10 = stream IN (src)

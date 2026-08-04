@@ -1032,17 +1032,18 @@ class dma350_scoreboard extends uvm_scoreboard;
     // chinh la fetch descriptor cua lenh nay -> chot san du doan de doi.
     //-------------------------------------------------------------------------
     task arm_cmdlink_from_regs(int ch);
-        bit [31:0] la_lo, la_hi, lattr;
+        bit [31:0] la_lo, lattr;
         longint    faddr;
-        peek_or_mirror(ch, CH_LINKADDR,   la_lo);
-        peek_or_mirror(ch, CH_LINKADDRHI, la_hi);
-        peek_or_mirror(ch, CH_LINKATTR,   lattr);
+
+        faddr = ctx[ch].intent.linkaddr;
+        lattr = ctx[ch].intent.linkattr;
+        la_lo[0] = gi.linkaddren;
+
         if (!la_lo[0]) begin           // LINKADDREN = 0 -> lenh cuoi cua chuoi
             `uvm_info("SB_PRED_LINK", $sformatf(
               "CH%0d LINKADDREN=0 : khong co lenh ke tiep", ch), UVM_HIGH)
             return;
         end
-        faddr = {la_hi, la_lo} & ~64'h3;
         // CH_LINKATTR : [3:0] LINKMEMATTRLO, [7:4] LINKMEMATTRHI, [9:8] LINKSHAREATTR
         ctx[ch].exp_link   = predict_cmdlink(ch, 1'b0, faddr,
                                              lattr[7:4], lattr[3:0], lattr[9:8]);
