@@ -1037,7 +1037,7 @@ class dma350_scoreboard extends uvm_scoreboard;
 
         faddr = ctx[ch].intent.linkaddr;
         lattr = ctx[ch].intent.linkattr;
-        la_lo[0] = gi.linkaddren;
+        la_lo[0] = ctx[ch].intent.linkaddren;
 
         if (!la_lo[0]) begin           // LINKADDREN = 0 -> lenh cuoi cua chuoi
             `uvm_info("SB_PRED_LINK", $sformatf(
