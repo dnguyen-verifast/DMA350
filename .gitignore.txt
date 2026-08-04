@@ -1,0 +1,10 @@
+# QuestaSim / ModelSim
+work/
+*.wlf
+transcript
+vsim.dbg
+vish_stacktrace.vstf
+modelsim.ini
+covhtmlreport/
+*.ucdb
+*.vstf

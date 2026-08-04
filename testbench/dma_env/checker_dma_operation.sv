@@ -42,11 +42,14 @@ typedef enum {
     CMD_ST_DONE,      // mot vong xong - quyet dinh restart / link / ket thuc
     CMD_ST_FETCH      // dang doc command descriptor qua command-link
 } cmd_state_e;
-
+parameter int NUM_CHANNELS    = 8;
 class checker_dma_operation extends uvm_component;
     `uvm_component_utils(checker_dma_operation)
 
     virtual dma_if vif;
+
+    uvm_event ch_enabled_event [NUM_CHANNELS];
+    bit       ch_en_q          [NUM_CHANNELS];
 
     // intent tu predictor (neu co nguon ngoai muon nap vao) - van giu de
     // check_flow() dung duoc ngay ca khi FSM lenh chua chay.
@@ -128,6 +131,11 @@ class checker_dma_operation extends uvm_component;
         void'(uvm_config_db#(int)::get(this, "", "settle_cycles",  settle_cycles));
         void'(uvm_config_db#(int)::get(this, "", "enable_chanel",         enable_chanel));
 
+        // create event dectect chanel enable/ disable
+        foreach(ch_enabled_event[i]) begin
+            ch_enabled_event[i] = uvm_event_pool::get_global($sformats("ch_enabled_event[%0d]",i));
+        end
+
     //    dma350_predict_intent_h = dma350_predict_intent::type_id::create("dma350_predict_intent_h");
     endfunction
 
@@ -171,6 +179,7 @@ class checker_dma_operation extends uvm_component;
             fork
                 sample_loop();
                 cmd_fsm_loop();
+                wait_chanel_disable();
                 begin
                     @(negedge vif.resetn);
                     `uvm_info("CMDTRIG",
@@ -188,6 +197,7 @@ class checker_dma_operation extends uvm_component;
         // Gom key TRUOC roi moi invalidate: invalidate() goi gi.delete(ch), ma
         // xoa phan tu ngay trong foreach cua chinh mang ket hop do la hanh vi
         // khong xac dinh trong SV.
+        foreach(ch_en_q[h]) ch_en_q[h] = 0;
         foreach (gi[c]) keys.push_back(c);
         foreach (keys[i]) invalidate(keys[i]);
         gi.delete();
@@ -198,6 +208,19 @@ class checker_dma_operation extends uvm_component;
         autorestart_cnt = 0;
         dma350_predict_intent_h.reset_mirror();   // handle luon hop le, xem capture_intent
     endfunction
+
+    task wait_chanel_disable();
+        forever begin
+             @(vif.mon_cb);
+            foreach(ch_enabled_event[ch])  begin
+                if(ch_en_q[ch] && !vif.ch_enabled[ch]) begin
+                    ch_enabled_event[ch].trigger();
+                    `uvm_info("CH_TRIG_DISABLE","Release trigger for terminate test", UVM_MEDIUM)
+                end
+                ch_en_q[ch] = vif.ch_enabled[ch];
+            end
+        end
+    endtask
 
     //=========================================================================
     // PROCESS 1 : lay mau moi chu ky cho check flow trigger
@@ -228,7 +251,7 @@ class checker_dma_operation extends uvm_component;
     function void sample_disable_cmd();
         int ch;
         if (!(vif.mon_cb.psel && vif.mon_cb.penable &&
-              vif.mon_cb.pwrite && vif.mon_cb.pready)) return;
+              vif.mon_cb.pwrite && vif.mon_cb.pready)) return;  //
         if (!vif.mon_cb.paddr[12])                     return;   // ngoai vung DMACH
         if (vif.mon_cb.paddr[7:0] != CH_CMD)           return;
         if (!vif.mon_cb.pwdata[CMD_DISABLECMD])        return;
