@@ -215,8 +215,7 @@ class checker_dma_operation extends uvm_component;
             foreach(ch_enabled_event[ch])  begin
                 if(ch_en_q[ch] && !vif.ch_enabled[ch]) begin
                     ch_enabled_event[ch].trigger();
-                    `uvm_info("CH_TRIG_DISABLE",
-                      "Release trigger for terminate test", UVM_MEDIUM)
+                    `uvm_info("CH_TRIG_DISABLE","Release trigger for terminate test", UVM_MEDIUM)
                 end
                 ch_en_q[ch] = vif.ch_enabled[ch];
             end

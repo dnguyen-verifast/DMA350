@@ -234,7 +234,9 @@ class dma350_vseq_cmdlink_base extends dma350_vseq_base;
       enable_ch(ch);
 //      wait_chain_done();
     end
+    `uvm_info("CH_TRIG_DISABLE","Waiting trigger for terminate test", UVM_MEDIUM)
     ch_disable_evnt.wait_trigger();
+    `uvm_info("CH_TRIG_DISABLE","Received trigger for terminate test", UVM_MEDIUM)
     #200ns;
   endtask
 
