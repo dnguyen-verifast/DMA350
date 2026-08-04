@@ -1,0 +1,23 @@
+# QuestaSim / ModelSim libraries
+work/
+**/work/
+
+# Simulation artifacts
+*.log
+*.wlf
+*.ucdb
+*.qdb
+*.qpg
+*.qtl
+*.vstf
+transcript
+vsim.dbg
+covhtmlreport/
+wlft*
+
+# Vim swap files
+*.swp
+*.swo
+*~
+
+modelsim.ini
