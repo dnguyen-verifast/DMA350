@@ -251,7 +251,7 @@ class checker_dma_operation extends uvm_component;
     function void sample_disable_cmd();
         int ch;
         if (!(vif.mon_cb.psel && vif.mon_cb.penable &&
-              vif.mon_cb.pwrite && vif.mon_cb.pready)) return;
+              vif.mon_cb.pwrite && vif.mon_cb.pready)) return;  //
         if (!vif.mon_cb.paddr[12])                     return;   // ngoai vung DMACH
         if (vif.mon_cb.paddr[7:0] != CH_CMD)           return;
         if (!vif.mon_cb.pwdata[CMD_DISABLECMD])        return;
