@@ -31,7 +31,7 @@
 //==============================================================================
 `ifndef DMA350_VSEQ_CMDLINK_BASE_SV
 `define DMA350_VSEQ_CMDLINK_BASE_SV
-
+parameter int NUM_CHANNELS    = 8;
 class dma350_vseq_cmdlink_base extends dma350_vseq_base;
   `uvm_object_utils(dma350_vseq_cmdlink_base)
 
@@ -214,6 +214,7 @@ class dma350_vseq_cmdlink_base extends dma350_vseq_base;
   //--------------------------------------------------------------------------
   virtual task body();
     // 1) Nap anh descriptor (backdoor tuc thi)
+    uvm_event ch_disable_evnt = uvm_event_pool::get_global(%sformats("ch_enabled_event[%0d]",ch));
     cmdlink_mem_clear();
     program_descriptors();
 
@@ -224,15 +225,17 @@ class dma350_vseq_cmdlink_base extends dma350_vseq_base;
       fork drive_boot(cmd_addr(0)); join_none
       por();                 // clk start + reset pulse -> boot latched -> autoboot
       #200ns;
-      wait_chain_done();
+//    wait_chain_done();
     end
     else begin
       // MODE_APB: por + responder chuan, cau hinh lenh #0 qua APB roi enable.
       super.body();          // por + responders + settle
       cfg_apb_cmd0();
       enable_ch(ch);
-      wait_chain_done();
+//      wait_chain_done();
     end
+    ch_disable_evnt.wait_trigger();
+    #200ns;
   endtask
 
 endclass : dma350_vseq_cmdlink_base
