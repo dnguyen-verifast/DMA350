@@ -214,7 +214,7 @@ class dma350_vseq_cmdlink_base extends dma350_vseq_base;
   //--------------------------------------------------------------------------
   virtual task body();
     // 1) Nap anh descriptor (backdoor tuc thi)
-    uvm_event ch_disable_evnt = uvm_event_pool::get_global(%sformats("ch_enabled_event[%0d]",ch));
+    uvm_event ch_disable_evnt = uvm_event_pool::get_global($sformats("ch_enabled_event[%0d]",ch));
     cmdlink_mem_clear();
     program_descriptors();
 
