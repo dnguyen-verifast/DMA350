@@ -1,5 +1,5 @@
 # vsim -vopt work.dma350_tb_top -voptargs="+acc=npr" -assertdebug "+UVM_PHASE_TRACE" "+UVM_OBJECTION_TRACE" "+UVM_TESTNAME=dma350_cmdlink_apb_ctrl_only_test" "+UVM_VERBOSITY=UVM_MEDIUM" -l dma350_cmdlink_apb_ctrl_only_test/dma350_cmdlink_apb_ctrl_only_test.log -sva -coverage -c -solvefaildebug -do "log -r /*; coverage save -onexit -assert -directive -cvg -codeAll dma350_cmdlink_apb_ctrl_only_test/dma350_cmdlink_apb_ctrl_only_test_coverage.ucdb; run -all; exit" -wlf dma350_cmdlink_apb_ctrl_only_test/waveform.wlf 
-# Start time: 20:56:59 on Aug 01,2026
+# Start time: 23:05:27 on Aug 03,2026
 # ** Note: (vsim-8009) Loading existing optimized design _opt
 # //  Questa Sim
 # //  Version 10.6b linux May 25 2017
@@ -919,7 +919,7 @@
 # UVM_INFO verilog_src/uvm-1.1d/src/base/uvm_phase.svh(1403) @ 0: reporter [PH/TRC/SCHEDULED] Phase 'common.end_of_elaboration' (id=69) Scheduled from phase common.connect
 # UVM_INFO verilog_src/uvm-1.1d/src/base/uvm_phase.svh(1124) @ 0: reporter [PH/TRC/STRT] Phase 'common.end_of_elaboration' (id=69) Starting phase
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(505) @ 0: uvm_test_top.dma350_env_h.dma350_scb_h [SB_BD] HDL path RAL hop le : dung BACKDOOR peek
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(441) @ 0: uvm_test_top.dma350_env_h.predict_intent_h [PRED_CFG] RAL san sang : intent chot bang BACKDOOR peek
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(736) @ 0: uvm_test_top.dma350_env_h.predict_intent_h [PRED_CFG] RAL san sang : intent chot bang BACKDOOR peek
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../RAL_DMA350/reg_env.sv(94) @ 0: uvm_test_top.dma350_env_h.reg_env_h [REG_BKDR] RAL backdoor: 296 reg co backdoor, 45 reg frontdoor-only, 0 path hong
 # UVM_INFO @ 0: reporter [UVMTOP] UVM testbench topology:
 # ------------------------------------------------------------------------------------------------------------
@@ -1139,7 +1139,7 @@
 #         lock_queue                               array                                           0     -    
 #         num_last_reqs                            integral                                        32    'd1  
 #         num_last_rsps                            integral                                        32    'd1  
-#     cmd_trig_chk_h                               cmd_trigger_checker                             -     @1659
+#     checker_dma_operation_h                      checker_dma_operation                           -     @1659
 #       done_cmd_port                              uvm_analysis_port                               -     @3924
 #       gi_imp                                     uvm_analysis_imp                                -     @3900
 #       intent_ap                                  uvm_analysis_port                               -     @3908
@@ -1561,18 +1561,41 @@
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 485000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001008 Data=00000003 Write=1 slverr=0 
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 515000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001078 Data=00002001 Write=1 slverr=0 
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 545000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001000 Data=00000001 Write=1 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(560) @ 565000: uvm_test_top.dma350_env_h.dma350_scb_h [process_status_control] process_status_control
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 575000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00000000 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1632) @ 575000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00000000 backdoor=0x00000000
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(366) @ 585000: uvm_test_top.dma350_env_h.predict_intent_h [PRED_INT] CH0 ACTIVATE -> intent: src=0x10000 des=0x20000 SRCXSIZE=8 DESXSIZE=8 xtype=1 ext_cmd=0 srctrig_sel=0
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/cmd_trigger_checker.sv(623) @ 585000: uvm_test_top.dma350_env_h.cmd_trig_chk_h [CMDTRIG] CH0 chot intent (APB ENABLECMD): src=0x10000 des=0x20000 desxsize=8 desysize=0 restart=0 link=1
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(757) @ 585000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_INTENT] CH0 nhan intent tu predictor: src=0x10000 des=0x20000 SRCXSIZE=8 DESXSIZE=8 xtype=1
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(974) @ 585000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_PRED_SIDE] CH0        RD addr=0x10000 win=[0x10000,0x10020) bytes=32 maxbeats=16(MAXBURSTLEN+1=16) fifo/2=32B  INCR cache=0x0 inner=0x0 prot=0b010 domain=0 id=0 chid=0 (beatsize lenh=4B, khong doi chieu)
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(974) @ 585000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_PRED_SIDE] CH0        WR addr=0x20000 win=[0x20000,0x20020) bytes=32 maxbeats=16(MAXBURSTLEN+1=16) fifo/2=32B  INCR cache=0x0 inner=0x0 prot=0b010 domain=0 id=0 chid=0 (beatsize lenh=4B, khong doi chieu)
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1052) @ 585000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_PRED_LINK] CH0 lenh hien tai CO command-link -> du doan fetch ke tiep:  CMD-LINK addr=0x2000 win=[0x2000,0x2084) bytes=132 maxbeats=33(MAXBURSTLEN+1=33) fifo/2=1024B  INCR cache=0x0 inner=0x0 prot=0b101 domain=0 id=0 chid=0 (beatsize lenh=4B, khong doi chieu)
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1176) @ 585000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_PRED] CH0 du doan CA LENH: rd=32 byte, wr=32 byte
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(708) @ 545000: uvm_test_top.dma350_env_h.predict_intent_h [PEEK_REG] st == UVM_IS_OK  val = 1: intent chot bang BACKDOOR peek
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(708) @ 545000: uvm_test_top.dma350_env_h.predict_intent_h [PEEK_REG] st == UVM_IS_OK  val = 3: intent chot bang BACKDOOR peek
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(708) @ 545000: uvm_test_top.dma350_env_h.predict_intent_h [PEEK_REG] st == UVM_IS_OK  val = 200202: intent chot bang BACKDOOR peek
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(708) @ 545000: uvm_test_top.dma350_env_h.predict_intent_h [PEEK_REG] st == UVM_IS_OK  val = 10000: intent chot bang BACKDOOR peek
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(708) @ 545000: uvm_test_top.dma350_env_h.predict_intent_h [PEEK_REG] st == UVM_IS_OK  val = 0: intent chot bang BACKDOOR peek
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(708) @ 545000: uvm_test_top.dma350_env_h.predict_intent_h [PEEK_REG] st == UVM_IS_OK  val = 20000: intent chot bang BACKDOOR peek
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(708) @ 545000: uvm_test_top.dma350_env_h.predict_intent_h [PEEK_REG] st == UVM_IS_OK  val = 0: intent chot bang BACKDOOR peek
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(708) @ 545000: uvm_test_top.dma350_env_h.predict_intent_h [PEEK_REG] st == UVM_IS_OK  val = 80008: intent chot bang BACKDOOR peek
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(708) @ 545000: uvm_test_top.dma350_env_h.predict_intent_h [PEEK_REG] st == UVM_IS_OK  val = 0: intent chot bang BACKDOOR peek
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(708) @ 545000: uvm_test_top.dma350_env_h.predict_intent_h [PEEK_REG] st == UVM_IS_OK  val = f0400: intent chot bang BACKDOOR peek
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(708) @ 545000: uvm_test_top.dma350_env_h.predict_intent_h [PEEK_REG] st == UVM_IS_OK  val = f0400: intent chot bang BACKDOOR peek
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(708) @ 545000: uvm_test_top.dma350_env_h.predict_intent_h [PEEK_REG] st == UVM_IS_OK  val = 10001: intent chot bang BACKDOOR peek
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(708) @ 545000: uvm_test_top.dma350_env_h.predict_intent_h [PEEK_REG] st == UVM_IS_OK  val = 0: intent chot bang BACKDOOR peek
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(708) @ 545000: uvm_test_top.dma350_env_h.predict_intent_h [PEEK_REG] st == UVM_IS_OK  val = 0: intent chot bang BACKDOOR peek
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(708) @ 545000: uvm_test_top.dma350_env_h.predict_intent_h [PEEK_REG] st == UVM_IS_OK  val = 0: intent chot bang BACKDOOR peek
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(708) @ 545000: uvm_test_top.dma350_env_h.predict_intent_h [PEEK_REG] st == UVM_IS_OK  val = 0: intent chot bang BACKDOOR peek
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(708) @ 545000: uvm_test_top.dma350_env_h.predict_intent_h [PEEK_REG] st == UVM_IS_OK  val = 0: intent chot bang BACKDOOR peek
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(708) @ 545000: uvm_test_top.dma350_env_h.predict_intent_h [PEEK_REG] st == UVM_IS_OK  val = 0: intent chot bang BACKDOOR peek
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(708) @ 545000: uvm_test_top.dma350_env_h.predict_intent_h [PEEK_REG] st == UVM_IS_OK  val = 0: intent chot bang BACKDOOR peek
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(708) @ 545000: uvm_test_top.dma350_env_h.predict_intent_h [PEEK_REG] st == UVM_IS_OK  val = 0: intent chot bang BACKDOOR peek
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(708) @ 545000: uvm_test_top.dma350_env_h.predict_intent_h [PEEK_REG] st == UVM_IS_OK  val = 0: intent chot bang BACKDOOR peek
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(708) @ 545000: uvm_test_top.dma350_env_h.predict_intent_h [PEEK_REG] st == UVM_IS_OK  val = 2001: intent chot bang BACKDOOR peek
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(708) @ 545000: uvm_test_top.dma350_env_h.predict_intent_h [PEEK_REG] st == UVM_IS_OK  val = 0: intent chot bang BACKDOOR peek
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(645) @ 545000: uvm_test_top.dma350_env_h.predict_intent_h [PRED_INT] CH0 ACTIVATE (INTENT_SRC_APB) -> intent: src=0x10000 des=0x20000 SRCXSIZE=8 DESXSIZE=8 xtype=1 ext_cmd=0 srctrig_sel=0
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/checker_dma_operation.sv(697) @ 545000: uvm_test_top.dma350_env_h.checker_dma_operation_h [CMDTRIG] CH0 chot intent (INTENT_SRC_APB): src=0x10000 des=0x20000 desxsize=8 desysize=0 restart=0 link=1
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(757) @ 545000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_INTENT] CH0 nhan intent tu predictor: src=0x10000 des=0x20000 SRCXSIZE=8 DESXSIZE=8 xtype=1
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(974) @ 545000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_PRED_SIDE] CH0        RD addr=0x10000 win=[0x10000,0x10020) bytes=32 maxbeats=16(MAXBURSTLEN+1=16) fifo/2=32B  INCR cache=0x0 inner=0x0 prot=0b010 domain=0 id=0 chid=0 (beatsize lenh=4B, khong doi chieu)
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(974) @ 545000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_PRED_SIDE] CH0        WR addr=0x20000 win=[0x20000,0x20020) bytes=32 maxbeats=16(MAXBURSTLEN+1=16) fifo/2=32B  INCR cache=0x0 inner=0x0 prot=0b010 domain=0 id=0 chid=0 (beatsize lenh=4B, khong doi chieu)
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1052) @ 545000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_PRED_LINK] CH0 lenh hien tai CO command-link -> du doan fetch ke tiep:  CMD-LINK addr=0x2000 win=[0x2000,0x2040) bytes=64 maxbeats=16(MAXBURSTLEN+1=16) fifo/2=64B  INCR cache=0x0 inner=0x0 prot=0b101 domain=0 id=0 chid=0 (beatsize lenh=4B, khong doi chieu)
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1176) @ 545000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_PRED] CH0 du doan CA LENH: rd=32 byte, wr=32 byte
 #   RD:        RD addr=0x10000 win=[0x10000,0x10020) bytes=32 maxbeats=16(MAXBURSTLEN+1=16) fifo/2=32B  INCR cache=0x0 inner=0x0 prot=0b010 domain=0 id=0 chid=0 (beatsize lenh=4B, khong doi chieu)
 #   WR:        WR addr=0x20000 win=[0x20000,0x20020) bytes=32 maxbeats=16(MAXBURSTLEN+1=16) fifo/2=32B  INCR cache=0x0 inner=0x0 prot=0b010 domain=0 id=0 chid=0 (beatsize lenh=4B, khong doi chieu)
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(560) @ 565000: uvm_test_top.dma350_env_h.dma350_scb_h [process_status_control] process_status_control
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 575000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00000000 Write=0 slverr=0 
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1636) @ 575000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00000000 backdoor=0x00000000
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hdl_top/slave_agent_bfm/axi5_slave_driver_bfm.sv(365) @ 605000: reporter [SLAVE_DRIVER_RADDR_PHASE] outside of arvalid
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hdl_top/slave_agent_bfm/axi5_slave_driver_bfm.sv(174) @ 605000: reporter [SLAVE_DRIVER_WADDR_PHASE] outside of awvalid
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 605000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001000 Data=00000001 Write=0 slverr=0 
@@ -1587,7 +1610,7 @@
 #  ----------------------------------------------------------------------------------
 # Name                               Type           Size  Value                     
 # ----------------------------------------------------------------------------------
-# axi5_slave_tx                      axi5_slave_tx  -     @8622                     
+# axi5_slave_tx                      axi5_slave_tx  -     @8626                     
 #   tx_type                          string         4     READ                      
 #   arid                             string         6     ARID_0                    
 #   araddr                           integral       32    'h10000                   
@@ -1643,7 +1666,7 @@
 #  -------------------------------------------------------------------------------------
 # Name                                 Type           Size  Value                      
 # -------------------------------------------------------------------------------------
-# axi5_slave_tx                        axi5_slave_tx  -     @8648                      
+# axi5_slave_tx                        axi5_slave_tx  -     @8652                      
 #   tx_type                            string         5     WRITE                      
 #   awid                               string         6     AWID_0                     
 #   awaddr                             integral       32    'h20000                    
@@ -1707,7 +1730,7 @@
 # ------------------------------------------------------------------------------------------
 # Name                               Type           Size  Value                             
 # ------------------------------------------------------------------------------------------
-# req                                axi5_slave_tx  -     @8661                             
+# req                                axi5_slave_tx  -     @8665                             
 #   tx_type                          string         4     READ                              
 #   arid                             string         7     ARID_14                           
 #   araddr                           integral       32    'h96c781f2                        
@@ -1756,7 +1779,7 @@
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hdl_top/slave_agent_bfm/axi5_slave_driver_bfm.sv(429) @ 635000: reporter [STRUCT_SLAVE_READ_DATA] AFTER :: READ_CHANNEL_PACKET 
 # '{arid:7, araddr:1273639990, arlen:7, arsize:5, arburst:0, arcache:3, arprot:1, arqos:0, arregion:0, aruser:0, arlock:0, ardomain:3, arinner:8, archid:8, archidvalid:1, arcmdlink:1, rid:0, rdata:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 1964983925, 671228268, 545520957, 1773443625, 3633729427, 3963823787, 3672480832, 2853981116}, rresp:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, ruser:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, rpoison:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, rlast:0, rvalid:0, tx_type:0, wait_count_read_address_channel:0, wait_count_read_data_channel:0, outstanding_read_tx:0, no_of_wait_states:0}
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 635000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00000000 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1632) @ 635000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00000000 backdoor=0x00000000
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1636) @ 635000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00000000 backdoor=0x00000000
 # RDATA_INDSDE:ab
 # RDATA_INDSDE:26
 # RDATA_INDSDE:43
@@ -1798,14 +1821,14 @@
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hdl_top/slave_agent_bfm/axi5_slave_driver_bfm.sv(429) @ 695000: reporter [STRUCT_SLAVE_READ_DATA] AFTER :: READ_CHANNEL_PACKET 
 # '{arid:7, araddr:1273639990, arlen:7, arsize:5, arburst:0, arcache:3, arprot:1, arqos:0, arregion:0, aruser:0, arlock:0, ardomain:3, arinner:8, archid:8, archidvalid:1, arcmdlink:1, rid:0, rdata:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 1964983925, 671228268, 545520957, 1773443625, 3633729427, 3963823787, 3672480832, 2853981116}, rresp:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, ruser:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, rpoison:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, rlast:0, rvalid:0, tx_type:0, wait_count_read_address_channel:0, wait_count_read_data_channel:0, outstanding_read_tx:0, no_of_wait_states:0}
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 695000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00000000 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1632) @ 695000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00000000 backdoor=0x00000000
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1636) @ 695000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00000000 backdoor=0x00000000
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hvl_top/slave/axi5_slave_driver_proxy.sv(583) @ 705000: uvm_test_top.dma350_env_h.axi5_agt_slv0_h.axi5_slave_drv_proxy_h [DEBUG_SLAVE_RDATA_PROXY] AFTER :: READ CHANNEL PACKET 
 #  '{arid:7, araddr:1273639990, arlen:7, arsize:5, arburst:0, arcache:3, arprot:1, arqos:0, arregion:0, aruser:0, arlock:0, ardomain:3, arinner:8, archid:8, archidvalid:1, arcmdlink:1, rid:0, rdata:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 1964983925, 671228268, 545520957, 1773443625, 3633729427, 3963823787, 3672480832, 2853981116}, rresp:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, ruser:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, rpoison:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, rlast:0, rvalid:0, tx_type:0, wait_count_read_address_channel:0, wait_count_read_data_channel:0, outstanding_read_tx:0, no_of_wait_states:0}
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hvl_top/slave/axi5_slave_driver_proxy.sv(681) @ 705000: uvm_test_top.dma350_env_h.axi5_agt_slv0_h.axi5_slave_drv_proxy_h [DEBUG_SLAVE_RDATA_PROXY] AFTER :: COMBINED READ CHANNEL PACKET 
 # ----------------------------------------------------------------------------------
 # Name                               Type           Size  Value                     
 # ----------------------------------------------------------------------------------
-# axi5_slave_tx                      axi5_slave_tx  -     @8734                     
+# axi5_slave_tx                      axi5_slave_tx  -     @8738                     
 #   tx_type                          string         4     READ                      
 #   arid                             string         6     ARID_0                    
 #   araddr                           integral       32    'h10000                   
@@ -1909,7 +1932,7 @@
 #  ----------------------------------------------------------------------------------
 # Name                                 Type           Size  Value                   
 # ----------------------------------------------------------------------------------
-# axi5_slave_tx                        axi5_slave_tx  -     @8782                   
+# axi5_slave_tx                        axi5_slave_tx  -     @8786                   
 #   tx_type                            string         5     WRITE                   
 #   awid                               string         6     AWID_0                  
 #   awaddr                             integral       32    'h0                     
@@ -1968,7 +1991,7 @@
 #  -------------------------------------------------------------------------------------
 # Name                                 Type           Size  Value                      
 # -------------------------------------------------------------------------------------
-# axi5_slave_tx                        axi5_slave_tx  -     @8665                      
+# axi5_slave_tx                        axi5_slave_tx  -     @8669                      
 #   tx_type                            string         5     WRITE                      
 #   awid                               string         6     AWID_0                     
 #   awaddr                             integral       32    'h20000                    
@@ -2027,7 +2050,7 @@
 #  -------------------------------------------------------------------------------------
 # Name                                 Type           Size  Value                      
 # -------------------------------------------------------------------------------------
-# axi5_slave_tx                        axi5_slave_tx  -     @8665                      
+# axi5_slave_tx                        axi5_slave_tx  -     @8669                      
 #   tx_type                            string         5     WRITE                      
 #   awid                               string         6     AWID_0                     
 #   awaddr                             integral       32    'h20000                    
@@ -2077,7 +2100,7 @@
 #  -------------------------------------------------------------------------------------
 # Name                                 Type           Size  Value                      
 # -------------------------------------------------------------------------------------
-# axi5_slave_tx                        axi5_slave_tx  -     @8786                      
+# axi5_slave_tx                        axi5_slave_tx  -     @8790                      
 #   tx_type                            string         5     WRITE                      
 #   awid                               string         6     AWID_0                     
 #   awaddr                             integral       32    'h20000                    
@@ -2118,11 +2141,11 @@
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hdl_top/slave_agent_bfm/axi5_slave_driver_bfm.sv(277) @ 755000: reporter [slave_wlast] slave_wlast = 1 ,a=0
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hdl_top/slave_agent_bfm/axi5_slave_driver_bfm.sv(281) @ 755000: reporter [AXI5_SLAVE_DRIVER_BFM] OUTSIDE WRITE DATA CHANNEL
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 755000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00000000 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1536) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_PROCESS_W] Packet received from axi5_slave_write_data is 
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1540) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_PROCESS_W] Packet received from axi5_slave_write_data is 
 #  -------------------------------------------------------------------------------------
 # Name                                 Type           Size  Value                      
 # -------------------------------------------------------------------------------------
-# axi5_slave_tx                        axi5_slave_tx  -     @8786                      
+# axi5_slave_tx                        axi5_slave_tx  -     @8790                      
 #   tx_type                            string         5     WRITE                      
 #   awid                               string         6     AWID_0                     
 #   awaddr                             integral       32    'h20000                    
@@ -2159,116 +2182,116 @@
 #   transfer_type                      string         14    BLOCKING_WRITE             
 # -------------------------------------------------------------------------------------
 # 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1540) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter beat written to des           0
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1544) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter beat written to des           0
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x20000 : exp=0xbc act=0xbc
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                     1
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                     1
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x20001 : exp=0x4b act=0x4b
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                     2
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                     2
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x20002 : exp=0x1c act=0x1c
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                     3
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                     3
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x20003 : exp=0xaa act=0xaa
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                     4
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1540) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter beat written to des           1
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                     4
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1544) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter beat written to des           1
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x20004 : exp=0x40 act=0x40
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                     5
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                     5
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x20005 : exp=0x9c act=0x9c
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                     6
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                     6
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x20006 : exp=0xe5 act=0xe5
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                     7
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                     7
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x20007 : exp=0xda act=0xda
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                     8
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1540) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter beat written to des           2
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                     8
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1544) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter beat written to des           2
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x20008 : exp=0xab act=0xab
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                     9
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                     9
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x20009 : exp=0x26 act=0x26
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    10
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    10
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x2000a : exp=0x43 act=0x43
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    11
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    11
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x2000b : exp=0xec act=0xec
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    12
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1540) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter beat written to des           3
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    12
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1544) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter beat written to des           3
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x2000c : exp=0x93 act=0x93
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    13
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    13
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x2000d : exp=0x4f act=0x4f
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    14
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    14
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x2000e : exp=0x96 act=0x96
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    15
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    15
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x2000f : exp=0xd8 act=0xd8
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    16
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1540) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter beat written to des           4
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    16
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1544) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter beat written to des           4
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x20010 : exp=0x29 act=0x29
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    17
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    17
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x20011 : exp=0x9a act=0x9a
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    18
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    18
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x20012 : exp=0xb4 act=0xb4
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    19
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    19
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x20013 : exp=0x69 act=0x69
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    20
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1540) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter beat written to des           5
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    20
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1544) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter beat written to des           5
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x20014 : exp=0x3d act=0x3d
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    21
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    21
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x20015 : exp=0xfd act=0xfd
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    22
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    22
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x20016 : exp=0x83 act=0x83
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    23
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    23
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x20017 : exp=0x20 act=0x20
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    24
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1540) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter beat written to des           6
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    24
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1544) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter beat written to des           6
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x20018 : exp=0x6c act=0x6c
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    25
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    25
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x20019 : exp=0x21 act=0x21
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    26
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    26
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x2001a : exp=0x02 act=0x02
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    27
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    27
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x2001b : exp=0x28 act=0x28
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    28
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1540) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter beat written to des           7
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    28
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1544) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter beat written to des           7
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x2001c : exp=0x75 act=0x75
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    29
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    29
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x2001d : exp=0x46 act=0x46
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    30
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    30
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x2001e : exp=0x1f act=0x1f
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    31
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    31
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(281) @ 755000: reporter [DMA_REF_MM] set actual value for write
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(293) @ 755000: reporter [SB_DATA] DATA MATCH @0x2001f : exp=0x75 act=0x75
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1559) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    32
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1632) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00000000 backdoor=0x00000000
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1563) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_W] Counter byte written to des                    32
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1636) @ 755000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00000000 backdoor=0x00000000
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hvl_top/slave/axi5_slave_driver_proxy.sv(273) @ 765000: uvm_test_top.dma350_env_h.axi5_agt_slv0_h.axi5_slave_drv_proxy_h [DEBUG_SLAVE_WDATA_PROXY_TO_CLASS] AFTER TO CLASS :: Received req packet 
 #  -------------------------------------------------------------------------------------
 # Name                                 Type           Size  Value                      
 # -------------------------------------------------------------------------------------
-# axi5_slave_tx                        axi5_slave_tx  -     @8822                      
+# axi5_slave_tx                        axi5_slave_tx  -     @8826                      
 #   tx_type                            string         5     WRITE                      
 #   awid                               string         6     AWID_3                     
 #   awaddr                             integral       32    'hf7583041                 
@@ -2331,7 +2354,7 @@
 #  -------------------------------------------------------------------------------------
 # Name                                 Type           Size  Value                      
 # -------------------------------------------------------------------------------------
-# axi5_slave_tx                        axi5_slave_tx  -     @8830                      
+# axi5_slave_tx                        axi5_slave_tx  -     @8834                      
 #   tx_type                            string         5     WRITE                      
 #   awid                               string         6     AWID_3                     
 #   awaddr                             integral       32    'hf7583041                 
@@ -2396,7 +2419,7 @@
 # -------------------------------------------------------------------------------------
 # Name                                 Type           Size  Value                      
 # -------------------------------------------------------------------------------------
-# axi5_slave_tx                        axi5_slave_tx  -     @8834                      
+# axi5_slave_tx                        axi5_slave_tx  -     @8838                      
 #   tx_type                            string         5     WRITE                      
 #   awid                               string         6     AWID_0                     
 #   awaddr                             integral       32    'h20000                    
@@ -2429,7 +2452,7 @@
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 785000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001000 Data=00000001 Write=0 slverr=0 
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hvl_top/slave/axi5_slave_driver_proxy.sv(315) @ 785000: uvm_test_top.dma350_env_h.axi5_agt_slv0_h.axi5_slave_drv_proxy_h [SLAVE_AGENT] Waiting for write_data_chanel finish
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 815000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00000000 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1632) @ 815000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00000000 backdoor=0x00000000
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1636) @ 815000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00000000 backdoor=0x00000000
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hdl_top/slave_agent_bfm/axi5_slave_driver_bfm.sv(365) @ 825000: reporter [SLAVE_DRIVER_RADDR_PHASE] outside of arvalid
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../IRQ/dma_irq_monitor.sv(96) @ 825000: uvm_test_top.dma350_env_h.dma_irq_agent_h.monitor [dma_irq_monitor#(NUM_CHANNELS, SECEXT_PRESENT)] IRQ change: irq_channel=0x1 comb_nonsec=0 comb_sec=0 sec_viol_err=0 active_ch=0 @825000
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hvl_top/slave/axi5_slave_monitor_proxy.sv(311) @ 835000: uvm_test_top.dma350_env_h.axi5_agt_slv0_h.axi5_slave_mon_proxy_h [SLAVE_MONITOR] Address read is within 4kb boundary.
@@ -2443,7 +2466,7 @@
 #  -----------------------------------------------------------------------------------
 # Name                               Type           Size  Value                      
 # -----------------------------------------------------------------------------------
-# axi5_slave_tx                      axi5_slave_tx  -     @8890                      
+# axi5_slave_tx                      axi5_slave_tx  -     @8894                      
 #   tx_type                          string         4     READ                       
 #   arid                             string         6     ARID_0                     
 #   araddr                           integral       32    'h2000                     
@@ -2486,7 +2509,9 @@
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hvl_top/slave/axi5_slave_driver_proxy.sv(691) @ 835000: uvm_test_top.dma350_env_h.axi5_agt_slv0_h.axi5_slave_drv_proxy_h [SLAVE_STATUS_CHECK] AFTER_FORK_JOIN_ANY:: SLAVE_RDATA_CHANNEL_STATUS = 
 #  RUNNING
 # UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1251) @ 835000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_ATTR] CH0 AR CMD-LINK PROT=0b100 nhung du doan 0b101 (instr/nonsec/priv)
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1382) @ 835000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_AR_LINK] CH0 AR command-link @0x2000 len=15 size=2 (du doan  CMD-LINK addr=0x2000 win=[0x2000,0x2084) bytes=132 maxbeats=33(MAXBURSTLEN+1=33) fifo/2=1024B  INCR cache=0x0 inner=0x0 prot=0b101 domain=0 id=0 chid=0 (beatsize lenh=4B, khong doi chieu))
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1382) @ 835000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_AR_LINK] CH0 AR command-link @0x2000 len=15 size=2 (du doan  CMD-LINK addr=0x2000 win=[0x2000,0x2040) bytes=64 maxbeats=16(MAXBURSTLEN+1=16) fifo/2=64B  INCR cache=0x0 inner=0x0 prot=0b101 domain=0 id=0 chid=0 (beatsize lenh=4B, khong doi chieu))
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1386) @ 835000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_AR_LINK] CH0 R seen_bytes=64, total_bytes =64
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1389) @ 835000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_AR_LINK] CH0 link_armed = 0, axi read command appear in bus
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hvl_top/slave/axi5_slave_driver_proxy.sv(556) @ 835000: uvm_test_top.dma350_env_h.axi5_agt_slv0_h.axi5_slave_drv_proxy_h [DEBUG_SLAVE_RDATA_PROXY] BEFORE :: READ CHANNEL PACKET 
 #  '{arid:0, araddr:4019190782, arlen:5, arsize:1, arburst:2, arcache:3, arprot:4, arqos:1, arregion:0, aruser:0, arlock:1, ardomain:1, arinner:0, archid:15, archidvalid:0, arcmdlink:0, rid:0, rdata:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2990133774, 2740070126, 2105849258, 2946617855, 1408046665, 1323526782}, rresp:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, ruser:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, rpoison:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, rlast:0, rvalid:0, tx_type:0, wait_count_read_address_channel:0, wait_count_read_data_channel:0, outstanding_read_tx:0, no_of_wait_states:0}
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hvl_top/slave/axi5_slave_driver_proxy.sv(578) @ 835000: uvm_test_top.dma350_env_h.axi5_agt_slv0_h.axi5_slave_drv_proxy_h [DMA350_CMDLINK] descriptor fetch @0x2000 len=15 size=2 -> tra du lieu da nap
@@ -2518,7 +2543,7 @@
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hdl_top/slave_agent_bfm/axi5_slave_driver_bfm.sv(429) @ 875000: reporter [STRUCT_SLAVE_READ_DATA] AFTER :: READ_CHANNEL_PACKET 
 # '{arid:0, araddr:4019190782, arlen:5, arsize:1, arburst:2, arcache:3, arprot:4, arqos:1, arregion:0, aruser:0, arlock:1, ardomain:1, arinner:0, archid:15, archidvalid:0, arcmdlink:0, rid:0, rdata:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8257, 2097664, 1073741832}, rresp:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, ruser:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, rpoison:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, rlast:0, rvalid:0, tx_type:0, wait_count_read_address_channel:0, wait_count_read_data_channel:0, outstanding_read_tx:0, no_of_wait_states:0}
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 875000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00010001 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1632) @ 875000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1636) @ 875000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
 # RDATA_INDSDE:0
 # RDATA_INDSDE:0
 # RDATA_INDSDE:0
@@ -2557,7 +2582,7 @@
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hdl_top/slave_agent_bfm/axi5_slave_driver_bfm.sv(429) @ 935000: reporter [STRUCT_SLAVE_READ_DATA] AFTER :: READ_CHANNEL_PACKET 
 # '{arid:0, araddr:4019190782, arlen:5, arsize:1, arburst:2, arcache:3, arprot:4, arqos:1, arregion:0, aruser:0, arlock:1, ardomain:1, arinner:0, archid:15, archidvalid:0, arcmdlink:0, rid:0, rdata:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8257, 2097664, 1073741832}, rresp:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, ruser:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, rpoison:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, rlast:0, rvalid:0, tx_type:0, wait_count_read_address_channel:0, wait_count_read_data_channel:0, outstanding_read_tx:0, no_of_wait_states:0}
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 935000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00010001 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1632) @ 935000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1636) @ 935000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
 # RDATA_INDSDE:0
 # RDATA_INDSDE:0
 # RDATA_INDSDE:0
@@ -2596,14 +2621,14 @@
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hdl_top/slave_agent_bfm/axi5_slave_driver_bfm.sv(429) @ 995000: reporter [STRUCT_SLAVE_READ_DATA] AFTER :: READ_CHANNEL_PACKET 
 # '{arid:0, araddr:4019190782, arlen:5, arsize:1, arburst:2, arcache:3, arprot:4, arqos:1, arregion:0, aruser:0, arlock:1, ardomain:1, arinner:0, archid:15, archidvalid:0, arcmdlink:0, rid:0, rdata:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8257, 2097664, 1073741832}, rresp:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, ruser:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, rpoison:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, rlast:0, rvalid:0, tx_type:0, wait_count_read_address_channel:0, wait_count_read_data_channel:0, outstanding_read_tx:0, no_of_wait_states:0}
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 995000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00010001 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1632) @ 995000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1636) @ 995000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hvl_top/slave/axi5_slave_driver_proxy.sv(583) @ 1005000: uvm_test_top.dma350_env_h.axi5_agt_slv0_h.axi5_slave_drv_proxy_h [DEBUG_SLAVE_RDATA_PROXY] AFTER :: READ CHANNEL PACKET 
 #  '{arid:0, araddr:4019190782, arlen:5, arsize:1, arburst:2, arcache:3, arprot:4, arqos:1, arregion:0, aruser:0, arlock:1, ardomain:1, arinner:0, archid:15, archidvalid:0, arcmdlink:0, rid:0, rdata:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8257, 2097664, 1073741832}, rresp:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, ruser:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, rpoison:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, rlast:0, rvalid:0, tx_type:0, wait_count_read_address_channel:0, wait_count_read_data_channel:0, outstanding_read_tx:0, no_of_wait_states:0}
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hvl_top/slave/axi5_slave_driver_proxy.sv(681) @ 1005000: uvm_test_top.dma350_env_h.axi5_agt_slv0_h.axi5_slave_drv_proxy_h [DEBUG_SLAVE_RDATA_PROXY] AFTER :: COMBINED READ CHANNEL PACKET 
 # -----------------------------------------------------------------------------------
 # Name                               Type           Size  Value                      
 # -----------------------------------------------------------------------------------
-# axi5_slave_tx                      axi5_slave_tx  -     @9027                      
+# axi5_slave_tx                      axi5_slave_tx  -     @9031                      
 #   tx_type                          string         4     READ                       
 #   arid                             string         6     ARID_0                     
 #   araddr                           integral       32    'h2000                     
@@ -2641,31 +2666,45 @@
 # -----------------------------------------------------------------------------------
 # 
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hvl_top/slave/axi5_slave_monitor_proxy.sv(368) @ 1005000: uvm_test_top.dma350_env_h.axi5_agt_slv0_h.axi5_slave_mon_proxy_h [SLAVE_MONITOR] Beat count is equal to burst length.
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(645) @ 1005000: uvm_test_top.dma350_env_h.predict_intent_h [PRED_INT] CH0 ACTIVATE (INTENT_SRC_DESC) -> intent: src=0x10000 des=0x20000 SRCXSIZE=8 DESXSIZE=8 xtype=1 ext_cmd=0 srctrig_sel=0
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/checker_dma_operation.sv(697) @ 1005000: uvm_test_top.dma350_env_h.checker_dma_operation_h [CMDTRIG] CH0 chot intent (INTENT_SRC_DESC): src=0x10000 des=0x20000 desxsize=8 desysize=0 restart=0 link=1
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(757) @ 1005000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_INTENT] CH0 nhan intent tu predictor: src=0x10000 des=0x20000 SRCXSIZE=8 DESXSIZE=8 xtype=1
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(974) @ 1005000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_PRED_SIDE] CH0        RD addr=0x10000 win=[0x10000,0x10008) bytes=8 maxbeats=16(MAXBURSTLEN+1=16) fifo/2=32B  INCR cache=0x0 inner=0x0 prot=0b010 domain=0 id=0 chid=0 (beatsize lenh=1B, khong doi chieu)
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(974) @ 1005000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_PRED_SIDE] CH0        WR addr=0x20000 win=[0x20000,0x20008) bytes=8 maxbeats=16(MAXBURSTLEN+1=16) fifo/2=32B  INCR cache=0x0 inner=0x0 prot=0b010 domain=0 id=0 chid=0 (beatsize lenh=1B, khong doi chieu)
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1052) @ 1005000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_PRED_LINK] CH0 lenh hien tai CO command-link -> du doan fetch ke tiep:  CMD-LINK addr=0x2000 win=[0x2000,0x2040) bytes=64 maxbeats=16(MAXBURSTLEN+1=16) fifo/2=64B  INCR cache=0x0 inner=0x0 prot=0b101 domain=0 id=0 chid=0 (beatsize lenh=4B, khong doi chieu)
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1176) @ 1005000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_PRED] CH0 du doan CA LENH: rd=8 byte, wr=8 byte
+#   RD:        RD addr=0x10000 win=[0x10000,0x10008) bytes=8 maxbeats=16(MAXBURSTLEN+1=16) fifo/2=32B  INCR cache=0x0 inner=0x0 prot=0b010 domain=0 id=0 chid=0 (beatsize lenh=1B, khong doi chieu)
+#   WR:        WR addr=0x20000 win=[0x20000,0x20008) bytes=8 maxbeats=16(MAXBURSTLEN+1=16) fifo/2=32B  INCR cache=0x0 inner=0x0 prot=0b010 domain=0 id=0 chid=0 (beatsize lenh=1B, khong doi chieu)
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1025000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001000 Data=00000001 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(366) @ 1045000: uvm_test_top.dma350_env_h.predict_intent_h [PRED_INT] CH0 ACTIVATE -> intent: src=0x10020 des=0x20020 SRCXSIZE=0 DESXSIZE=0 xtype=1 ext_cmd=0 srctrig_sel=0
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/cmd_trigger_checker.sv(623) @ 1045000: uvm_test_top.dma350_env_h.cmd_trig_chk_h [CMDTRIG] CH0 chot intent (COMMAND-LINK): src=0x10020 des=0x20020 desxsize=0 desysize=0 restart=0 link=1
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(757) @ 1045000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_INTENT] CH0 nhan intent tu predictor: src=0x10020 des=0x20020 SRCXSIZE=0 DESXSIZE=0 xtype=1
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1052) @ 1045000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_PRED_LINK] CH0 lenh hien tai CO command-link -> du doan fetch ke tiep:  CMD-LINK addr=0x2000 win=[0x2000,0x2084) bytes=132 maxbeats=33(MAXBURSTLEN+1=33) fifo/2=1024B  INCR cache=0x0 inner=0x0 prot=0b101 domain=0 id=0 chid=0 (beatsize lenh=4B, khong doi chieu)
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1176) @ 1045000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_PRED] CH0 du doan CA LENH: rd=0 byte, wr=0 byte
-#   RD: (khong co)
-#   WR: (khong co)
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1055000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00010001 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1632) @ 1055000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1636) @ 1055000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1694) @ 1055000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 STAT_DONE nhung moi ghi 0/8 byte
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1723) @ 1055000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 DONE SRCADDR peek=0x10020 exp=0x10008
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1085000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001000 Data=00000001 Write=0 slverr=0 
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1115000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00010001 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1632) @ 1115000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1636) @ 1115000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1694) @ 1115000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 STAT_DONE nhung moi ghi 0/8 byte
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1723) @ 1115000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 DONE SRCADDR peek=0x10020 exp=0x10008
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1145000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001000 Data=00000001 Write=0 slverr=0 
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1175000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00010001 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1632) @ 1175000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1636) @ 1175000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1694) @ 1175000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 STAT_DONE nhung moi ghi 0/8 byte
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1723) @ 1175000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 DONE SRCADDR peek=0x10020 exp=0x10008
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1205000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001000 Data=00000001 Write=0 slverr=0 
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1235000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00010001 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1632) @ 1235000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1636) @ 1235000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1694) @ 1235000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 STAT_DONE nhung moi ghi 0/8 byte
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1723) @ 1235000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 DONE SRCADDR peek=0x10020 exp=0x10008
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1265000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001000 Data=00000001 Write=0 slverr=0 
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1295000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00010001 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1632) @ 1295000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1636) @ 1295000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1694) @ 1295000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 STAT_DONE nhung moi ghi 0/8 byte
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1723) @ 1295000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 DONE SRCADDR peek=0x10020 exp=0x10008
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1325000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001000 Data=00000001 Write=0 slverr=0 
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1355000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00010001 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1632) @ 1355000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1636) @ 1355000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1694) @ 1355000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 STAT_DONE nhung moi ghi 0/8 byte
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1723) @ 1355000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 DONE SRCADDR peek=0x10020 exp=0x10008
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1385000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001000 Data=00000001 Write=0 slverr=0 
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hdl_top/slave_agent_bfm/axi5_slave_driver_bfm.sv(365) @ 1405000: reporter [SLAVE_DRIVER_RADDR_PHASE] outside of arvalid
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hvl_top/slave/axi5_slave_monitor_proxy.sv(311) @ 1415000: uvm_test_top.dma350_env_h.axi5_agt_slv0_h.axi5_slave_mon_proxy_h [SLAVE_MONITOR] Address read is within 4kb boundary.
@@ -2679,7 +2718,7 @@
 #  -----------------------------------------------------------------------------------
 # Name                               Type           Size  Value                      
 # -----------------------------------------------------------------------------------
-# axi5_slave_tx                      axi5_slave_tx  -     @9421                      
+# axi5_slave_tx                      axi5_slave_tx  -     @9339                      
 #   tx_type                          string         4     READ                       
 #   arid                             string         6     ARID_0                     
 #   araddr                           integral       32    'h2040                     
@@ -2722,12 +2761,17 @@
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hvl_top/slave/axi5_slave_driver_proxy.sv(691) @ 1415000: uvm_test_top.dma350_env_h.axi5_agt_slv0_h.axi5_slave_drv_proxy_h [SLAVE_STATUS_CHECK] AFTER_FORK_JOIN_ANY:: SLAVE_RDATA_CHANNEL_STATUS = 
 #  RUNNING
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1415000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00010001 Write=0 slverr=0 
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1202) @ 1415000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_ATTR] CH0 AR CMD-LINK addr=0x2040 ngoai cua so lenh [0x2000,0x2040)
 # UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1251) @ 1415000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_ATTR] CH0 AR CMD-LINK PROT=0b100 nhung du doan 0b101 (instr/nonsec/priv)
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1382) @ 1415000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_AR_LINK] CH0 AR command-link @0x2040 len=15 size=2 (du doan  CMD-LINK addr=0x2000 win=[0x2000,0x2084) bytes=132 maxbeats=33(MAXBURSTLEN+1=33) fifo/2=1024B  INCR cache=0x0 inner=0x0 prot=0b101 domain=0 id=0 chid=0 (beatsize lenh=4B, khong doi chieu))
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1382) @ 1415000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_AR_LINK] CH0 AR command-link @0x2040 len=15 size=2 (du doan  CMD-LINK addr=0x2000 win=[0x2000,0x2040) bytes=64 maxbeats=16(MAXBURSTLEN+1=16) fifo/2=64B  INCR cache=0x0 inner=0x0 prot=0b101 domain=0 id=0 chid=0 (beatsize lenh=4B, khong doi chieu))
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1386) @ 1415000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_AR_LINK] CH0 R seen_bytes=64, total_bytes =64
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1389) @ 1415000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_AR_LINK] CH0 link_armed = 0, axi read command appear in bus
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hvl_top/slave/axi5_slave_driver_proxy.sv(556) @ 1415000: uvm_test_top.dma350_env_h.axi5_agt_slv0_h.axi5_slave_drv_proxy_h [DEBUG_SLAVE_RDATA_PROXY] BEFORE :: READ CHANNEL PACKET 
 #  '{arid:7, araddr:4277745366, arlen:8, arsize:5, arburst:1, arcache:0, arprot:7, arqos:1, arregion:0, aruser:0, arlock:0, ardomain:0, arinner:15, archid:12, archidvalid:0, arcmdlink:1, rid:0, rdata:'{0, 0, 0, 0, 0, 0, 0, 0, 3405189520, 2922087263, 3000347743, 3785159345, 2231297143, 3476468191, 3003016119, 2594913155, 169091114}, rresp:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, ruser:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, rpoison:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, rlast:0, rvalid:0, tx_type:0, wait_count_read_address_channel:0, wait_count_read_data_channel:0, outstanding_read_tx:0, no_of_wait_states:0}
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hvl_top/slave/axi5_slave_driver_proxy.sv(578) @ 1415000: uvm_test_top.dma350_env_h.axi5_agt_slv0_h.axi5_slave_drv_proxy_h [DMA350_CMDLINK] descriptor fetch @0x2040 len=15 size=2 -> tra du lieu da nap
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1632) @ 1415000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1636) @ 1415000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1694) @ 1415000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 STAT_DONE nhung moi ghi 0/8 byte
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1723) @ 1415000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 DONE SRCADDR peek=0x10020 exp=0x10008
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hvl_top/slave/axi5_slave_driver_proxy.sv(482) @ 1415000: uvm_test_top.dma350_env_h.axi5_agt_slv0_h.axi5_slave_drv_proxy_h [axi5_slave_driver_proxy] from_read_class:: struct_cfg =  
 #  0 0 0 0 0 0 0 0 0 ONLY_WRITE_RESP_OUT_OF_ORDER
 # RDATA_INDSDE:8
@@ -2768,7 +2812,9 @@
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hdl_top/slave_agent_bfm/axi5_slave_driver_bfm.sv(429) @ 1475000: reporter [STRUCT_SLAVE_READ_DATA] AFTER :: READ_CHANNEL_PACKET 
 # '{arid:7, araddr:4277745366, arlen:8, arsize:5, arburst:1, arcache:0, arprot:7, arqos:1, arregion:0, aruser:0, arlock:0, ardomain:0, arinner:15, archid:12, archidvalid:0, arcmdlink:1, rid:0, rdata:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2097665, 1073741832}, rresp:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, ruser:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, rpoison:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, rlast:0, rvalid:0, tx_type:0, wait_count_read_address_channel:0, wait_count_read_data_channel:0, outstanding_read_tx:0, no_of_wait_states:0}
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1475000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00010001 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1632) @ 1475000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1636) @ 1475000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1694) @ 1475000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 STAT_DONE nhung moi ghi 0/8 byte
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1723) @ 1475000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 DONE SRCADDR peek=0x10020 exp=0x10008
 # RDATA_INDSDE:0
 # RDATA_INDSDE:0
 # RDATA_INDSDE:0
@@ -2807,7 +2853,9 @@
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hdl_top/slave_agent_bfm/axi5_slave_driver_bfm.sv(429) @ 1535000: reporter [STRUCT_SLAVE_READ_DATA] AFTER :: READ_CHANNEL_PACKET 
 # '{arid:7, araddr:4277745366, arlen:8, arsize:5, arburst:1, arcache:0, arprot:7, arqos:1, arregion:0, aruser:0, arlock:0, ardomain:0, arinner:15, archid:12, archidvalid:0, arcmdlink:1, rid:0, rdata:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2097665, 1073741832}, rresp:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, ruser:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, rpoison:'{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, rlast:0, rvalid:0, tx_type:0, wait_count_read_address_channel:0, wait_count_read_data_channel:0, outstanding_read_tx:0, no_of_wait_states:0}
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1535000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00010001 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1632) @ 1535000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1636) @ 1535000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1694) @ 1535000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 STAT_DONE nhung moi ghi 0/8 byte
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1723) @ 1535000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 DONE SRCADDR peek=0x10020 exp=0x10008
 # RDATA_INDSDE:0
 # RDATA_INDSDE:0
 # RDATA_INDSDE:0
@@ -2839,7 +2887,7 @@
 # -----------------------------------------------------------------------------------
 # Name                               Type           Size  Value                      
 # -----------------------------------------------------------------------------------
-# axi5_slave_tx                      axi5_slave_tx  -     @9554                      
+# axi5_slave_tx                      axi5_slave_tx  -     @9472                      
 #   tx_type                          string         4     READ                       
 #   arid                             string         6     ARID_0                     
 #   araddr                           integral       32    'h2040                     
@@ -2877,33 +2925,48 @@
 # -----------------------------------------------------------------------------------
 # 
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hvl_top/slave/axi5_slave_monitor_proxy.sv(368) @ 1585000: uvm_test_top.dma350_env_h.axi5_agt_slv0_h.axi5_slave_mon_proxy_h [SLAVE_MONITOR] Beat count is equal to burst length.
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(645) @ 1585000: uvm_test_top.dma350_env_h.predict_intent_h [PRED_INT] CH0 ACTIVATE (INTENT_SRC_DESC) -> intent: src=0x10000 des=0x20000 SRCXSIZE=8 DESXSIZE=8 xtype=1 ext_cmd=0 srctrig_sel=0
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/checker_dma_operation.sv(697) @ 1585000: uvm_test_top.dma350_env_h.checker_dma_operation_h [CMDTRIG] CH0 chot intent (INTENT_SRC_DESC): src=0x10000 des=0x20000 desxsize=8 desysize=0 restart=0 link=0
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(757) @ 1585000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_INTENT] CH0 nhan intent tu predictor: src=0x10000 des=0x20000 SRCXSIZE=8 DESXSIZE=8 xtype=1
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(974) @ 1585000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_PRED_SIDE] CH0        RD addr=0x10000 win=[0x10000,0x10010) bytes=16 maxbeats=16(MAXBURSTLEN+1=16) fifo/2=32B  INCR cache=0x0 inner=0x0 prot=0b010 domain=0 id=0 chid=0 (beatsize lenh=2B, khong doi chieu)
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(974) @ 1585000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_PRED_SIDE] CH0        WR addr=0x20000 win=[0x20000,0x20010) bytes=16 maxbeats=16(MAXBURSTLEN+1=16) fifo/2=32B  INCR cache=0x0 inner=0x0 prot=0b010 domain=0 id=0 chid=0 (beatsize lenh=2B, khong doi chieu)
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1176) @ 1585000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_PRED] CH0 du doan CA LENH: rd=16 byte, wr=16 byte
+#   RD:        RD addr=0x10000 win=[0x10000,0x10010) bytes=16 maxbeats=16(MAXBURSTLEN+1=16) fifo/2=32B  INCR cache=0x0 inner=0x0 prot=0b010 domain=0 id=0 chid=0 (beatsize lenh=2B, khong doi chieu)
+#   WR:        WR addr=0x20000 win=[0x20000,0x20010) bytes=16 maxbeats=16(MAXBURSTLEN+1=16) fifo/2=32B  INCR cache=0x0 inner=0x0 prot=0b010 domain=0 id=0 chid=0 (beatsize lenh=2B, khong doi chieu)
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1595000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00010001 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1632) @ 1595000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1636) @ 1595000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1694) @ 1595000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 STAT_DONE nhung moi ghi 0/16 byte
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1723) @ 1595000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 DONE SRCADDR peek=0x10020 exp=0x10010
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1625000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001000 Data=00000001 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(366) @ 1625000: uvm_test_top.dma350_env_h.predict_intent_h [PRED_INT] CH0 ACTIVATE -> intent: src=0x10020 des=0x20020 SRCXSIZE=0 DESXSIZE=0 xtype=1 ext_cmd=0 srctrig_sel=0
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/cmd_trigger_checker.sv(623) @ 1625000: uvm_test_top.dma350_env_h.cmd_trig_chk_h [CMDTRIG] CH0 chot intent (COMMAND-LINK): src=0x10020 des=0x20020 desxsize=0 desysize=0 restart=0 link=1
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(757) @ 1625000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_INTENT] CH0 nhan intent tu predictor: src=0x10020 des=0x20020 SRCXSIZE=0 DESXSIZE=0 xtype=1
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1052) @ 1625000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_PRED_LINK] CH0 lenh hien tai CO command-link -> du doan fetch ke tiep:  CMD-LINK addr=0x2040 win=[0x2040,0x20c4) bytes=132 maxbeats=33(MAXBURSTLEN+1=33) fifo/2=1024B  INCR cache=0x0 inner=0x0 prot=0b101 domain=0 id=0 chid=0 (beatsize lenh=4B, khong doi chieu)
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1176) @ 1625000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_PRED] CH0 du doan CA LENH: rd=0 byte, wr=0 byte
-#   RD: (khong co)
-#   WR: (khong co)
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1655000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00010001 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1632) @ 1655000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1636) @ 1655000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1694) @ 1655000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 STAT_DONE nhung moi ghi 0/16 byte
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1723) @ 1655000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 DONE SRCADDR peek=0x10020 exp=0x10010
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1685000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001000 Data=00000001 Write=0 slverr=0 
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1715000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00010001 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1632) @ 1715000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1636) @ 1715000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1694) @ 1715000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 STAT_DONE nhung moi ghi 0/16 byte
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1723) @ 1715000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 DONE SRCADDR peek=0x10020 exp=0x10010
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1745000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001000 Data=00000001 Write=0 slverr=0 
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1775000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00010001 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1632) @ 1775000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1636) @ 1775000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1694) @ 1775000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 STAT_DONE nhung moi ghi 0/16 byte
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1723) @ 1775000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 DONE SRCADDR peek=0x10020 exp=0x10010
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1805000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001000 Data=00000001 Write=0 slverr=0 
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1835000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00010001 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1632) @ 1835000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1636) @ 1835000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1694) @ 1835000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 STAT_DONE nhung moi ghi 0/16 byte
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1723) @ 1835000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 DONE SRCADDR peek=0x10020 exp=0x10010
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1865000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001000 Data=00000001 Write=0 slverr=0 
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1895000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00010001 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1632) @ 1895000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1636) @ 1895000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1694) @ 1895000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 STAT_DONE nhung moi ghi 0/16 byte
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1723) @ 1895000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 DONE SRCADDR peek=0x10020 exp=0x10010
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1925000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001000 Data=00000001 Write=0 slverr=0 
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1955000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00010001 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1632) @ 1955000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1636) @ 1955000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1694) @ 1955000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 STAT_DONE nhung moi ghi 0/16 byte
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1723) @ 1955000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 DONE SRCADDR peek=0x10020 exp=0x10010
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../Status_Control/dma350_sc_agent/components/dma350_sc_monitor.sv(147) @ 1975000: uvm_test_top.dma350_env_h.dma350_sc_agent_h.mon [dma350_sc_monitor] stop_ack_sec rose | 
 #   CH0[S ] en=1 err=0 stop=0 pause=0 priv=1 gpo=0x0
 #   CH1[NS] en=0 err=0 stop=0 pause=0 priv=1 gpo=0x0
@@ -2925,7 +2988,9 @@
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 1985000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001000 Data=00000001 Write=0 slverr=0 
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(560) @ 1985000: uvm_test_top.dma350_env_h.dma350_scb_h [process_status_control] process_status_control
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 2015000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001004 Data=00010001 Write=0 slverr=0 
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1632) @ 2015000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1636) @ 2015000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_FDBD] CH0 STATUS (status-flag reg, bo qua so FD/BD): frontdoor=0x00010001 backdoor=0x00010000
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1694) @ 2015000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 STAT_DONE nhung moi ghi 0/16 byte
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1723) @ 2015000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_STATUS] CH0 DONE SRCADDR peek=0x10020 exp=0x10010
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../APB4/vip2vip/apb_master/tb/apb_monitor_master.sv(41) @ 2045000: uvm_test_top.dma350_env_h.apb_agent_mst_h.apb_mon_m [MON_MASTER] Captured: Addr=00001000 Data=00000000 Write=0 slverr=0 
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/test/vseq/1d/cmdlink/dma350_vseq_cmdlink_base.sv(196) @ 2045000: uvm_test_top.dma350_env_h.v_seqr_h@@vseq [dma350_vseq_cmdlink_apb_ctrl_only] CH0 command-link chain DONE (CH_CMD=0x00000000 STATUS=0x00010001)
 # UVM_INFO @ 3045000: run [OBJTN_TRC] Object uvm_test_top dropped 1 objection(s) (dma350_cmdlink_apb_ctrl_only_test): count=0  total=0
@@ -2946,7 +3011,8 @@
 # UVM_INFO verilog_src/uvm-1.1d/src/base/uvm_phase.svh(1381) @ 3045000: reporter [PH/TRC/DONE] Phase 'common.extract' (id=100) Completed phase
 # UVM_INFO verilog_src/uvm-1.1d/src/base/uvm_phase.svh(1403) @ 3045000: reporter [PH/TRC/SCHEDULED] Phase 'common.check' (id=112) Scheduled from phase common.extract
 # UVM_INFO verilog_src/uvm-1.1d/src/base/uvm_phase.svh(1124) @ 3045000: reporter [PH/TRC/STRT] Phase 'common.check' (id=112) Starting phase
-# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1909) @ 3045000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_EOT] CH0 da du doan mot lan fetch command-link ( CMD-LINK addr=0x2040 win=[0x2040,0x20c4) bytes=132 maxbeats=33(MAXBURSTLEN+1=33) fifo/2=1024B  INCR cache=0x0 inner=0x0 prot=0b101 domain=0 id=0 chid=0 (beatsize lenh=4B, khong doi chieu)) nhung KHONG thay AR arcmdlink tren bus
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1904) @ 3045000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_EOT] CH0 read-side moi thay 0/16 byte tren bus (0 burst)
+# UVM_ERROR /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1909) @ 3045000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_EOT] CH0 write-side moi thay 0/16 byte tren bus (0 burst)
 # UVM_INFO verilog_src/uvm-1.1d/src/base/uvm_phase.svh(1381) @ 3045000: reporter [PH/TRC/DONE] Phase 'common.check' (id=112) Completed phase
 # UVM_INFO verilog_src/uvm-1.1d/src/base/uvm_phase.svh(1403) @ 3045000: reporter [PH/TRC/SCHEDULED] Phase 'common.report' (id=124) Scheduled from phase common.check
 # UVM_INFO verilog_src/uvm-1.1d/src/base/uvm_phase.svh(1124) @ 3045000: reporter [PH/TRC/STRT] Phase 'common.report' (id=124) Starting phase
@@ -2954,18 +3020,18 @@
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AMBA_AXI5/src/hvl_top/slave/axi5_slave_coverage.sv(231) @ 3045000: uvm_test_top.dma350_env_h.axi5_agt_slv0_h.axi5_slave_cov_h [axi5_slave_coverage] AXI5 Slave Agent Coverage = 24.29 %
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AXIS/tb/agent_master/axis_master_monitor.sv(66) @ 3045000: uvm_test_top.dma350_env_h.axis_agent_in_h.mon [axis_master_monitor] [MST] observed 0 transfers
 # UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../AXIS/tb/agent_slave/axis_slave_monitor.sv(66) @ 3045000: uvm_test_top.dma350_env_h.axis_slave_agent_in_h.mon [axis_slave_monitor] [SLV] observed 0 transfers
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/cmd_trigger_checker.sv(734) @ 3045000: uvm_test_top.dma350_env_h.cmd_trig_chk_h [CMDTRIG] cmd_trigger_checker: 3 lenh chot intent, 0 AR du lieu duoc soi, 0 vi pham flow, 0 lan TREO (timeout)
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1926) @ 3045000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_REPORT] 
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/checker_dma_operation.sv(808) @ 3045000: uvm_test_top.dma350_env_h.checker_dma_operation_h [CMDTRIG] checker_dma_operation: 3 lenh chot intent, 0 AR du lieu duoc soi, 0 vi pham flow, 0 lan TREO (timeout)
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_scoreboard.sv(1930) @ 3045000: uvm_test_top.dma350_env_h.dma350_scb_h [SB_REPORT] 
 # ==================== DMA SCOREBOARD SUMMARY ====================
 #   commands observed      : 3
 #   data bytes matched     : 32
 #   data byte mismatches   : 0
-#   AR/AW addr mismatches  : 2
-#   status/counter mism.   : 0
+#   AR/AW addr mismatches  : 3
+#   status/counter mism.   : 34
 #   trigger errors         : 0
 #   LPI/power errors       : 0
 # ===============================================================
-# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(447) @ 3045000: uvm_test_top.dma350_env_h.predict_intent_h [PRED_INT] tong so lan chot intent (activation): 3
+# UVM_INFO /home/dnguyen/DMA350/DMA350/testbench/../testbench/dma_env/dma350_predict_intent.sv(742) @ 3045000: uvm_test_top.dma350_env_h.predict_intent_h [PRED_INT] tong so lan chot intent (activation): 3
 # UVM_INFO verilog_src/uvm-1.1d/src/base/uvm_phase.svh(1381) @ 3045000: reporter [PH/TRC/DONE] Phase 'common.report' (id=124) Completed phase
 # UVM_INFO verilog_src/uvm-1.1d/src/base/uvm_phase.svh(1403) @ 3045000: reporter [PH/TRC/SCHEDULED] Phase 'common.final' (id=136) Scheduled from phase common.report
 # UVM_INFO verilog_src/uvm-1.1d/src/base/uvm_phase.svh(1124) @ 3045000: reporter [PH/TRC/STRT] Phase 'common.final' (id=136) Starting phase
@@ -2977,9 +3043,9 @@
 # --- UVM Report Summary ---
 # 
 # ** Report counts by severity
-# UVM_INFO :  526
+# UVM_INFO :  556
 # UVM_WARNING :    0
-# UVM_ERROR :    3
+# UVM_ERROR :   39
 # UVM_FATAL :    0
 # ** Report counts by id
 # [AXI5_SLAVE_DRIVER_BFM]    11
@@ -2994,6 +3060,7 @@
 # [DRV]     3
 # [MON_MASTER]    63
 # [OBJTN_TRC]     6
+# [PEEK_REG]    23
 # [PH/TRC/DONE]    28
 # [PH/TRC/SCHEDULED]    27
 # [PH/TRC/SKIP]    12
@@ -3003,18 +3070,19 @@
 # [Questa UVM]     2
 # [REG_BKDR]     1
 # [RNTST]     1
-# [SB_AR_LINK]     2
-# [SB_ATTR]     2
+# [SB_AR_LINK]     6
+# [SB_ATTR]     3
 # [SB_BD]     1
 # [SB_DATA]    32
-# [SB_EOT]     1
+# [SB_EOT]     2
 # [SB_FDBD]    25
 # [SB_INTENT]     3
 # [SB_PRED]     3
-# [SB_PRED_LINK]     3
-# [SB_PRED_SIDE]     2
+# [SB_PRED_LINK]     2
+# [SB_PRED_SIDE]     6
 # [SB_PROCESS_W]     1
 # [SB_REPORT]     1
+# [SB_STATUS]    34
 # [SB_W]    40
 # [SLAVE_AGENT]     8
 # [SLAVE_DEBUG]     8
@@ -3045,5 +3113,5 @@
 # ** Note: $finish    : /cadtools/mentor/Questa_10.6b/questasim/linux/../verilog_src/uvm-1.1d/src/base/uvm_root.svh(430)
 #    Time: 3045 ns  Iteration: 54  Instance: /dma350_tb_top
 # Saving coverage database on exit...
-# End time: 20:57:03 on Aug 01,2026, Elapsed time: 0:00:04
+# End time: 23:05:32 on Aug 03,2026, Elapsed time: 0:00:05
 # Errors: 1, Warnings: 77
