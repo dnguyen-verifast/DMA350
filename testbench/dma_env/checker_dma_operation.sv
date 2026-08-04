@@ -133,7 +133,7 @@ class checker_dma_operation extends uvm_component;
 
         // create event dectect chanel enable/ disable
         foreach(ch_enabled_event[i]) begin
-            ch_enabled_event[i] = uvm_event_pool::get_global($sformats("ch_enabled_event[%0d]",i));
+            ch_enabled_event[i] = uvm_event_pool::get_global($sformatf("ch_enabled_event[%0d]",i));
         end
 
     //    dma350_predict_intent_h = dma350_predict_intent::type_id::create("dma350_predict_intent_h");
