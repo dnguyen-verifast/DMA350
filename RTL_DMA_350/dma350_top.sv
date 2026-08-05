@@ -814,7 +814,8 @@ module dma350_top import dma350_pkg::*; #(
     always_ff @(posedge clk) begin
         if (!resetn) begin
             scfg_chsec_q  <= {{(NC-1){1'b0}}, (SECEXT_PRESENT!=0)};  // ch0 Secure
-            scfg_chpriv_q <= {NC{1'b1}};                            // all Privileged
+            scfg_chpriv_q <= {NC{1'b0}};   // all Unprivileged at reset (SCFG_CHPRIV
+                                           // default = 0; AxPROT[0] tracks CHPRIV)
             scfg_lock_q   <= 1'b0;
             scfg_intren_q <= 1'b0;
             scfg_rsptype_q<= 1'b0;

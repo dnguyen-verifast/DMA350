@@ -1250,7 +1250,7 @@ class dma350_scoreboard extends uvm_scoreboard;
         // ---- thuoc tinh bo nho / bao mat ----------------------------------
         if (prot !== e.prot) begin
             `uvm_error("SB_ATTR", $sformatf(
-              "%s PROT=0b%03b nhung du doan 0b%03b (instr/nonsec/priv)",
+              "%s PROT=0b%03b nhung du doan 0b%03b",
               pfx, prot, e.prot))
             err_addr_mismatch++;
         end
