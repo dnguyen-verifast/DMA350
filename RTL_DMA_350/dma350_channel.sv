@@ -150,6 +150,7 @@ module dma350_channel import dma350_pkg::*; #(
     output reg  [1:0]                m_axi_arburst,
     output reg                       m_axi_arvalid,
     output wire                      m_axi_arcmdlink,
+    output wire                      link_boot,        // cmd-link fetch is a BOOT fetch
     input  wire                      m_axi_arready,
     input  wire [DATA_WIDTH-1:0]     m_axi_rdata,
     input  wire [1:0]                m_axi_rresp,
@@ -445,6 +446,10 @@ module dma350_channel import dma350_pkg::*; #(
     wire b_fire  = m_axi_bvalid  & m_axi_bready;
 
     assign m_axi_arcmdlink = link_rd_active;
+    // distinguish a BOOT descriptor fetch (uses boot tie-off attributes) from a
+    // linkaddr command-link fetch (uses this command's LINKATTR register).
+    reg  boot_fetch_q;
+    assign link_boot = boot_fetch_q;
 
     // Pause stops issuing NEW AR/AW bursts (handled in the FSM); in-flight data
     // beats are allowed to drain so AXI VALID is never dropped mid-handshake.
@@ -699,6 +704,7 @@ module dma350_channel import dma350_pkg::*; #(
             src_ack_tgt<=0;  des_ack_tgt<=0;
             src_ack_wait<=0; des_ack_wait<=0;
             fc_unit_s<=9'd1; fc_unit_d<=9'd1;
+            boot_fetch_q<=0;
             empty_q<=0; disable_req<=0;
         end else begin
             fsm_done<=0; fsm_stopped<=0; fsm_disabled<=0; fsm_error<=0;
@@ -880,6 +886,7 @@ module dma350_channel import dma350_pkg::*; #(
                         ch_enabled<=1'b1; errinfo<=0;
                         link_fetch_addr<={boot_addr_i[ADDR_WIDTH-1:1],1'b0};
                         link_word_idx<=0; link_words_got<=0; link_hdr_err<=0;
+                        boot_fetch_q<=1'b1;             // boot fetch -> boot tie-off attrs
                         ds<=D_LINK_AR;
                     end else if (enablecmd && !clr_enablecmd && !stop_eff) begin
                         // !clr_enablecmd: the auto-clear of ENABLECMD lands one
@@ -1339,6 +1346,7 @@ module dma350_channel import dma350_pkg::*; #(
                     end else if (linkaddren) begin
                         link_fetch_addr <= {linkaddr[ADDR_WIDTH-1:1],1'b0};
                         link_word_idx<=0; link_words_got<=0; link_hdr_err<=0;
+                        boot_fetch_q<=1'b0;            // linkaddr fetch -> LINKATTR attrs
                         ds <= D_LINK_AR;
                     end else if (donepauseen) begin
                         ds <= D_DONEPAUSE;

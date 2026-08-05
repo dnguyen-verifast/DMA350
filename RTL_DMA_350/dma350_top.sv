@@ -337,6 +337,9 @@ module dma350_top import dma350_pkg::*; #(
     wire [3:0]   c_src_maxburstlen [NC], c_des_maxburstlen [NC];
     wire [2:0]   c_src_prot [NC], c_des_prot [NC];
     wire [1:0]   c_src_domain [NC], c_des_domain [NC];
+    wire [3:0]   c_link_cache [NC], c_link_inner [NC];   // CH_LINKATTR fetch attrs
+    wire [1:0]   c_link_domain [NC];
+    wire [NC-1:0] c_link_boot;                           // cmd-link fetch is boot
     wire [NC-1:0] c_srctrigin_en, c_destrigin_en, c_trigout_en;
     wire [7:0]   c_srctrigin_sel [NC], c_destrigin_sel [NC], c_trigout_sel [NC];
     wire [NC-1:0] c_srctrigin_hw, c_destrigin_hw, c_trigout_hw;
@@ -499,6 +502,8 @@ module dma350_top import dma350_pkg::*; #(
             .des_cache(c_des_cache[g]), .des_prot(c_des_prot[g]),
             .des_domain(c_des_domain[g]), .des_inner(c_des_inner[g]),
             .des_maxburstlen(c_des_maxburstlen[g]),
+            .link_cache(c_link_cache[g]), .link_inner(c_link_inner[g]),
+            .link_domain(c_link_domain[g]),
             .srctrigin_en(c_srctrigin_en[g]), .srctrigin_sel(c_srctrigin_sel[g]),
             .srctrigin_hw(c_srctrigin_hw[g]),
             .srctrigin_internal(c_srctrigin_internal[g]),
@@ -590,7 +595,8 @@ module dma350_top import dma350_pkg::*; #(
             .m_axi_araddr(c_araddr[g]), .m_axi_arlen(c_arlen[g]),
             .m_axi_arsize(c_arsize[g]), .m_axi_arburst(c_arburst[g]),
             .m_axi_arvalid(c_arvalid[g]),
-            .m_axi_arcmdlink(c_arcmdlink[g]), .m_axi_arready(c_arready[g]),
+            .m_axi_arcmdlink(c_arcmdlink[g]), .link_boot(c_link_boot[g]),
+            .m_axi_arready(c_arready[g]),
             .m_axi_rdata(mgr_vec[g] ? c_rdata_m1 : c_rdata_m0),
             .m_axi_rresp(mgr_vec[g] ? c_rresp_m1 : c_rresp_m0),
             .m_axi_rpoison(mgr_vec[g] ? c_rpoison_m1 : c_rpoison_m0),
@@ -632,13 +638,13 @@ module dma350_top import dma350_pkg::*; #(
         // set, otherwise the channel index is used.
         localparam int CHID_G = g;
         // ARPROT for a normal data read is TRANSCFG-derived. A command-link /
-        // boot fetch (TRM A-11 / image) instead takes fixed CHANNEL-context bits,
-        // NOT TRANSCFG (which is unloaded or stale during the fetch):
-        //   [2] instruction = 1  (command-link access)
-        //   [1] security     = channel NONSEC (0 = Secure for the CH0 boot)
-        //   [0] privilege    = 0 (unprivileged, per the boot AR table)
+        // boot fetch takes CHANNEL-context bits, NOT TRANSCFG (unloaded/stale
+        // during the fetch):
+        //   [2] instruction = 1            (command-link access)
+        //   [1] security    = channel NONSEC (0 = Secure for a Secure channel)
+        //   [0] privilege   = channel CHPRIV
         wire [2:0] c_arprot_eff = c_arcmdlink[g]
-                                ? {1'b1, c_nonsec[g], 1'b0}
+                                ? {1'b1, c_nonsec[g], c_priv[g]}
                                 : {1'b0,
                                    c_src_prot[g][1] | c_nonsec[g],
                                    c_src_prot[g][0] & c_priv[g]};
@@ -648,14 +654,23 @@ module dma350_top import dma350_pkg::*; #(
         wire [CHIDNZ-1:0] c_chid_eff = ((CHID_WIDTH > 0) && chidvld_q[g])
                                        ? chid_q[g][CHIDNZ-1:0]
                                        : CHID_G[CHIDNZ-1:0];
-        // A command-link / boot descriptor fetch (ARCMDLINK=1) has no configured
-        // TRANSCFG yet, so its memory attributes come from the boot tie-offs
-        // (TRM A-11): ARCACHE = boot_memattr[7:4] (outer), ARINNER =
-        // boot_memattr[3:0] (inner), ARDOMAIN = boot_shareattr. Normal data reads
-        // keep the channel's SRCTRANSCFG-derived attributes.
-        wire [3:0] c_ar_cache_eff  = c_arcmdlink[g] ? boot_memattr[7:4]   : c_src_cache[g];
-        wire [3:0] c_ar_inner_eff  = c_arcmdlink[g] ? boot_memattr[3:0]   : c_src_inner[g];
-        wire [1:0] c_ar_domain_eff = c_arcmdlink[g] ? boot_shareattr[1:0] : c_src_domain[g];
+        // Command-link / boot descriptor fetch memory attributes (ARCMDLINK=1):
+        //  * BOOT fetch (link_boot=1): no config yet -> boot tie-offs
+        //      ARCACHE=boot_memattr[7:4], ARINNER=boot_memattr[3:0],
+        //      ARDOMAIN=boot_shareattr.
+        //  * linkaddr fetch (link_boot=0): this command's CH_LINKATTR register
+        //      ARCACHE=LINKMEMATTRHI, ARINNER=LINKMEMATTRLO, ARDOMAIN=LINKSHAREATTR
+        //      (default 0 when the descriptor did not set LINKATTR).
+        // Normal data reads keep the channel's SRCTRANSCFG-derived attributes.
+        wire [3:0] c_ar_cache_eff  = c_arcmdlink[g]
+                                   ? (c_link_boot[g] ? boot_memattr[7:4] : c_link_cache[g])
+                                   : c_src_cache[g];
+        wire [3:0] c_ar_inner_eff  = c_arcmdlink[g]
+                                   ? (c_link_boot[g] ? boot_memattr[3:0] : c_link_inner[g])
+                                   : c_src_inner[g];
+        wire [1:0] c_ar_domain_eff = c_arcmdlink[g]
+                                   ? (c_link_boot[g] ? boot_shareattr[1:0] : c_link_domain[g])
+                                   : c_src_domain[g];
         assign c_aruser[g] = pack_aruser(c_arprot_eff, c_ar_cache_eff,
                                          c_ar_domain_eff, c_ar_inner_eff,
                                          c_chprio[g], c_chid_eff,

@@ -106,6 +106,12 @@ module dma350_ch_regs import dma350_pkg::*; #(
     output reg  [1:0]                 des_domain,
     output reg  [3:0]                 des_inner,
     output reg  [3:0]                 des_maxburstlen, // DESMAXBURSTLEN [19:16]
+    // CH_LINKATTR: memory attributes for a command-link (linkaddr) descriptor
+    // fetch. Same field layout as TRANSCFG; drives AxCACHE/INNER/DOMAIN of the
+    // command-link read (top level), separate from the boot tie-offs.
+    output reg  [3:0]                 link_cache,    // LINKMEMATTRHI (outer)
+    output reg  [3:0]                 link_inner,    // LINKMEMATTRLO (inner)
+    output reg  [1:0]                 link_domain,   // LINKSHAREATTR
 
     // trigger configuration (TRM 6.5.1.20-22 field layout: SEL=[7:0],
     // TYPE=[9:8] 00=SW/10=HW/11=internal, MODE=[11:10], BLKSIZE=[23:16])
@@ -241,6 +247,11 @@ module dma350_ch_regs import dma350_pkg::*; #(
         des_domain      = destranscfg_q[9:8];
         des_prot        = {1'b0, destranscfg_q[10], destranscfg_q[11]};
         des_maxburstlen = destranscfg_q[19:16];
+
+        // CH_LINKATTR (same field layout as TRANSCFG) -> command-link fetch attrs
+        link_cache      = linkattr_q[7:4];   // LINKMEMATTRHI (outer) -> AxCACHE
+        link_inner      = linkattr_q[3:0];   // LINKMEMATTRLO (inner) -> AxINNER
+        link_domain     = linkattr_q[9:8];   // LINKSHAREATTR        -> AxDOMAIN
 
         // trigger ENABLE from CH_CTRL (USE*); SEL/TYPE/MODE/BLKSIZE from the
         // trigger config registers (TRM 6.5.1.20-22 layout). Internal triggers
